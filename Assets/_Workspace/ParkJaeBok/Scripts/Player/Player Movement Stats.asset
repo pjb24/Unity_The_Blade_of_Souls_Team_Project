@@ -20,45 +20,84 @@ MonoBehaviour:
   AirDeceleration: 5
   WallJumpMoveAcceleration: 5
   WallJumpMoveDeceleration: 5
+  MaxRunSpeed: 20
+  DashDirectionMatchesSlopeDirection: 1
+  CanJumpOnMaxSlopes: 0
+  JumpFollowSlopesWhenHeadTouching: 1
+  DashFollowSlopesWhenHeadTouching: 1
+  MaxSlopeAngle: 70
+  SlideSpeed: 30
+  SpeedForRunOff: 15
+  MinAngleDeltaForRunOff: 30
+  MaxAngleDeltaForRunOff: 60
+  LandingGraceTime: 0.08
+  MaxSlopeCurveAccumulation: 30
+  SlopeCurveDecayRate: 90
+  MatchVisualsToSlope: 1
+  SlopeAveragedNormalsRayLength: 1
+  VisualRaycastWidth: 1.5
+  SlopeRotationSpeed: 20
+  MaxVisualRotatingAngle: 45
+  OnlyVaultWhenRunning: 1
+  VaultMinHeight: 0.25
+  StepMaxHeight: 1.15
+  StepDetectionRayWidth: 0.1
   GroundLayer:
     serializedVersion: 2
     m_Bits: 64
-  GroundDetectionRayLength: 0.02
-  HeadDetectionRayLength: 0.02
-  HeadWidth: 0.75
-  WallDetectionRayLength: 0.125
-  WallDetectionRayHeightMultiplier: 0.9
+  EnableCornerCorrection: 1
+  CornerCorrectionWidth: 0.3
+  HorizontalCornerCorrectionHeight: 0.6
+  HorizontalPushDownMaximum: 0.4
   JumpHeight: 6.5
   JumpHeightCompensationFactor: 1.054
   TimeTillJumpApex: 0.35
   GravityOnReleaseMultiplier: 2
   MaxFallSpeed: 26
-  NumberOfJumpsAllowed: 2
+  NumberOfAirJumpsAllowed: 1
   ResetJumpsOnWallSlide: 1
+  ResetAirJumpsOnMaxSlopeLand: 0
   TimeForUpwardsCancel: 0.027
   ApexThreshold: 0.97
   ApexHangTime: 0.075
   JumpBufferTime: 0.125
   JumpCoyoteTime: 0.1
+  CanWallSlideFacingAwayFromWall: 0
   WallSlideSpeed: 5
   WallSlideDecelerationSpeed: 50
+  MinAngleForWallSlide: 85
+  MaxAngleForWallSlide: 95
   WallJumpDirection: {x: -20, y: 6.5}
-  WallJumpPostBufferTime: 0.125
+  WallJumpCoyoteTime: 0.125
+  WallJumpInputBufferDistance: 0.3
   WallJumpGravityOnReleaseMultiplier: 1
+  DashFreezeTime: 0.05
+  DashCoyoteTime: 0.125
+  DashGravityOnReleaseMultiplier: 1
+  DashTimeForUpwardsCancel: 0.027
+  DebugTrackJumpHeight: 0
+  DebugShowIsGrounded: 0
+  DebugShowHeadRays: 0
+  DebugShowCornerCorrectionRays: 0
+  DebugShowWallHit: 0
+  DebugShowWallJumpBufferBox: 0
+  DebugShowDescendSlopeRay: 0
+  DebugShowSlopeNormal: 0
+  DebugShowDashAngle: 0
+  ExtraRayDebugDistance: 0.25
+  ShowWalkJumpArc: 0
+  ShowRunJumpArc: 0
+  StopOnCollision: 1
+  DrawRight: 1
+  ArcResolution: 20
+  VisualizationSteps: 90
+  CancelDashWhenYouHitCeiling: 0
   DashTime: 0.11
   DashSpeed: 40
   TimeBtwDashesOnGround: 0.225
   ResetDashOnWallSlide: 1
   NumberOfDashes: 2
-  DashDiagonallyBias: 0.4
-  DashGravityOnReleaseMultiplier: 1
-  DashTimeForUpwardsCancel: 0.027
-  DebugShowIsGroundedBox: 1
-  DebugShowHeadBumpBox: 1
-  DebugShowWallHitBox: 1
-  ShowWalkJumpArc: 1
-  ShowRunJumpArc: 1
-  StopOnCollision: 1
-  DrawRight: 1
-  ArcResolution: 20
-  VisualizationSteps: 90
+  DashBufferTime: 0.125
+  DashUpwardAngleTolerance: 22.5
+  DashDownwardAngleTolerance: 22.5
+  DashHorizontalAngleTolerance: 22.5

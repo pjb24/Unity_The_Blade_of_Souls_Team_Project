@@ -87,6 +87,8 @@ public class PlayerMovement : MonoBehaviour
     private float _slopeDashAngle;
     private Quaternion _targetRotation = Quaternion.identity;
 
+    public bool IsRunning => InputManager.RunIsHeld;
+
     private void Awake()
     {
         IsFacingRight = true;
@@ -248,6 +250,11 @@ public class PlayerMovement : MonoBehaviour
         {
             if ((Velocity.x > 0 && Controller.State.WallDirection == 1) || (Velocity.x < 0 && Controller.State.WallDirection == -1))
             {
+                if (Controller.IsStep(Velocity))
+                {
+                    return;
+                }
+
                 Velocity.x = 0f;
             }
         }
@@ -259,6 +266,8 @@ public class PlayerMovement : MonoBehaviour
         {
             if (Velocity.y > 0)
             {
+                bool isSlideableCeiling = MoveStats.JumpFollowSlopesWhenHeadTouching && Controller.State.CeilingAngle > 0;
+
                 if (!IsDashing)
                 {
                     Velocity.y = 0f;
@@ -325,7 +334,9 @@ public class PlayerMovement : MonoBehaviour
                 StopWallSlide();
                 ResetWallJumpValues();
                 ResetDashes();
-                ResetDashValues();
+                DashLand();
+
+                Controller.LastLandingTime = Time.time;
             }
 
             bool isStable = Controller.State.SlopeAngle <= MoveStats.MaxSlopeAngle;
@@ -445,7 +456,7 @@ public class PlayerMovement : MonoBehaviour
                 return;
             }
 
-            if ((_isFalling || _isJumping || _isWallJumping || _isWallSlideFalling || _isAirDashing || _isDashFastFalling || Controller.IsSliding) && _numberOfAirJumpsUsed < MoveStats.NumberOfAirJumpsAllowed)
+            if (!IsDashing && (_isFalling || _isJumping || _isWallJumping || _isWallSlideFalling || _isAirDashing || _isDashFastFalling || Controller.IsSliding) && _numberOfAirJumpsUsed < MoveStats.NumberOfAirJumpsAllowed)
             {
                 _isFastFalling = false;
                 InitiateJump(1);
@@ -483,6 +494,10 @@ public class PlayerMovement : MonoBehaviour
         _jumpBufferTimer = 0f;
         _numberOfAirJumpsUsed += numberOfAirJumpsUsed;
         Velocity.y = MoveStats.InitialJumpVelocity;
+
+        IsDashing = false;
+        _isAirDashing = false;
+        _isDashFastFalling = false;
 
         if (MoveStats.DebugTrackJumpHeight)
         {
@@ -576,68 +591,6 @@ public class PlayerMovement : MonoBehaviour
             }
 
             _fastFallTime += timeStep;
-        }
-    }
-
-    private void DrawJumpArc(float moveSpeed, Color gizmoColor)
-    {
-        Vector2 startPosition = new Vector2(_coll.bounds.center.x, _coll.bounds.min.y);
-        Vector2 previousPosition = startPosition;
-        float speed = 0f;
-        if (MoveStats.DrawRight)
-        {
-            speed = moveSpeed;
-        }
-        else
-        {
-            speed = -moveSpeed;
-        }
-        Vector2 velocity = new Vector2(speed, MoveStats.InitialJumpVelocity);
-
-        Gizmos.color = gizmoColor;
-
-        float timeStep = 2 * MoveStats.TimeTillJumpApex / MoveStats.ArcResolution; // time step for the simulation
-        //float totalTime = (2 * MoveStats.TimeTillJumpApex) + MoveStats.ApexHangTime; // total time of the arc including hang time
-
-        for (int i = 0; i < MoveStats.VisualizationSteps; i++)
-        {
-            float simulationTime = i * timeStep;
-            Vector2 displacement;
-            Vector2 drawPoint;
-
-            if (simulationTime < MoveStats.TimeTillJumpApex) // Ascending
-            {
-                displacement = velocity * simulationTime + 0.5f * new Vector2(0, MoveStats.Gravity) * simulationTime * simulationTime;
-            }
-            else if (simulationTime < MoveStats.TimeTillJumpApex + MoveStats.ApexHangTime) // Apex hang time
-            {
-                float apexTime = simulationTime - MoveStats.TimeTillJumpApex;
-                displacement = velocity * MoveStats.TimeTillJumpApex + 0.5f * new Vector2(0, MoveStats.Gravity) * MoveStats.TimeTillJumpApex * MoveStats.TimeTillJumpApex;
-                displacement += new Vector2(speed, 0) * apexTime; // No vertical movement during hang time
-            }
-            else // Descending
-            {
-                float descendTime = simulationTime - (MoveStats.TimeTillJumpApex + MoveStats.ApexHangTime);
-                displacement = velocity * MoveStats.TimeTillJumpApex + 0.5f * new Vector2(0, MoveStats.Gravity) * MoveStats.TimeTillJumpApex * MoveStats.TimeTillJumpApex;
-                displacement += new Vector2(speed, 0) * MoveStats.ApexHangTime; // Horizontal movement during hang time
-                displacement += new Vector2(speed, 0) * descendTime + 0.5f * new Vector2(0, MoveStats.Gravity) * descendTime * descendTime;
-            }
-
-            drawPoint = startPosition + displacement;
-
-            if (MoveStats.StopOnCollision)
-            {
-                RaycastHit2D hit = Physics2D.Raycast(previousPosition, drawPoint - previousPosition, Vector2.Distance(previousPosition, drawPoint), MoveStats.GroundLayer);
-                if (hit.collider != null)
-                {
-                    // If a hit is detected, stop drawing the arc at the hit point
-                    Gizmos.DrawLine(previousPosition, hit.point);
-                    break;
-                }
-            }
-
-            Gizmos.DrawLine(previousPosition, drawPoint);
-            previousPosition = drawPoint;
         }
     }
 
@@ -995,57 +948,47 @@ public class PlayerMovement : MonoBehaviour
 
     private void CalculateDashDirection()
     {
-        _dashDirection = _moveInput;
-        TurnCheck(_dashDirection);
+        Vector2 input = _moveInput;
+        //if (input.magnitude > 0.1f) input.Normalize();
 
-        Vector2 closestDirection = Vector2.zero;
-        float minDistance = Vector2.Distance(_dashDirection, MoveStats.DashDirections[0]);
+        TurnCheck(input);
 
-        for (int i = 0; i < MoveStats.DashDirections.Length; i++)
+        if (input == Vector2.zero)
         {
-            //skip if we hit it bang on
-            if (_dashDirection == MoveStats.DashDirections[i])
-            {
-                closestDirection = _dashDirection;
-                break;
-            }
-
-            float distance = Vector2.Distance(_dashDirection, MoveStats.DashDirections[i]);
-
-            //check if this is a diagonal direction and apply bias
-            bool isDiagonal = (Mathf.Abs(MoveStats.DashDirections[i].x) == 1 && Mathf.Abs(MoveStats.DashDirections[i].y) == 1);
-            if (isDiagonal)
-            {
-                distance -= MoveStats.DashDiagonallyBias;
-            }
-            else if (distance < minDistance)
-            {
-                minDistance = distance;
-                closestDirection = MoveStats.DashDirections[i];
-            }
+            _dashDirection = IsFacingRight ? Vector2.right : Vector2.left;
+            return;
         }
 
-        //handle direction with NO input
-        if (closestDirection == Vector2.zero)
+        bool isUpperHemisphere = input.y >= 0;
+        Vector2 verticalDirection = isUpperHemisphere ? Vector2.up : Vector2.down;
+
+        float verticalAngleTolerance = isUpperHemisphere ? MoveStats.DashUpwardAngleTolerance : MoveStats.DashDownwardAngleTolerance;
+        float verticalThreshold = Mathf.Cos(verticalAngleTolerance * Mathf.Deg2Rad);
+
+        float horizontalThreshold = Mathf.Cos(MoveStats.DashHorizontalAngleTolerance * Mathf.Deg2Rad);
+
+        Vector2 finalDir = Vector2.zero;
+
+        if (Vector2.Dot(input, verticalDirection) >= verticalThreshold)
         {
-            if (IsFacingRight)
-            {
-                closestDirection = Vector2.right;
-            }
-            else
-            {
-                closestDirection = Vector2.left;
-            }
+            finalDir = verticalDirection;
+        }
+        else if (Mathf.Abs(Vector2.Dot(input, Vector2.right)) >= horizontalThreshold)
+        {
+            finalDir = Mathf.Sign(input.x) == 1 ? Vector2.right : Vector2.left;
+        }
+        else
+        {
+            finalDir = new Vector2(Mathf.Sign(input.x), isUpperHemisphere ? 1 : -1).normalized;
         }
 
-        _dashIntentDirection = closestDirection;
+        _dashDirection = finalDir;
+        _dashIntentDirection = finalDir;
 
-        if (Controller.IsGrounded() && closestDirection.y < 0 && closestDirection.x != 0)
+        if (Controller.IsGrounded() && finalDir.y < 0 && finalDir.x != 0)
         {
-            closestDirection = new Vector2(Mathf.Sign(closestDirection.x), 0);
+            _dashDirection = new Vector2(Mathf.Sign(finalDir.x), 0);
         }
-
-        _dashDirection = closestDirection;
     }
 
     private void InitiateDash()
@@ -1221,6 +1164,15 @@ public class PlayerMovement : MonoBehaviour
         _isPerformingSlopeDash = false;
     }
 
+    private void DashLand()
+    {
+        _isDashFastFalling = false;
+        _dashOnGroundTimer = -0.01f;
+        _dashFastFallReleaseSpeed = 0f;
+        _dashFastFallTime = 0f;
+        _isPerformingSlopeDash = false;
+    }
+
     private void ResetDashes()
     {
         _numberOfDashesUsed = 0;
@@ -1323,6 +1275,68 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Visualization
+
+    private void DrawJumpArc(float moveSpeed, Color gizmoColor)
+    {
+        Vector2 startPosition = new Vector2(_coll.bounds.center.x, _coll.bounds.min.y);
+        Vector2 previousPosition = startPosition;
+        float speed = 0f;
+        if (MoveStats.DrawRight)
+        {
+            speed = moveSpeed;
+        }
+        else
+        {
+            speed = -moveSpeed;
+        }
+        Vector2 velocity = new Vector2(speed, MoveStats.InitialJumpVelocity);
+
+        Gizmos.color = gizmoColor;
+
+        float timeStep = 2 * MoveStats.TimeTillJumpApex / MoveStats.ArcResolution; // time step for the simulation
+        //float totalTime = (2 * MoveStats.TimeTillJumpApex) + MoveStats.ApexHangTime; // total time of the arc including hang time
+
+        for (int i = 0; i < MoveStats.VisualizationSteps; i++)
+        {
+            float simulationTime = i * timeStep;
+            Vector2 displacement;
+            Vector2 drawPoint;
+
+            if (simulationTime < MoveStats.TimeTillJumpApex) // Ascending
+            {
+                displacement = velocity * simulationTime + 0.5f * new Vector2(0, MoveStats.Gravity) * simulationTime * simulationTime;
+            }
+            else if (simulationTime < MoveStats.TimeTillJumpApex + MoveStats.ApexHangTime) // Apex hang time
+            {
+                float apexTime = simulationTime - MoveStats.TimeTillJumpApex;
+                displacement = velocity * MoveStats.TimeTillJumpApex + 0.5f * new Vector2(0, MoveStats.Gravity) * MoveStats.TimeTillJumpApex * MoveStats.TimeTillJumpApex;
+                displacement += new Vector2(speed, 0) * apexTime; // No vertical movement during hang time
+            }
+            else // Descending
+            {
+                float descendTime = simulationTime - (MoveStats.TimeTillJumpApex + MoveStats.ApexHangTime);
+                displacement = velocity * MoveStats.TimeTillJumpApex + 0.5f * new Vector2(0, MoveStats.Gravity) * MoveStats.TimeTillJumpApex * MoveStats.TimeTillJumpApex;
+                displacement += new Vector2(speed, 0) * MoveStats.ApexHangTime; // Horizontal movement during hang time
+                displacement += new Vector2(speed, 0) * descendTime + 0.5f * new Vector2(0, MoveStats.Gravity) * descendTime * descendTime;
+            }
+
+            drawPoint = startPosition + displacement;
+
+            if (MoveStats.StopOnCollision)
+            {
+                RaycastHit2D hit = Physics2D.Raycast(previousPosition, drawPoint - previousPosition, Vector2.Distance(previousPosition, drawPoint), MoveStats.GroundLayer);
+                if (hit.collider != null)
+                {
+                    // If a hit is detected, stop drawing the arc at the hit point
+                    Gizmos.DrawLine(previousPosition, hit.point);
+                    break;
+                }
+            }
+
+            Gizmos.DrawLine(previousPosition, drawPoint);
+            previousPosition = drawPoint;
+        }
+    }
 
     private void DrawDebugBox(Vector2 center, Vector2 size, Color color, float duration)
     {
