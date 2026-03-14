@@ -78,6 +78,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 _dashIntentDirection;
     private float _dashCoyoteTimer;
     private float _dashDelayTimer;
+    // 다음 대시를 허용하기까지 남은 쿨타임(초)이다.
+    private float _dashCooldownTimer;
 
     //head bump slide vars
     private float _debugMaxHeightY;
@@ -1035,6 +1037,9 @@ public class PlayerMovement : MonoBehaviour
 
     #region Dash
 
+    /// <summary>
+    /// 대시 입력 버퍼를 검사하고, 대시 가능 조건 및 쿨타임을 만족할 때 대시를 시작한다.
+    /// </summary>
     private void DashCheck()
     {
         if (_dashPressed)
@@ -1044,6 +1049,11 @@ public class PlayerMovement : MonoBehaviour
 
         if (_dashBufferTimer > 0f)
         {
+            if (_dashCooldownTimer > 0f)
+            {
+                return;
+            }
+
             //ground dash
             if ((Controller.IsGrounded() || _dashCoyoteTimer > 0f) && _dashOnGroundTimer < 0 && !IsDashing)
             {
@@ -1127,6 +1137,9 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 대시 상태를 시작하고, 이동/점프 상태를 정리한 뒤 대시 쿨타임을 설정한다.
+    /// </summary>
     private void InitiateDash()
     {
         _dashPressed = false;
@@ -1138,6 +1151,7 @@ public class PlayerMovement : MonoBehaviour
 
         _dashTimer = 0f;
         _dashOnGroundTimer = MoveStats.TimeBtwDashesOnGround;
+        _dashCooldownTimer = MoveStats.DashCooldown;
 
         ResetJumpValues();
         ResetWallJumpValues();
@@ -1347,6 +1361,7 @@ public class PlayerMovement : MonoBehaviour
         //dash timer
         HandleDashOnGroundTimer(timeStep);
         HandleDashCoyoteTimer(timeStep);
+        HandleDashCooldownTimer(timeStep);
 
         //dash buffer timer
         _dashBufferTimer -= timeStep;
@@ -1384,6 +1399,17 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             _dashCoyoteTimer -= timeStep;
+        }
+    }
+
+    /// <summary>
+    /// 대시 전역 쿨타임 타이머를 감소시킨다.
+    /// </summary>
+    private void HandleDashCooldownTimer(float timeStep)
+    {
+        if (_dashCooldownTimer > 0f)
+        {
+            _dashCooldownTimer -= timeStep;
         }
     }
 

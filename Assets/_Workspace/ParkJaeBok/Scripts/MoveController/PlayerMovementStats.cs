@@ -134,6 +134,8 @@ public class PlayerMovementStats : ScriptableObject
     public bool CancelDashWhenYouHitCeiling = false;
     [Range(0f, 1f)] public float DashTime = 0.11f;
     [Range(1f, 200f)] public float DashSpeed = 40f;
+    // 각 대시 시작 간격에 적용할 전역 쿨타임(초)이다.
+    [Range(0f, 5f)] public float DashCooldown = 1.5f;
     [Range(0f, 1f)] public float TimeBtwDashesOnGround = 0.225f;
     public bool ResetDashOnWallSlide = true;
     [Range(0, 5)] public int NumberOfDashes = 2;

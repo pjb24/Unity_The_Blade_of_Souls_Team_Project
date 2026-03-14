@@ -100,6 +100,7 @@ MonoBehaviour:
   CancelDashWhenYouHitCeiling: 0
   DashTime: 0.11
   DashSpeed: 40
+  DashCooldown: 1.5
   TimeBtwDashesOnGround: 0.225
   ResetDashOnWallSlide: 1
   NumberOfDashes: 2
