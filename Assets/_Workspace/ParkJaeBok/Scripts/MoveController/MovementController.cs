@@ -4,26 +4,27 @@ using System;
 
 public struct CollisionState
 {
-    public bool IsGrounded;
-    public bool WasGroundedLastFrame;
+    public bool IsGrounded; // 현재 프레임에 바닥을 밟고 있는지 여부
+    public bool WasGroundedLastFrame; // 이전 프레임에 바닥을 밟고 있었는지 여부
 
-    public bool IsAgainstWall;
-    public bool WasAgainstWallLastFrame;
-    public int WallDirection;
-    public float WallAngle;
+    public bool IsAgainstWall; // 현재 벽에 접촉 중인지 여부
+    public bool WasAgainstWallLastFrame; // 이전 프레임에 벽에 접촉했는지 여부
+    public int WallDirection; // 접촉한 벽의 방향(-1: 왼쪽, 1: 오른쪽)
+    public float WallAngle; // 벽의 기울기 각도
 
-    public bool IsOnSlope;
-    public float SlopeAngle;
-    public Vector2 SlopeNormal;
+    public bool IsOnSlope; // 경사면 위에 있는지 여부
+    public float SlopeAngle; // 경사면 각도
+    public Vector2 SlopeNormal; // 경사면의 법선 벡터
 
-    public bool IsAgainstSteepSlope;
+    public bool IsAgainstSteepSlope; // 너무 가파른 경사면에 닿았는지 여부
 
-    public bool IsHittingCeiling;
-    public float CeilingAngle;
-    public Vector2 CeilingNormal;
+    public bool IsHittingCeiling; // 천장과 충돌했는지 여부
+    public float CeilingAngle; // 천장의 기울기 각도
+    public Vector2 CeilingNormal; // 천장 충돌 지점의 법선 벡터
 
-    public Vector2 AveragedVisualNormal;
+    public Vector2 AveragedVisualNormal; // 시각 연출용 평균 지면 법선
 
+    /// <summary>충돌 상태를 다음 프레임 계산을 위해 초기화하고 이전 프레임 값을 보존합니다.</summary>
     public void Reset()
     {
         WasGroundedLastFrame = IsGrounded;
@@ -51,64 +52,65 @@ public struct CollisionState
 [RequireComponent(typeof(PlayerMovement))]
 public class MovementController : MonoBehaviour
 {
+    // 현재 미끄러지는 경사 상태인지 여부
     public bool IsSliding => _internalState.IsOnSlope && _internalState.SlopeAngle > _moveStats.MaxSlopeAngle;
 
-    public const float CollisionPadding = 0.015f;
-    private const float AIRBORNE_ANGLE_MEMORY = -999f;
+    public const float CollisionPadding = 0.015f; // 레이캐스트/충돌 계산 시 사용하는 여유 오차
+    private const float AIRBORNE_ANGLE_MEMORY = -999f; // 공중 상태를 표시하기 위한 특수 각도값
 
-    [Range(2, 100)] public int NumOfHorizontalRays = 4;
-    [Range(2, 100)] public int NumOfVerticalRays = 4;
-    public int NumOfVerticalRaysForVisualNormals = 9;
+    [Range(2, 100)] public int NumOfHorizontalRays = 4; // 수평 충돌 감지에 사용할 레이 개수
+    [Range(2, 100)] public int NumOfVerticalRays = 4; // 수직 충돌 감지에 사용할 레이 개수
+    public int NumOfVerticalRaysForVisualNormals = 9; // 시각용 평균 법선 계산에 사용할 수직 레이 개수
 
     [Header("Sensors")]
-    [SerializeField] private float _verticalProbeDistance = 0.1f;
-    [SerializeField] private float _horizontalProbeDistance = 0.1f;
+    [SerializeField] private float _verticalProbeDistance = 0.1f; // 상하 방향 프로브 기본 거리
+    [SerializeField] private float _horizontalProbeDistance = 0.1f; // 좌우 방향 프로브 기본 거리
 
     [Header("Safety")]
-    [SerializeField] private float _safetyGraceDuration = 0.08f;
+    [SerializeField] private float _safetyGraceDuration = 0.08f; // 지면 재검출 보정에 사용하는 유예 시간
 
-    private float _horizontalRaySpace;
-    private float _verticalRaySpace;
+    private float _horizontalRaySpace; // 수평 레이 간격
+    private float _verticalRaySpace; // 수직 레이 간격
 
-    private BoxCollider2D _coll;
-    public RaycastCorners RayCastCorners;
-    private PlayerMovementStats _moveStats;
+    private BoxCollider2D _coll; // 플레이어 충돌체 참조
+    public RaycastCorners RayCastCorners; // 현재 콜라이더 모서리 좌표
+    private PlayerMovementStats _moveStats; // 이동/충돌 관련 설정값
 
-    public Action OnCrush;
+    public Action OnCrush; // 외부 힘으로 압사될 때 호출되는 이벤트
 
-    public bool IsClimbingSlope { get; private set; }
-    public bool WasClimbingSlopeLastFrame { get; private set; }
-    public bool IsDescendingSlope { get; private set; }
-    public float SlopeAngle { get; private set; }
-    public Vector2 SlopeNormal { get; private set; }
-    public float LastLandingTime { get; set; }
-    public int FaceDirection { get; private set; }
+    public bool IsClimbingSlope { get; private set; } // 오르막 경사 처리 중인지 여부
+    public bool WasClimbingSlopeLastFrame { get; private set; } // 이전 프레임 오르막 처리 여부
+    public bool IsDescendingSlope { get; private set; } // 내리막 경사 처리 중인지 여부
+    public float SlopeAngle { get; private set; } // 현재 경사 각도 캐시
+    public Vector2 SlopeNormal { get; private set; } // 현재 경사 법선 캐시
+    public float LastLandingTime { get; set; } // 마지막 착지 시각
+    public int FaceDirection { get; private set; } // 바라보는 방향(-1/1)
 
-    private bool _isCornerCorrectingThisFrame;
-    private bool _isHorizontalCornerCorrectingThisFrame;
+    private bool _isCornerCorrectingThisFrame; // 헤드 코너 보정 적용 여부
+    private bool _isHorizontalCornerCorrectingThisFrame; // 수평 코너 보정 적용 여부
 
-    private float _rearCornerSlopeAngle;
-    private float _slopeCurveAccumulator;
+    private float _rearCornerSlopeAngle; // 후면 코너 기준 경사 기억값
+    private float _slopeCurveAccumulator; // 급격한 경사 변화 누적값
 
-    private bool _forceAirborneNextFrame;
+    private bool _forceAirborneNextFrame; // 다음 프레임에 강제로 비지면 상태 처리 여부
 
-    private PlayerMovement _playerMovement;
-    private Rigidbody2D _rb;
+    private PlayerMovement _playerMovement; // 상위 이동 로직 참조
+    private Rigidbody2D _rb; // 물리 위치 이동에 사용하는 리지드바디 참조
 
-    public CollisionState State { get; private set; }
-    private CollisionState _internalState;
+    public CollisionState State { get; private set; } // 외부에 공개되는 충돌 상태 스냅샷
+    private CollisionState _internalState; // 내부 계산용 충돌 상태
 
-    private float _lastSafetyGroundFixedTime = -Mathf.Infinity;
-    private RaycastHit2D _lastSafetyGroundHit;
+    private float _lastSafetyGroundFixedTime = -Mathf.Infinity; // 마지막 안전 지면 판정 시각
+    private RaycastHit2D _lastSafetyGroundHit; // 마지막 안전 지면 히트 정보
 
-    private bool _wasPushedThisFrame;
-    private Vector2 _pushAmountThisFrame;
+    private bool _wasPushedThisFrame; // 이번 프레임 외부 밀림 적용 여부
+    private Vector2 _pushAmountThisFrame; // 이번 프레임 외부 밀림 벡터
 
-    private Collider2D[] _overlapBuffer = new Collider2D[1];
+    private Collider2D[] _overlapBuffer = new Collider2D[1]; // Overlap 검사 재사용 버퍼
 
-    public IVelocityInheritable LastKnownPlatform;
-    public IVelocityInheritable PlatformFromLastFrame { get; private set; }
-    public bool IsOnPlatform => LastKnownPlatform != null;
+    public IVelocityInheritable LastKnownPlatform; // 현재/최근에 발을 딛은 플랫폼 참조
+    public IVelocityInheritable PlatformFromLastFrame { get; private set; } // 이전 프레임 플랫폼 참조
+    public bool IsOnPlatform => LastKnownPlatform != null; // 플랫폼 위에 있는지 여부
 
     public struct RaycastCorners
     {
@@ -118,6 +120,7 @@ public class MovementController : MonoBehaviour
         public Vector2 bottomRight;
     }
 
+    /// <summary>필수 컴포넌트 참조를 캐싱하고 초기 방향을 설정합니다.</summary>
     private void Awake()
     {
         _coll = GetComponent<BoxCollider2D>();
@@ -133,6 +136,7 @@ public class MovementController : MonoBehaviour
         CalculateRaySpacing();
     }
 
+    /// <summary>레이캐스트 센서를 갱신해 지면/벽/천장 충돌 상태를 수집합니다.</summary>
     public void PollSensors(Vector2 moveDelta)
     {
         _internalState.Reset();
@@ -191,6 +195,7 @@ public class MovementController : MonoBehaviour
         State = _internalState;
     }
 
+    /// <summary>플랫폼 이동과 충돌 보정을 반영해 최종 위치를 이동시킵니다.</summary>
     public void Move(Vector2 velocity)
     {
         Vector2 platformMoveAmount = Vector2.zero;
@@ -271,6 +276,7 @@ public class MovementController : MonoBehaviour
         _pushAmountThisFrame = Vector2.zero;
     }
 
+    /// <summary>하향 프로브로 지면/경사/벽 슬라이드 가능 여부를 판정합니다.</summary>
     private void GroundProbes(Vector2 moveDelta, IVelocityInheritable lastKnownPlatform, out IVelocityInheritable foundPlatform)
     {
         foundPlatform = null;
@@ -478,6 +484,7 @@ public class MovementController : MonoBehaviour
         #endregion
     }
 
+    /// <summary>상향 프로브로 천장 충돌과 천장 각도를 판정합니다.</summary>
     private void CeilingProbes(Vector2 moveDelta)
     {
         if (moveDelta.y >= 0)
@@ -557,6 +564,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>좌우 프로브로 벽 충돌과 가파른 경사 접촉을 판정합니다.</summary>
     private void HorizontalProbes(Vector2 moveDelta, IVelocityInheritable lastKnownPlatform, out IVelocityInheritable foundPlatform)
     {
         foundPlatform = null;
@@ -673,6 +681,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>프레임 이동 계산 전에 경사/코너 보정 상태를 초기화합니다.</summary>
     private void ResetCollisionStates()
     {
         WasClimbingSlopeLastFrame = IsClimbingSlope;
@@ -689,6 +698,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>수평 이동 시 벽/계단/경사 충돌을 반영해 속도를 보정합니다.</summary>
     private void ResolveHorizontalMovement(ref Vector2 velocity)
     {
         if (_isHorizontalCornerCorrectingThisFrame)
@@ -800,6 +810,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>수직 이동 시 천장/지면 충돌을 반영해 속도를 보정합니다.</summary>
     private void ResolveVerticalMovement(ref Vector2 velocity)
     {
         #region Ceiling Check
@@ -988,6 +999,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>현재 콜라이더 경계 기반으로 레이 시작 모서리를 갱신합니다.</summary>
     private void UpdateRaycastCorners()
     {
         Bounds bounds = _coll.bounds;
@@ -999,6 +1011,7 @@ public class MovementController : MonoBehaviour
         RayCastCorners.topRight = new Vector2(bounds.max.x, bounds.max.y);
     }
 
+    /// <summary>수평/수직 레이 간격을 콜라이더 크기에 맞춰 계산합니다.</summary>
     private void CalculateRaySpacing()
     {
         Bounds bounds = _coll.bounds;
@@ -1010,6 +1023,7 @@ public class MovementController : MonoBehaviour
 
     #region Slopes
 
+    /// <summary>오르막 경사에 맞게 속도를 분해해 상승 이동으로 변환합니다.</summary>
     private void ClimbSlope(ref Vector2 velocity, float slopeAngle, Vector2 slopeNormal, float originalInputX)
     {
         float moveDistance = Mathf.Abs(originalInputX);
@@ -1040,6 +1054,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>내리막 경사/벽 경사에 따라 하강 이동 또는 슬라이딩을 적용합니다.</summary>
     private void DescendSlope(ref Vector2 velocity)
     {
         float directionX = FaceDirection;
@@ -1243,6 +1258,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>경사 기억값을 현재 접지 상태에 맞게 업데이트합니다.</summary>
     public void UpdateSlopeMemory()
     {
         _slopeCurveAccumulator = 0f;
@@ -1251,6 +1267,7 @@ public class MovementController : MonoBehaviour
         LastLandingTime = Time.time;
     }
 
+    /// <summary>착지 직후 경사면에 밀착되도록 이동량을 보정합니다.</summary>
     private void ApplySlopeStick(ref Vector2 moveAmount, float slopeAngle, RaycastHit2D hit)
     {
         if (_playerMovement.IsWallSlideable(slopeAngle))
@@ -1285,6 +1302,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>한계 각도 이상의 경사면에서 미끄러지는 속도를 계산합니다.</summary>
     private void SlideDownMaxSlope(RaycastHit2D hit, ref Vector2 velocity)
     {
         if (hit)
@@ -1327,6 +1345,7 @@ public class MovementController : MonoBehaviour
 
     #region Step Up
 
+    /// <summary>앞쪽 충돌 지점이 계단인지 검사하고 계단 높이를 계산합니다.</summary>
     private bool GetStepInfo(float hitDistance, float directionX, out float stepHeight)
     {
         stepHeight = 0f;
@@ -1367,6 +1386,7 @@ public class MovementController : MonoBehaviour
         return true;
     }
 
+    /// <summary>계단 오르기 가능 시 위치 보정과 속도 조정을 수행합니다.</summary>
     private bool AttemptStepUp(RaycastHit2D hit, ref Vector2 velocity, float directionX, float originalVelocityX)
     {
         if (GetStepInfo(hit.distance, directionX, out float stepHeight))
@@ -1394,6 +1414,7 @@ public class MovementController : MonoBehaviour
         return false;
     }
 
+    /// <summary>현재 속도 기준으로 계단 처리 대상인지 판단합니다.</summary>
     public bool IsStep(Vector2 currentVelocity)
     {
         float directionX = Mathf.Sign(currentVelocity.x);
@@ -1419,6 +1440,7 @@ public class MovementController : MonoBehaviour
 
     #region Corner Correction
 
+    /// <summary>천장 모서리 걸림 해소를 위한 수평 보정량을 계산합니다.</summary>
     private bool CalculateHeadCornerCorrection(Vector3 velocity, out float correctionAmount)
     {
         correctionAmount = 0f;
@@ -1490,6 +1512,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>디버그 시각화를 위해 박스 라인을 그립니다.</summary>
     private void DrawDebugBox(Vector2 center, Vector2 size, Color color, float duration)
     {
         Vector2 halfSize = size / 2;
@@ -1504,6 +1527,7 @@ public class MovementController : MonoBehaviour
         Debug.DrawLine(bottomLeft, topLeft, color, duration);
     }
 
+    /// <summary>지정한 위치가 다른 충돌체와 겹치지 않는지 검사합니다.</summary>
     private bool IsSpaceClear(Vector2 targetPosition)
     {
         Vector2 checkSize = _coll.bounds.size - (Vector3.one * (CollisionPadding * 2f));
@@ -1518,11 +1542,13 @@ public class MovementController : MonoBehaviour
         return hitCount == 0;
     }
 
+    /// <summary>헤드 코너 보정이 필요한지 감지합니다.</summary>
     private bool DetectHeadCornerCorrection(Vector2 velocity)
     {
         return CalculateHeadCornerCorrection(velocity, out _);
     }
 
+    /// <summary>계산된 헤드 코너 보정량을 이동 속도에 적용합니다.</summary>
     private void ApplyHeadCornerCorrection(ref Vector2 velocity)
     {
         if (CalculateHeadCornerCorrection(velocity, out float amount))
@@ -1532,6 +1558,7 @@ public class MovementController : MonoBehaviour
         }
     }
 
+    /// <summary>수평 이동 중 바닥 모서리 보정량을 계산합니다.</summary>
     private bool CalculateHorizontalCornerCorrection(Vector2 velocity, out float correctionAmount)
     {
         //feet
@@ -1683,6 +1710,7 @@ public class MovementController : MonoBehaviour
         return false;
     }
 
+    /// <summary>수평 코너 보정량을 수직 이동으로 반영합니다.</summary>
     private void ApplyHorizontalCornerCorrection(ref Vector2 velocity)
     {
         if (CalculateHorizontalCornerCorrection(velocity, out float liftAmount))
@@ -1696,6 +1724,7 @@ public class MovementController : MonoBehaviour
 
     #region Visuals
 
+    /// <summary>시각 보간에 사용할 평균 지면 법선을 계산합니다.</summary>
     private void DetectSlopeNormalsForVisuals(Vector2 velocity)
     {
         if (_internalState.IsGrounded)
@@ -1750,6 +1779,7 @@ public class MovementController : MonoBehaviour
 
     #region Velocity Inheritable
 
+    /// <summary>외부 오브젝트가 가한 밀림/압사 처리를 적용합니다.</summary>
     public void ApplyExternalPush(Vector2 pushAmount, Transform pusher)
     {
         Vector2 direction = pushAmount.normalized;
@@ -1798,9 +1828,13 @@ public class MovementController : MonoBehaviour
 
     #region Helpers Methods
 
+    /// <summary>현재 접지 상태를 반환합니다.</summary>
     public bool IsGrounded() => _internalState.IsGrounded;
+    /// <summary>현재 천장 충돌 상태를 반환합니다.</summary>
     public bool BumpedHead() => _internalState.IsHittingCeiling;
+    /// <summary>현재 벽 접촉 상태를 반환합니다.</summary>
     public bool IsTouchingWall() => _internalState.IsAgainstWall;
+    /// <summary>현재 접촉 중인 벽 방향을 반환합니다.</summary>
     public int GetWallDirection()
     {
         return _internalState.WallDirection;
@@ -1814,6 +1848,7 @@ public class MovementController : MonoBehaviour
 [CustomEditor(typeof(MovementController))]
 public class MovementControllerEditor : Editor
 {
+    /// <summary>실행 중 충돌 상태를 인스펙터에 읽기 전용으로 출력합니다.</summary>
     public override void OnInspectorGUI()
     {
         base.OnInspectorGUI();

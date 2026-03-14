@@ -4,102 +4,165 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("References")]
+    // 캐릭터 이동에 사용되는 모든 수치 데이터(속도, 가속, 점프값)를 담는다.
     public PlayerMovementStats MoveStats;
+    // 플레이어의 실제 충돌체 참조이다.
     [SerializeField] private Collider2D _coll;
+    // 플레이어 외형(스프라이트) 루트 트랜스폼이다.
     [SerializeField] private Transform _visualsTransform;
+    // 사망/압사 시 복귀할 기준 위치이다.
     [SerializeField] private Transform _respawnPoint;
 
+    // 물리 이동을 처리하는 Rigidbody2D 컴포넌트 참조이다.
     private Rigidbody2D _rb;
 
     //movement vars
+    // 입력 방향 반전, 벽 상호작용, 스프라이트 좌우 플립 기준이 되는 현재 바라보는 방향이다.
     public bool IsFacingRight { get; private set; }
+    // 지면/벽/경사 센서를 관리하는 이동 컨트롤러 참조이다.
     public MovementController Controller { get; private set; }
+    // 현재 프레임에서 계산된 최종 속도 벡터이다.
     [HideInInspector] public Vector2 Velocity;
 
     //input
+    // 매 프레임 수집한 이동 입력값으로, 가속 계산과 방향 전환 판정의 원본 데이터이다.
     private Vector2 _moveInput;
+    // 달리기 입력이 현재 유지 중인지 기록한다.
     private bool _runHeld;
+    // 점프 눌림 입력을 물리 프레임까지 버퍼링한다.
     private bool _jumpPressed;
+    // 점프 해제 입력을 물리 프레임까지 버퍼링한다.
     private bool _jumpReleased;
+    // 대시 눌림 입력을 물리 프레임까지 버퍼링한다.
     private bool _dashPressed;
 
     //jump vars
+    // 점프 상승 구간이 아직 유효한지 나타내며 중력/정점 처리 분기를 결정한다.
     private bool _isJumping;
+    // 점프 컷 이후 빠른 낙하 단계인지 나타낸다.
     private bool _isFastFalling;
+    // 일반 낙하 상태 진입 여부를 나타낸다.
     private bool _isFalling;
+    // 빠른 낙하 보간에 사용되는 경과 시간이다.
     private float _fastFallTime;
+    // 점프 버튼 해제 시점의 상향 속도 스냅샷이다.
     private float _fastFallReleaseSpeed;
+    // 공중 점프를 소모한 횟수를 누적한다.
     private int _numberOfAirJumpsUsed;
 
     //apex vars
+    // 점프 상승 속도를 0~1로 정규화한 정점 진행률로, 정점 보정(행타임/가감속)에 사용된다.
     private float _apexPoint;
+    // 점프 정점 임계 구간에 머문 시간을 기록한다.
     private float _timePastApexThreshold;
+    // 점프 정점 임계값을 통과했는지 나타낸다.
     private bool _isPastApexThreshold;
 
     //jump buffer vars
+    // 점프 입력을 짧게 보존해 착지 직후에도 점프가 발동되도록 하는 버퍼 남은 시간이다.
     private float _jumpBufferTimer;
+    // 점프 버퍼 구간 중 버튼 해제가 발생했는지 기록한다.
     private bool _jumpReleasedDuringBuffer;
 
     //coyote time vars
+    // 발판을 막 벗어난 뒤에도 점프를 허용하기 위한 코요테 타임의 남은 시간이다.
     private float _coyoteTimer;
 
     //wall slide vars
+    // 벽 접촉 상태에서 하강 속도를 제한하는 벽 슬라이드 모드 활성 여부이다.
     private bool _isWallSliding;
+    // 벽 슬라이드 종료 후 낙하 전환 상태인지 나타낸다.
     private bool _isWallSlideFalling;
 
     //wall jump vars
+    // 벽 점프 직후 짧은 구간에 전용 가속/감속 스탯을 적용할지 제어하는 플래그이다.
     private bool _useWallJumpMoveStats;
+    // 벽 점프 동작이 현재 진행 중인지 나타낸다.
     private bool _isWallJumping;
+    // 벽 점프 지속 시간을 누적한다.
     private float _wallJumpTime;
+    // 벽 점프 중 점프 컷 빠른 낙하 상태인지 나타낸다.
     private bool _isWallJumpFastFalling;
+    // 벽 점프 상승이 끝나고 낙하 단계인지 나타낸다.
     private bool _isWallJumpFalling;
+    // 벽 점프 빠른 낙하 보간 경과 시간이다.
     private float _wallJumpFastFallTime;
+    // 벽 점프 해제 시점 속도값을 저장한다.
     private float _wallJumpFastFallReleaseSpeed;
+    // 마지막으로 접촉한 벽의 방향을 보존한다.
     private int _lastWallDir;
 
+    // 벽 이탈 직후 점프 허용 시간(코요테 타임)이다.
     private float _wallJumpCoyoteTimer;
 
+    // 벽 점프 정점 진행률(0~1) 계산값이다.
     private float _wallJumpApexPoint;
+    // 벽 점프 정점 임계 구간 경과 시간이다.
     private float _timePastWallJumpApexThreshold;
+    // 벽 점프 정점 임계값 통과 여부를 나타낸다.
     private bool _isPastWallJumpApexThreshold;
 
     //dash vars
+    // 현재 대시 물리(방향 고정/속도 우선 적용)가 활성화된 상태인지 외부에 노출한다.
     public bool IsDashing { get; private set; }
+    // 공중에서 시작된 대시인지 구분한다.
     private bool _isAirDashing;
+    // 현재 대시의 남은 지속 시간이다.
     private float _dashTimer;
+    // 착지 직후 대시 보정에 쓰이는 타이머이다.
     private float _dashOnGroundTimer;
+    // 현재 공중 체류 중 사용한 대시 횟수이다.
     private int _numberOfDashesUsed;
+    // 실제로 적용되는 대시 방향 벡터이다.
     private Vector2 _dashDirection;
+    // 대시 종료 후 빠른 낙하 보정 상태인지 나타낸다.
     private bool _isDashFastFalling;
+    // 대시 후 빠른 낙하 보간 시간이다.
     private float _dashFastFallTime;
+    // 대시 종료 시점 수직 속도 스냅샷이다.
     private float _dashFastFallReleaseSpeed;
+    // 대시 입력 버퍼 유효 시간을 관리한다.
     private float _dashBufferTimer;
 
+    // 입력으로 의도한 대시 방향(정규화 전 포함)을 저장한다.
     private Vector2 _dashIntentDirection;
+    // 낙하 직후에도 대시를 허용하는 코요테 타임이다.
     private float _dashCoyoteTimer;
+    // 입력 후 실제 대시 시작 전 지연 시간을 관리한다.
     private float _dashDelayTimer;
     // 다음 대시를 허용하기까지 남은 쿨타임(초)이다.
     private float _dashCooldownTimer;
 
     //head bump slide vars
+    // 디버그 점프 측정 중 기록된 최고 Y값으로 실제 도달 높이 계산에 사용된다.
     private float _debugMaxHeightY;
+    // 디버그 점프 궤적 측정이 활성화되었는지 나타낸다.
     private bool _debugTrackingJump;
+    // 디버그 점프 시작 높이(Y) 기록값이다.
     private float _debugJumpStartY;
 
     //slopes
+    // 대시를 경사면 법선 기준으로 보정해 수행 중인지 나타내는 상태 플래그이다.
     private bool _isPerformingSlopeDash;
+    // 경사면 대시 시 고정 적용할 이동 각도이다.
     private float _slopeDashAngle;
+    // 비주얼이 보간될 목표 회전값이다.
     private Quaternion _targetRotation = Quaternion.identity;
 
     //platforms
+    // 최근 탑승 발판의 속도를 저장해 이탈 직후 관성/런치 보정에 재사용한다.
     private Vector2 _storedPlatformVelocity;
+    // 발판 이탈 후 관성을 유지할 남은 시간이다.
     private float _platformMomentumRetentionTimer;
 
     //visuals
+    // 시각 보간(회전/위치 보정)을 담당하는 컴포넌트이다.
     private VisualInterpolator _visuals;
 
+    // 현재 달리기 입력 유지 여부를 외부에 노출한다.
     public bool IsRunning => InputManager.RunIsHeld;
 
+    // 필수 컴포넌트 참조를 캐싱하고 초기 바라보는 방향을 설정한다.
     private void Awake()
     {
         IsFacingRight = true;
@@ -109,16 +172,19 @@ public class PlayerMovement : MonoBehaviour
         _visuals = GetComponentInChildren<VisualInterpolator>();
     }
 
+    // 활성화 시 압사 이벤트를 구독한다.
     private void OnEnable()
     {
         Controller.OnCrush += HandleCrush;
     }
 
+    // 비활성화 시 압사 이벤트 구독을 해제한다.
     private void OnDisable()
     {
         Controller.OnCrush -= HandleCrush;
     }
 
+    // 입력을 수집해 물리 프레임에서 소비할 버퍼 플래그를 설정한다.
     private void Update()
     {
         _moveInput = InputManager.Movement;
@@ -128,6 +194,7 @@ public class PlayerMovement : MonoBehaviour
         if (InputManager.DashWasPressed) _dashPressed = true;
     }
 
+    // 경사면 옵션이 켜진 경우 비주얼 회전을 마지막 단계에서 보간한다.
     private void LateUpdate()
     {
         if (MoveStats.MatchVisualsToSlope)
@@ -136,6 +203,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 센서 갱신 → 상태 판정 → 속도 계산 → 이동 적용 순서로 물리 루프를 수행한다.
     private void FixedUpdate()
     {
         Controller.PollSensors(Velocity * Time.fixedDeltaTime);
@@ -176,6 +244,7 @@ public class PlayerMovement : MonoBehaviour
         _visuals.UpdatePhysicsState();
     }
 
+    // 디버그 점프 최대 높이를 추적하고 정점 도달 시 로그를 출력한다.
     private void TrackJump()
     {
         if (_debugTrackingJump)
@@ -201,6 +270,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 상태별 최대 낙하 속도를 적용해 수직 속도 폭주를 방지한다.
     private void ClampVelocity()
     {
         if (Controller.IsSliding)
@@ -227,6 +297,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 에디터에서 점프 예상 궤적 기즈모를 그린다.
     private void OnDrawGizmos()
     {
         if (MoveStats.ShowWalkJumpArc)
@@ -237,6 +308,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Movement
 
+    // 좌우 입력과 가속/감속 값을 반영해 수평 속도를 계산한다.
     private void HandleHorizontalMovement(float timeStep)
     {
         if (!IsDashing)
@@ -279,6 +351,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽을 향해 파고드는 수평 속도를 제거해 벽 끼임을 방지한다.
     private void PreventWallStick()
     {
         if (Controller.IsTouchingWall())
@@ -295,6 +368,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 천장 충돌 시 상승 속도를 제거해 천장 붙음 현상을 완화한다.
     private void PreventCeilingStick()
     {
         if (Controller.BumpedHead())
@@ -311,6 +385,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 이동 발판에서 이탈한 직후 수평 관성을 반영한다.
     private void CalculateRunOffMomentum()
     {
         if (Controller.IsGrounded() || !Controller.State.WasGroundedLastFrame || _isJumping || _isWallJumping || Controller.PlatformFromLastFrame == null) return;
@@ -334,6 +409,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 입력 방향과 현재 방향이 다르면 캐릭터를 반전시킨다.
     private void TurnCheck(Vector2 moveInput)
     {
         if (IsFacingRight && moveInput.x < 0)
@@ -346,6 +422,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 스프라이트 스케일을 뒤집어 좌우 바라보는 방향을 전환한다.
     private void Turn(bool turnRight)
     {
         IsFacingRight = turnRight;
@@ -353,6 +430,7 @@ public class PlayerMovement : MonoBehaviour
         _visualsTransform.localScale = new Vector3(Mathf.Abs(_visualsTransform.localScale.x) * mult, _visualsTransform.localScale.y, _visualsTransform.localScale.z);
     }
 
+    // 지면 법선과 상태를 기준으로 비주얼 목표 회전을 계산한다.
     private void CalculateTargetRotation()
     {
         if (!MoveStats.MatchVisualsToSlope) return;
@@ -365,6 +443,7 @@ public class PlayerMovement : MonoBehaviour
         _targetRotation = slopeRotation;
     }
 
+    // 목표 회전까지 비주얼을 시간 기반으로 부드럽게 보간한다.
     private void RotateVisualTarget(float timeStep)
     {
         _visualsTransform.rotation = Quaternion.Slerp(_visualsTransform.rotation, _targetRotation, MoveStats.SlopeRotationSpeed * timeStep);
@@ -390,6 +469,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Land/Fall
 
+    // 착지 여부를 판정하고 점프/대시/벽 상태를 초기화한다.
     private void LandCheck()
     {
         if (Controller.IsGrounded())
@@ -423,6 +503,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 공중 비점프 상태에서 일반 중력을 적용해 낙하를 진행한다.
     private void Fall(float timeStep)
     {
         //NORMAL GRAVITY WHILE FALLING
@@ -437,6 +518,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 착지 안정화를 위해 지면에서 최소 하향 속도를 유지한다.
     private void VelocityReset()
     {
         if (Controller.IsSliding) return;
@@ -457,6 +539,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Jump
 
+    // 점프 관련 상태값을 기본값으로 되돌린다.
     private void ResetJumpValues()
     {
         _isJumping = false;
@@ -466,6 +549,7 @@ public class PlayerMovement : MonoBehaviour
         _isPastApexThreshold = false;
     }
 
+    // 점프 입력 버퍼·해제·코요테 타임을 평가해 점프 가능 상태를 갱신한다.
     private void JumpChecks()
     {
         //WHEN WE PRESS THE JUMP BUTTON
@@ -551,6 +635,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 점프 시작 시 속도와 관련 상태를 초기화하고 상승을 시작한다.
     private void InitiateJump(int numberOfAirJumpsUsed)
     {
         if (!_isJumping)
@@ -594,6 +679,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 점프 상승/정점/점프컷/낙하 전환의 수직 속도를 프레임별 계산한다.
     private void Jump(float timeStep)
     {
         //APPLY GRAVITY WHILE JUMPING
@@ -685,6 +771,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Wall Slide
 
+    // 벽 슬라이드 진입/유지/해제 조건을 판정한다.
     private void WallSlideCheck()
     {
         bool isTouchingSideWall = Controller.IsTouchingWall();
@@ -739,6 +826,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽 슬라이드 상태와 관련 플래그를 정리한다.
     private void StopWallSlide()
     {
         if (_isWallSliding)
@@ -747,6 +835,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽 슬라이드 중 목표 하강 속도로 감속 보간한다.
     private void WallSlide(float timeStep)
     {
         if (_isWallSliding)
@@ -759,6 +848,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Wall Jump
 
+    // 벽 근처 입력 버퍼를 검사해 벽 점프 가능 여부를 반환한다.
     private bool AttemptWallJumpBuffer()
     {
         if (MoveStats.WallJumpInputBufferDistance <= 0f) return false;
@@ -831,6 +921,7 @@ public class PlayerMovement : MonoBehaviour
         return false;
     }
 
+    // 벽 점프 시작 조건과 버퍼/코요테 타이밍을 판정한다.
     private void WallJumpCheck()
     {
         if (ShouldWallJumpCoyote())
@@ -866,6 +957,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽 점프 방향·속도를 확정하고 벽 점프 상태를 시작한다.
     private void InitiateWallJump()
     {
         if (!_isWallJumping)
@@ -905,6 +997,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽 점프 중 시간 경과에 따른 수평·수직 속도를 갱신한다.
     private void WallJump(float timeStep)
     {
         //APPLY WALL JUMP GRAVITY
@@ -1001,6 +1094,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽에서 떨어진 직후 코요테 타임 벽 점프 허용 여부를 반환한다.
     private bool ShouldWallJumpCoyote()
     {
         bool isWallAngleValid = Controller.State.WallAngle >= MoveStats.MinAngleForWallSlide && Controller.State.WallAngle <= MoveStats.MaxAngleForWallSlide;
@@ -1020,6 +1114,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 벽 점프 관련 타이머와 상태 플래그를 초기화한다.
     private void ResetWallJumpValues()
     {
         _isWallSlideFalling = false;
@@ -1161,6 +1256,7 @@ public class PlayerMovement : MonoBehaviour
         Velocity.x = 0f;
     }
 
+    // 대시 진행/종료/후속 낙하 보정까지 포함한 대시 물리를 갱신한다.
     private void Dash(float timeStep)
     {
         if (IsDashing)
@@ -1303,6 +1399,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 대시 종료 후 대시 관련 상태값을 기본값으로 되돌린다.
     private void ResetDashValues()
     {
         _isDashFastFalling = false;
@@ -1314,6 +1411,7 @@ public class PlayerMovement : MonoBehaviour
         _isPerformingSlopeDash = false;
     }
 
+    // 착지 시 대시 후처리 상태를 정리해 일반 이동으로 복귀시킨다.
     private void DashLand()
     {
         _isDashFastFalling = false;
@@ -1323,6 +1421,7 @@ public class PlayerMovement : MonoBehaviour
         _isPerformingSlopeDash = false;
     }
 
+    // 사용한 대시 횟수를 초기화해 재사용 가능 상태로 만든다.
     private void ResetDashes()
     {
         _numberOfDashesUsed = 0;
@@ -1332,6 +1431,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Slide
 
+    // 슬라이드 중 경사면 중력 적용을 처리한다.
     private void HandleSlide(float timeStep)
     {
         if (Controller.IsSliding)
@@ -1347,6 +1447,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Timers
 
+    // 이동 관련 모든 타이머를 프레임 단위로 감소/갱신한다.
     private void CountTimers(float timeStep)
     {
         //jump buffer
@@ -1370,6 +1471,7 @@ public class PlayerMovement : MonoBehaviour
         ManagePlatformMomentum(timeStep);
     }
 
+    // 지면 접지 여부에 따라 점프 코요테 타임을 충전/감소시킨다.
     private void HandleCoyoteTimer(float timeStep)
     {
         if (Controller.IsGrounded() && !Controller.IsSliding)
@@ -1382,6 +1484,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 지상 상태에서 대시 지면 타이머를 감소시킨다.
     private void HandleDashOnGroundTimer(float timeStep)
     {
         if (Controller.IsGrounded() && !Controller.IsSliding)
@@ -1390,6 +1493,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 지면 이탈 상태에 따라 대시 코요테 타이머를 갱신한다.
     private void HandleDashCoyoteTimer(float timeStep)
     {
         if (Controller.IsGrounded() && !Controller.IsSliding)
@@ -1413,6 +1517,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 최근 발판 속도를 저장하고 관성 유지 시간을 관리한다.
     private void ManagePlatformMomentum(float timeStep)
     {
         if (Controller.LastKnownPlatform != null)
@@ -1438,6 +1543,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Crush
 
+    // 압사 이벤트 발생 시 리스폰 위치로 플레이어를 이동시킨다.
     public void HandleCrush()
     {
         Debug.Log("crushed");
@@ -1448,6 +1554,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Helper Methods
 
+    // 주어진 경사 각도가 슬라이드 가능한 각도인지 판정한다.
     public bool IsSlideableSlope(float slopeAngle)
     {
         if (slopeAngle >= MoveStats.MaxSlopeAngle && slopeAngle < MoveStats.MinAngleForWallSlide)
@@ -1458,11 +1565,13 @@ public class PlayerMovement : MonoBehaviour
         return false;
     }
 
+    // 주어진 각도가 보행 가능한 경사 범위인지 판정한다.
     public bool IsWalkableSlope(float angle)
     {
         return angle <= MoveStats.MaxSlopeAngle && angle < MoveStats.MinAngleForWallSlide;
     }
 
+    // 주어진 각도가 벽 슬라이드 가능한 경사 범위인지 판정한다.
     public bool IsWallSlideable(float angle)
     {
         return angle >= MoveStats.MinAngleForWallSlide && angle <= MoveStats.MaxAngleForWallSlide;
@@ -1472,6 +1581,7 @@ public class PlayerMovement : MonoBehaviour
 
     #region Visualization
 
+    // 현재 점프 설정 기준으로 예측 포물선을 기즈모로 그린다.
     private void DrawJumpArc(float moveSpeed, Color gizmoColor)
     {
         Vector2 startPosition = new Vector2(_coll.bounds.center.x, _coll.bounds.min.y);
@@ -1534,6 +1644,7 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 디버그 박스를 지정 시간 동안 선으로 시각화한다.
     private void DrawDebugBox(Vector2 center, Vector2 size, Color color, float duration)
     {
         Vector2 halfSize = size / 2;
