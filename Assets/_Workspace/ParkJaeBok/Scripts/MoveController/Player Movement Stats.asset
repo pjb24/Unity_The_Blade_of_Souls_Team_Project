@@ -38,7 +38,7 @@ MonoBehaviour:
   VisualRaycastWidth: 1.5
   SlopeRotationSpeed: 20
   MaxVisualRotatingAngle: 45
-  OnlyVaultWhenRunning: 1
+  OnlyVaultWhenRunning: 0
   VaultMinHeight: 0.25
   StepMaxHeight: 1.15
   StepDetectionRayWidth: 0.1

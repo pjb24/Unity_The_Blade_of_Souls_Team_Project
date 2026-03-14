@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEditor;
+using System;
 
 public struct CollisionState
 {
@@ -73,6 +74,8 @@ public class MovementController : MonoBehaviour
     public RaycastCorners RayCastCorners;
     private PlayerMovementStats _moveStats;
 
+    public Action OnCrush;
+
     public bool IsClimbingSlope { get; private set; }
     public bool WasClimbingSlopeLastFrame { get; private set; }
     public bool IsDescendingSlope { get; private set; }
@@ -98,7 +101,14 @@ public class MovementController : MonoBehaviour
     private float _lastSafetyGroundFixedTime = -Mathf.Infinity;
     private RaycastHit2D _lastSafetyGroundHit;
 
+    private bool _wasPushedThisFrame;
+    private Vector2 _pushAmountThisFrame;
+
     private Collider2D[] _overlapBuffer = new Collider2D[1];
+
+    public IVelocityInheritable LastKnownPlatform;
+    public IVelocityInheritable PlatformFromLastFrame { get; private set; }
+    public bool IsOnPlatform => LastKnownPlatform != null;
 
     public struct RaycastCorners
     {
@@ -126,6 +136,11 @@ public class MovementController : MonoBehaviour
     public void PollSensors(Vector2 moveDelta)
     {
         _internalState.Reset();
+
+        IVelocityInheritable predictedPlatform = LastKnownPlatform;
+        PlatformFromLastFrame = LastKnownPlatform;
+        LastKnownPlatform = null;
+
         UpdateRaycastCorners();
 
         if (moveDelta.x != 0)
@@ -133,17 +148,34 @@ public class MovementController : MonoBehaviour
             FaceDirection = (int)Mathf.Sign(moveDelta.x);
         }
 
-        HorizontalProbes(moveDelta);
+        IVelocityInheritable foundWallPlatform;
+        HorizontalProbes(moveDelta, predictedPlatform, out foundWallPlatform);
 
         CeilingProbes(moveDelta);
+
+        IVelocityInheritable foundGroundPlatform;
         if (_forceAirborneNextFrame)
         {
             _internalState.IsGrounded = false;
             _forceAirborneNextFrame = false;
+            foundGroundPlatform = null;
         }
         else
         {
-            GroundProbes(moveDelta);
+            GroundProbes(moveDelta, predictedPlatform, out foundGroundPlatform);
+        }
+
+        if (_internalState.IsGrounded)
+        {
+            LastKnownPlatform = foundGroundPlatform;
+        }
+        else if (_internalState.IsAgainstWall)
+        {
+            LastKnownPlatform = foundWallPlatform;
+        }
+        else
+        {
+            LastKnownPlatform = null;
         }
 
         if (_internalState.IsHittingCeiling && DetectHeadCornerCorrection(moveDelta))
@@ -161,6 +193,64 @@ public class MovementController : MonoBehaviour
 
     public void Move(Vector2 velocity)
     {
+        Vector2 platformMoveAmount = Vector2.zero;
+
+        if (IsOnPlatform)
+        {
+            Vector2 platformVel = LastKnownPlatform.GetVelocity();
+            platformMoveAmount = platformVel * Time.fixedDeltaTime;
+
+            //wall guard
+            if (platformMoveAmount.x != 0 && LastKnownPlatform.NeedsFuturePositionBoxcastCheck)
+            {
+                float directionX = Mathf.Sign(platformMoveAmount.x);
+                float distance = Mathf.Abs(platformMoveAmount.x) + CollisionPadding;
+                Vector2 origin = _coll.bounds.center;
+                Vector2 size = _coll.bounds.size - (Vector3.one * CollisionPadding * 2f);
+
+                RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, Vector3.right * directionX, distance, _moveStats.GroundLayer);
+
+                if (hit)
+                {
+                    float adjustedDist = Mathf.Max(0, hit.distance - CollisionPadding);
+                    platformVel.x = (adjustedDist * directionX) / Time.fixedDeltaTime;
+                }
+            }
+
+            if (_internalState.IsAgainstWall && _internalState.IsGrounded)
+            {
+                float wallNormalX = -_internalState.WallDirection;
+
+                if (Vector2.Dot(platformVel, new Vector2(wallNormalX, 0)) < -0.01f)
+                {
+                    platformVel.x = 0f;
+                }
+            }
+
+            if (_internalState.IsGrounded)
+            {
+                if (Vector2.Dot(platformVel, _internalState.SlopeNormal) > 0.01f)
+                {
+                    platformVel.y = 0f;
+                }
+            }
+
+            if (_wasPushedThisFrame)
+            {
+                if (Mathf.Abs(_pushAmountThisFrame.x) > 0f)
+                {
+                    platformVel.x = 0f;
+                }
+                if (Mathf.Abs(_pushAmountThisFrame.y) > 0f)
+                {
+                    platformVel.y = 0f;
+                }
+            }
+
+            platformMoveAmount = platformVel * Time.fixedDeltaTime;
+            _rb.position += platformMoveAmount;
+        }
+
         UpdateRaycastCorners();
         ResetCollisionStates();
 
@@ -176,11 +266,22 @@ public class MovementController : MonoBehaviour
         ResolveVerticalMovement(ref velocity);
 
         _rb.MovePosition(_rb.position + velocity);
+
+        _wasPushedThisFrame = false;
+        _pushAmountThisFrame = Vector2.zero;
     }
 
-    private void GroundProbes(Vector2 moveDelta)
+    private void GroundProbes(Vector2 moveDelta, IVelocityInheritable lastKnownPlatform, out IVelocityInheritable foundPlatform)
     {
+        foundPlatform = null;
+
         float rayLength = _verticalProbeDistance + CollisionPadding;
+
+        if (lastKnownPlatform != null && lastKnownPlatform.ProbesShouldLead)
+        {
+            float platformMoveDist = Mathf.Abs(lastKnownPlatform.GetVelocity().y * Time.fixedDeltaTime);
+            rayLength += platformMoveDist;
+        }
 
         float smallestHitDistance = float.MaxValue;
         bool foundGround = false;
@@ -188,6 +289,12 @@ public class MovementController : MonoBehaviour
         RaycastHit2D groundHit = new RaycastHit2D();
 
         float horizontalProjection = 0f;
+
+        Vector2 platformOffset = Vector2.zero;
+        if (lastKnownPlatform != null && lastKnownPlatform.ProbesShouldLead)
+        {
+            platformOffset = lastKnownPlatform.GetVelocity() * Time.fixedDeltaTime;
+        }
 
         if (moveDelta.y <= 0)
         {
@@ -201,6 +308,8 @@ public class MovementController : MonoBehaviour
         for (int i = 0; i < NumOfVerticalRays; i++)
         {
             Vector2 rayOrigin = RayCastCorners.bottomLeft + Vector2.right * (_verticalRaySpace * i + horizontalProjection);
+            rayOrigin += platformOffset;
+
             RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.down, rayLength, _moveStats.GroundLayer);
 
             #region Debug Visualization
@@ -239,7 +348,7 @@ public class MovementController : MonoBehaviour
                     }
                 }
             }
-            else if (IsClimbingSlope || IsDescendingSlope)
+            else if (IsClimbingSlope || IsDescendingSlope && !IsOnPlatform)
             {
                 _internalState.IsGrounded = true;
                 _internalState.SlopeAngle = SlopeAngle;
@@ -249,14 +358,23 @@ public class MovementController : MonoBehaviour
                     _internalState.IsOnSlope = true;
                 }
 
-                return;
+                continue;
             }
         }
 
         if (foundGround)
         {
+            var platform = groundHit.collider.GetComponent<IVelocityInheritable>();
+            if (platform != null)
+            {
+                foundPlatform = platform;
+            }
+
             float slopeAngle = Mathf.Round(Vector2.Angle(groundHit.normal, Vector2.up));
-            bool isWallSlideable = _playerMovement.IsWallSlideable(slopeAngle);
+
+            bool isVerticalWall = Mathf.Abs(groundHit.normal.y) < Mathf.Epsilon;
+
+            bool isWallSlideable = _playerMovement.IsWallSlideable(slopeAngle) && !isVerticalWall;
             bool isFacingWall = Mathf.Sign(groundHit.normal.x) != FaceDirection;
 
             bool shouldWallSlide = isFacingWall || _moveStats.CanWallSlideFacingAwayFromWall;
@@ -301,6 +419,12 @@ public class MovementController : MonoBehaviour
 
                 if (foundSafetyGround)
                 {
+                    var platform = safetyGroundHit.collider.GetComponent<IVelocityInheritable>();
+                    if (platform != null)
+                    {
+                        foundPlatform = platform;
+                    }
+
                     float slopeAngle = Mathf.Round(Vector2.Angle(safetyGroundHit.normal, Vector2.up));
                     if (!_playerMovement.IsWallSlideable(slopeAngle))
                     {
@@ -317,13 +441,13 @@ public class MovementController : MonoBehaviour
                 }
             }
 
-            bool usedRecentSafety = false;
+            //bool usedRecentSafety = false;
             if (Time.fixedTime - _lastSafetyGroundFixedTime <= _safetyGraceDuration)
             {
                 float reuseSlopeAngle = Mathf.Round(Vector2.Angle(_lastSafetyGroundHit.normal, Vector2.up));
                 if (!_playerMovement.IsWallSlideable(reuseSlopeAngle))
                 {
-                    usedRecentSafety = true;
+                    //usedRecentSafety = true;
                     _internalState.IsGrounded = true;
                     _internalState.SlopeAngle = reuseSlopeAngle;
                     _internalState.SlopeNormal = _lastSafetyGroundHit.normal;
@@ -334,11 +458,11 @@ public class MovementController : MonoBehaviour
                 }
             }
 
-            if (!foundGround && !usedRecentSafety)
-            {
-                _internalState.IsGrounded = false;
-                _internalState.IsOnSlope = false;
-            }
+            //if (!foundGround && !usedRecentSafety)
+            //{
+            //    _internalState.IsGrounded = false;
+            //    _internalState.IsOnSlope = false;
+            //}
         }
 
         #region Debug Slope Normal
@@ -433,18 +557,37 @@ public class MovementController : MonoBehaviour
         }
     }
 
-    private void HorizontalProbes(Vector2 moveDelta)
+    private void HorizontalProbes(Vector2 moveDelta, IVelocityInheritable lastKnownPlatform, out IVelocityInheritable foundPlatform)
     {
+        foundPlatform = null;
+
         float rayLength = Mathf.Abs(moveDelta.x) + CollisionPadding;
         if (rayLength < _horizontalProbeDistance)
         {
             rayLength = _horizontalProbeDistance;
         }
 
+        if (lastKnownPlatform != null && lastKnownPlatform.ProbesShouldLead)
+        {
+            float platformMoveDist = Mathf.Abs(lastKnownPlatform.GetVelocity().x * Time.fixedDeltaTime);
+            rayLength += platformMoveDist;
+        }
+
+        Vector2 platformOffset = Vector2.zero;
+        if (lastKnownPlatform != null && lastKnownPlatform.ProbesShouldLead)
+        {
+            platformOffset = lastKnownPlatform.GetVelocity() * Time.fixedDeltaTime;
+        }
+
         for (int i = 0; i < NumOfHorizontalRays; i++)
         {
             //check left
             Vector2 rayOriginLeft = RayCastCorners.bottomLeft + Vector2.up * (_horizontalRaySpace * i);
+            if (Vector2.Dot(platformOffset, Vector2.left) > 0)
+            {
+                rayOriginLeft += platformOffset;
+            }
+
             RaycastHit2D hitLeft = Physics2D.Raycast(rayOriginLeft, Vector2.left, rayLength, _moveStats.GroundLayer);
 
             #region Debug Visualization
@@ -473,10 +616,21 @@ public class MovementController : MonoBehaviour
                     _internalState.WallAngle = wallAngle;
                     foundWall = true;
                 }
+
+                var platform = hitLeft.collider.GetComponent<IVelocityInheritable>();
+                if (platform != null)
+                {
+                    foundPlatform = platform;
+                }
             }
 
             //check right
             Vector2 rayOriginRight = RayCastCorners.bottomRight + Vector2.up * (_horizontalRaySpace * i);
+            if (Vector2.Dot(platformOffset, Vector2.right) > 0)
+            {
+                rayOriginRight += platformOffset;
+            }
+
             RaycastHit2D hitRight = Physics2D.Raycast(rayOriginRight, Vector2.right, rayLength, _moveStats.GroundLayer);
 
             #region Debug Visualization
@@ -504,6 +658,12 @@ public class MovementController : MonoBehaviour
                     _internalState.WallAngle = wallAngle;
                     foundWall = true;
                 }
+
+                var platform = hitRight.collider.GetComponent<IVelocityInheritable>();
+                if (platform != null)
+                {
+                    foundPlatform = platform;
+                }
             }
 
             if (foundWall)
@@ -522,6 +682,11 @@ public class MovementController : MonoBehaviour
         SlopeNormal = Vector2.zero;
         _isCornerCorrectingThisFrame = false;
         _isHorizontalCornerCorrectingThisFrame = false;
+
+        if (!_internalState.IsGrounded)
+        {
+            _slopeCurveAccumulator = 0f;
+        }
     }
 
     private void ResolveHorizontalMovement(ref Vector2 velocity)
@@ -545,6 +710,11 @@ public class MovementController : MonoBehaviour
         if (Mathf.Abs(velocity.x) < CollisionPadding)
         {
             rayLength = CollisionPadding * 2;
+        }
+
+        if (LastKnownPlatform != null && LastKnownPlatform.ProbesShouldLead)
+        {
+            rayLength += Mathf.Abs(LastKnownPlatform.GetVelocity().x * Time.fixedDeltaTime);
         }
 
         for (int i = 0; i < NumOfHorizontalRays; i++)
@@ -707,6 +877,11 @@ public class MovementController : MonoBehaviour
 
         float downwardRayLength = Mathf.Abs(velocity.y) + CollisionPadding;
 
+        if (LastKnownPlatform != null && LastKnownPlatform.ProbesShouldLead)
+        {
+            downwardRayLength += Mathf.Abs(LastKnownPlatform.GetVelocity().y * Time.fixedDeltaTime);
+        }
+
         float smallestHitDistance = float.MaxValue;
         RaycastHit2D groundHit = new RaycastHit2D();
         bool foundGround = false;
@@ -726,9 +901,12 @@ public class MovementController : MonoBehaviour
                 bool isHitWalkable = hitAngle < _moveStats.MaxSlopeAngle;
                 bool isSinking = hit.distance < CollisionPadding;
 
-                if (!isSinking && !isHitWalkable && _internalState.IsGrounded && _internalState.SlopeAngle < _moveStats.MaxSlopeAngle)
+                if (!isSinking && !isHitWalkable)
                 {
-                    continue;
+                    if (IsSliding || _internalState.IsGrounded && _internalState.SlopeAngle < _moveStats.MaxSlopeAngle)
+                    {
+                        continue;
+                    }
                 }
 
                 if (!foundGround)
@@ -846,6 +1024,7 @@ public class MovementController : MonoBehaviour
             SlopeAngle = slopeAngle;
             SlopeNormal = slopeNormal;
             _rearCornerSlopeAngle = slopeAngle;
+            _slopeCurveAccumulator = 0f;
         }
         else
         {
@@ -856,6 +1035,7 @@ public class MovementController : MonoBehaviour
                 SlopeAngle = slopeAngle;
                 SlopeNormal = slopeNormal;
                 _rearCornerSlopeAngle = slopeAngle;
+                _slopeCurveAccumulator = 0f;
             }
         }
     }
@@ -905,9 +1085,9 @@ public class MovementController : MonoBehaviour
             bool isWallSlope = slopeAngle >= _moveStats.MinAngleForWallSlide;
             bool shouldSlide = isNormalSlideableSlope || (isWallSlope && !isFacingWall);
 
-            if (!wasAirborne && slopeAngle > _rearCornerSlopeAngle)
+            if (!wasAirborne && angleDelta > 0.1f)
             {
-                _slopeCurveAccumulator += (slopeAngle - _rearCornerSlopeAngle);
+                _slopeCurveAccumulator += angleDelta;
             }
             else
             {
@@ -975,6 +1155,11 @@ public class MovementController : MonoBehaviour
                 float checkDirection = (Mathf.Abs(velocity.x) < 0.01f) ? FaceDirection : Mathf.Sign(velocity.x);
                 bool isMovingDownSlope = Mathf.Sign(hit.normal.x) == checkDirection;
 
+                if (!isMovingDownSlope)
+                {
+                    _slopeCurveAccumulator = 0f;
+                }
+
                 if (shouldSlide && isMovingDownSlope)
                 {
                     SlideDownMaxSlope(hit, ref velocity);
@@ -998,6 +1183,7 @@ public class MovementController : MonoBehaviour
 
                 if (!isMovingDownSlope)
                 {
+                    _slopeCurveAccumulator = 0f;
                     _rearCornerSlopeAngle = slopeAngle;
                 }
                 else if (slopeAngle < _moveStats.MinAngleForWallSlide)
@@ -1020,6 +1206,7 @@ public class MovementController : MonoBehaviour
         }
         else
         {
+            _slopeCurveAccumulator = 0f;
             _rearCornerSlopeAngle = AIRBORNE_ANGLE_MEMORY;
         }
 
@@ -1054,6 +1241,14 @@ public class MovementController : MonoBehaviour
                 SlideDownMaxSlope(maxSlopeHitRight, ref velocity);
             }
         }
+    }
+
+    public void UpdateSlopeMemory()
+    {
+        _slopeCurveAccumulator = 0f;
+        _rearCornerSlopeAngle = AIRBORNE_ANGLE_MEMORY;
+
+        LastLandingTime = Time.time;
     }
 
     private void ApplySlopeStick(ref Vector2 moveAmount, float slopeAngle, RaycastHit2D hit)
@@ -1104,9 +1299,22 @@ public class MovementController : MonoBehaviour
 
             if (isNormalSlideableSlope || (isWallSlope && !isFacingWall))
             {
-                float tanAngle = Mathf.Clamp(slopeAngle, 0, 89.9f);
+                Vector2 slopeTangent = new Vector2(hit.normal.y, -hit.normal.x);
 
-                velocity.x = Mathf.Sign(hit.normal.x) * (Mathf.Abs(velocity.y) - hit.distance) / Mathf.Tan(tanAngle * Mathf.Deg2Rad);
+                if (slopeTangent.y > 0)
+                {
+                    slopeTangent = -slopeTangent;
+                }
+                slopeTangent.Normalize();
+
+                float currentSpeed = velocity.magnitude;
+
+                Vector2 slideVelocity = slopeTangent * currentSpeed;
+
+                slideVelocity.y -= (hit.distance - CollisionPadding);
+
+                velocity.x = slideVelocity.x;
+                velocity.y = slideVelocity.y;
 
                 SlopeAngle = slopeAngle;
                 SlopeNormal = hit.normal;
@@ -1540,6 +1748,54 @@ public class MovementController : MonoBehaviour
 
     #endregion
 
+    #region Velocity Inheritable
+
+    public void ApplyExternalPush(Vector2 pushAmount, Transform pusher)
+    {
+        Vector2 direction = pushAmount.normalized;
+        float distance = pushAmount.magnitude;
+
+        if (distance > 0.001f)
+        {
+            Vector2 origin = _coll.bounds.center;
+            Vector2 size = _coll.bounds.size - (Vector3.one * CollisionPadding * 2f);
+
+            RaycastHit2D hit = Physics2D.BoxCast(origin, size, 0f, direction, distance, _moveStats.GroundLayer);
+
+            if (hit)
+            {
+                bool hitsPusher = pusher != null && hit.transform == pusher;
+
+                if (!hitsPusher)
+                {
+                    bool steppedUp = false;
+                    if (Mathf.Abs(pushAmount.x) > 0.001f)
+                    {
+                        float directionX = Mathf.Sign(pushAmount.x);
+
+                        if (GetStepInfo(hit.distance, directionX, out float stepHeight))
+                        {
+                            _rb.position += Vector2.up * (stepHeight + CollisionPadding + 0.001f);
+                            steppedUp = true;
+                        }
+                    }
+
+                    if (!steppedUp)
+                    {
+                        OnCrush?.Invoke();
+                    }
+                }
+            }
+        }
+
+        _rb.position += pushAmount;
+
+        _wasPushedThisFrame = true;
+        _pushAmountThisFrame = pushAmount;
+    }
+
+    #endregion
+
     #region Helpers Methods
 
     public bool IsGrounded() => _internalState.IsGrounded;
@@ -1569,6 +1825,9 @@ public class MovementControllerEditor : Editor
             EditorGUILayout.LabelField("Collision State (Read Only)", EditorStyles.boldLabel);
 
             EditorGUI.BeginDisabledGroup(true);
+
+            EditorGUILayout.Toggle("Is On Platform", controller.LastKnownPlatform != null);
+            EditorGUILayout.Space();
 
             EditorGUILayout.Toggle("Is Grounded", controller.State.IsGrounded);
             EditorGUILayout.Toggle("Is Against Wall", controller.State.IsAgainstWall);
