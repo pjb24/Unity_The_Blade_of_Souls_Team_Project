@@ -21,6 +21,12 @@ MonoBehaviour:
   WallJumpMoveAcceleration: 5
   WallJumpMoveDeceleration: 5
   MaxRunSpeed: 20
+  InheritPlatformMomentum: 1
+  PlatformMomentumRetentionTime: 0.15
+  PlatformHorizontalMomentumMultiplier: 1
+  PlatformVerticalMomentumMultiplier: 1
+  MaxVerticalBoost: 10
+  VerticalLaunchMultiplierOnLaunchExit: 2
   DashDirectionMatchesSlopeDirection: 1
   CanJumpOnMaxSlopes: 0
   JumpFollowSlopesWhenHeadTouching: 1
@@ -101,3 +107,4 @@ MonoBehaviour:
   DashUpwardAngleTolerance: 22.5
   DashDownwardAngleTolerance: 22.5
   DashHorizontalAngleTolerance: 22.5
+  DashLeftRightOnly: 1

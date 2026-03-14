@@ -38,6 +38,7 @@ public class InputManager : MonoBehaviour
 
         RunIsHeld = _runAction.IsPressed();
 
-        DashWasPressed = _dashAction.WasPressedThisFrame();
+        //DashWasPressed = _dashAction.WasPressedThisFrame();
+        DashWasPressed = _dashAction.WasPerformedThisFrame();
     }
 }

@@ -1065,6 +1065,9 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 입력/설정에 따라 대시 방향을 계산하고, 필요 시 좌/우 2방향으로 제한한다.
+    /// </summary>
     private void CalculateDashDirection()
     {
         Vector2 input = _moveInput;
@@ -1075,6 +1078,20 @@ public class PlayerMovement : MonoBehaviour
         if (input == Vector2.zero)
         {
             _dashDirection = IsFacingRight ? Vector2.right : Vector2.left;
+            return;
+        }
+
+        if (MoveStats.DashLeftRightOnly)
+        {
+            Vector2 horizontalDashDirection = IsFacingRight ? Vector2.right : Vector2.left;
+
+            if (Mathf.Abs(input.x) >= MoveStats.MoveThreshold)
+            {
+                horizontalDashDirection = Mathf.Sign(input.x) > 0f ? Vector2.right : Vector2.left;
+            }
+
+            _dashDirection = horizontalDashDirection;
+            _dashIntentDirection = horizontalDashDirection;
             return;
         }
 

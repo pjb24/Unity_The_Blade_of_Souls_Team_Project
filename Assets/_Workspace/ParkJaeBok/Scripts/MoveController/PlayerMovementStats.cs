@@ -141,6 +141,8 @@ public class PlayerMovementStats : ScriptableObject
     [Range(0f, 45f)] public float DashUpwardAngleTolerance = 22.5f;
     [Range(0f, 45f)] public float DashDownwardAngleTolerance = 22.5f;
     [Range(0f, 45f)] public float DashHorizontalAngleTolerance = 22.5f;
+    // 대시 입력을 좌/우 2방향으로만 제한할지 여부를 제어한다.
+    public bool DashLeftRightOnly = false;
 
     //Jump
     public float Gravity { get; private set; }
