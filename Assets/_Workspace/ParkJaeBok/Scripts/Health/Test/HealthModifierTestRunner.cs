@@ -68,12 +68,12 @@ public class HealthModifierTestRunner : MonoBehaviour
 
         if (Keyboard.current.f7Key.wasPressedThisFrame)
         {
-            RunTC09_ModifierDamage();
+            RunTC12_ModifierDamage();
         }
 
         if (Keyboard.current.f8Key.wasPressedThisFrame)
         {
-            RunTC10_ModifierHeal();
+            RunTC13_ModifierHeal();
         }
 
         if (Keyboard.current.f9Key.wasPressedThisFrame)
@@ -239,10 +239,10 @@ public class HealthModifierTestRunner : MonoBehaviour
     /// <summary>
     /// 데미지 모디파이어 테스트 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-09 Modifier Damage")]
-    public void RunTC09_ModifierDamage()
+    [ContextMenu("TC-12 Modifier Damage")]
+    public void RunTC12_ModifierDamage()
     {
-        if (!TryValidateTarget("TC-09 Modifier Damage"))
+        if (!TryValidateTarget("TC-12 Modifier Damage"))
         {
             return;
         }
@@ -250,22 +250,22 @@ public class HealthModifierTestRunner : MonoBehaviour
         DamageContext context = new DamageContext(
             amount: 20f,
             instigator: gameObject,
-            sourceId: "TC-09_ModifierDamage",
+            sourceId: "TC-12_ModifierDamage",
             ignoreInvincibility: false,
             canKill: true,
             damageType: E_DamageType.Physical);
 
         DamageResult result = _target.ApplyDamage(context);
-        Debug.Log($"[HealthModifierTestRunner] TC-09 Applied:{result.AppliedAmount} Current:{result.CurrentHealth} Shield:{_shieldAmount}");
+        Debug.Log($"[HealthModifierTestRunner] TC-12 Applied:{result.AppliedAmount} Current:{result.CurrentHealth} Shield:{_shieldAmount}");
     }
 
     /// <summary>
     /// 회복 모디파이어 테스트 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-10 Modifier Heal")]
-    public void RunTC10_ModifierHeal()
+    [ContextMenu("TC-13 Modifier Heal")]
+    public void RunTC13_ModifierHeal()
     {
-        if (!TryValidateTarget("TC-10 Modifier Heal"))
+        if (!TryValidateTarget("TC-13 Modifier Heal"))
         {
             return;
         }
@@ -273,11 +273,11 @@ public class HealthModifierTestRunner : MonoBehaviour
         HealContext context = new HealContext(
             amount: 20f,
             instigator: gameObject,
-            sourceId: "TC-10_ModifierHeal",
+            sourceId: "TC-13_ModifierHeal",
             allowOverheal: false);
 
         HealResult result = _target.ApplyHeal(context);
-        Debug.Log($"[HealthModifierTestRunner] TC-10 Applied:{result.AppliedAmount} Current:{result.CurrentHealth} Blocked:{result.IsBlocked}");
+        Debug.Log($"[HealthModifierTestRunner] TC-13 Applied:{result.AppliedAmount} Current:{result.CurrentHealth} Blocked:{result.IsBlocked}");
     }
 
     /// <summary>

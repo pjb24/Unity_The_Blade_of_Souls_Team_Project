@@ -132,22 +132,21 @@
 
 ## 5) 테스트 케이스 표 (실행 체크리스트)
 
-아래 표를 복사해 QA 체크 시 사용하세요.
-
-| ID | 케이스 | 입력 | 기대 결과 |
-|---|---|---|---|
-| TC-01 | 기본 데미지 | Amount=10 | CurrentHealth 10 감소, OnDamaged 호출 |
-| TC-02 | 기본 회복 | Amount=10 | CurrentHealth 10 증가, OnHealed 호출 |
-| TC-03 | 치사 데미지 | Amount=999 | CurrentHealth=0, OnDied 1회 |
-| TC-04 | 부활 | Revive(30) | CurrentHealth=30, OnRevived 1회 |
-| TC-05 | Max 감소 Clamp | SetMaxHealth(50,false) | CurrentHealth>50이면 50으로 Clamp |
-| TC-06 | 음수 데미지 방어 | Amount=-1 | 적용량 0, Warning 로그 |
-| TC-07 | 음수 회복 방어 | Amount=-1 | 적용량 0, Warning 로그 |
-| TC-08 | CanKill false | Amount=999, CanKill=false | 최소 1 유지 |
-| TC-09 | 무적 처리 | Invincible=true | 데미지 0 처리 |
-| TC-10 | Shield 소모 | Shield=30, Damage=20 | HP 변화 없음, Shield 10 |
-| TC-11 | Heal 차단 | HealBlocked=true | 힐 적용 0 |
-| TC-12 | 사망 중 힐 제한 | allowHealWhenDead=false | 힐 차단 + Warning |
+| Runner | ID | 케이스 | 입력 요약 | 기대 결과 |
+|---|---|---|---|---|
+| Basic | TC-01 | Player Damage | Damage 25, Physical | 체력 감소, 데미지 로그 |
+| Basic | TC-02 | Player Heal | Heal 10 | 체력 증가, 회복 로그 |
+| Basic | TC-03 | Enemy Kill | Damage 999, True | 체력 0, 사망 전환 |
+| Basic | TC-04 | Enemy Revive | Revive(30) | 체력 30, 부활 전환 |
+| Basic | TC-05 | Boss MaxHealth Clamp | SetMaxHealth(50,false) | 필요 시 현재 체력 Clamp |
+| Basic | TC-06 | Destructible Destroy | Damage 999, Environmental | 체력 0, 사망 전환 |
+| InputValidation | TC-07 | Negative Damage | Amount=-10 | `IsInvalid=true`, 경고 |
+| InputValidation | TC-08 | Negative Heal | Amount=-5 | `IsInvalid=true`, 경고 |
+| InputValidation | TC-09 | CanKill False | Amount=999, CanKill=false | 최소 체력 1 유지 |
+| InputValidation | TC-10 | Empty SourceId | SourceId=" " | `HasWarningFallback=true` |
+| InputValidation | TC-11 | Null Listener/Modifier | null Add/Remove | 경고 로그 출력 |
+| Modifier | TC-12 | Modifier Damage | Damage 20, Physical | 룰 상태(무적/배율/실드)에 따른 반영 |
+| Modifier | TC-13 | Modifier Heal | Heal 20 | 룰 상태(회복 차단/배율)에 따른 반영 |
 
 ---
 
@@ -202,12 +201,27 @@
 
 ### 방법 1: 키보드 단축키 기반 Runner (빠른 반복)
 
-- `1`: Player 데미지
-- `2`: Player 힐
-- `3`: Enemy 치사 데미지
-- `4`: Enemy 부활
-- `5`: Modifier Target 무적 토글
-- `6`: Modifier Target Shield 리셋
+- Basic Runner
+- `1`: TC-01
+- `2`: TC-02
+- `3`: TC-03
+- `4`: TC-04
+- `5`: TC-05
+- `6`: TC-06
+
+- InputValidation Runner
+- `F1`: TC-07
+- `F2`: TC-08
+- `F3`: TC-09
+- `F4`: TC-10
+- `F5`: TC-11
+
+- Modifier Runner
+- `F6`: 무적 토글
+- `F7`: TC-12 Modifier Damage
+- `F8`: TC-13 Modifier Heal
+- `F9`: Shield 30 리셋
+- `F10`: HealBlocked 토글
 
 ### 방법 2: UI 버튼 기반 Runner (비개발자 QA 친화)
 
@@ -246,7 +260,7 @@
 
 - [ ] 5개 Target(Player/Enemy/Boss/Destructible/Modifier) 구성 완료
 - [ ] 3개 Runner(Basic/InputValidation/Modifier) 동작 확인
-- [ ] TC-01~TC-12 전부 기대 결과 충족
+- [ ] TC-01~TC-13 전부 기대 결과 충족
 - [ ] 경고/오류 로그가 의도된 케이스에서만 발생
 - [ ] 리스너/모디파이어 등록 누수 없음
 - [ ] 테스트 절차 문서(본 문서) 기반 재현 가능

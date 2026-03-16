@@ -45,27 +45,27 @@ public class HealthInputValidationTestRunner : MonoBehaviour
 
         if (Keyboard.current.f1Key.wasPressedThisFrame)
         {
-            RunTC06_NegativeDamage();
+            RunTC07_NegativeDamage();
         }
 
         if (Keyboard.current.f2Key.wasPressedThisFrame)
         {
-            RunTC07_NegativeHeal();
+            RunTC08_NegativeHeal();
         }
 
         if (Keyboard.current.f3Key.wasPressedThisFrame)
         {
-            RunTC08_NoKillDamage();
+            RunTC09_NoKillDamage();
         }
 
         if (Keyboard.current.f4Key.wasPressedThisFrame)
         {
-            RunTC09_EmptySourceId();
+            RunTC10_EmptySourceId();
         }
 
         if (Keyboard.current.f5Key.wasPressedThisFrame)
         {
-            RunTC10_NullListenerAndModifier();
+            RunTC11_NullListenerAndModifier();
         }
     }
 
@@ -125,10 +125,10 @@ public class HealthInputValidationTestRunner : MonoBehaviour
     /// <summary>
     /// 음수 데미지 입력 방어 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-06 Negative Damage")]
-    public void RunTC06_NegativeDamage()
+    [ContextMenu("TC-07 Negative Damage")]
+    public void RunTC07_NegativeDamage()
     {
-        if (!TryValidateTarget("TC-06 Negative Damage"))
+        if (!TryValidateTarget("TC-07 Negative Damage"))
         {
             return;
         }
@@ -136,22 +136,22 @@ public class HealthInputValidationTestRunner : MonoBehaviour
         DamageContext context = new DamageContext(
             amount: -10f,
             instigator: gameObject,
-            sourceId: "TC-06_NegativeDamage",
+            sourceId: "TC-07_NegativeDamage",
             ignoreInvincibility: false,
             canKill: true,
             damageType: E_DamageType.Unknown);
 
         DamageResult result = _target.ApplyDamage(context);
-        Debug.Log($"[HealthInputValidationTestRunner] TC-06 Invalid:{result.IsInvalid} Blocked:{result.IsBlocked}");
+        Debug.Log($"[HealthInputValidationTestRunner] TC-07 Invalid:{result.IsInvalid} Blocked:{result.IsBlocked}");
     }
 
     /// <summary>
     /// 음수 회복 입력 방어 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-07 Negative Heal")]
-    public void RunTC07_NegativeHeal()
+    [ContextMenu("TC-08 Negative Heal")]
+    public void RunTC08_NegativeHeal()
     {
-        if (!TryValidateTarget("TC-07 Negative Heal"))
+        if (!TryValidateTarget("TC-08 Negative Heal"))
         {
             return;
         }
@@ -159,20 +159,20 @@ public class HealthInputValidationTestRunner : MonoBehaviour
         HealContext context = new HealContext(
             amount: -5f,
             instigator: gameObject,
-            sourceId: "TC-07_NegativeHeal",
+            sourceId: "TC-08_NegativeHeal",
             allowOverheal: false);
 
         HealResult result = _target.ApplyHeal(context);
-        Debug.Log($"[HealthInputValidationTestRunner] TC-07 Invalid:{result.IsInvalid} Blocked:{result.IsBlocked}");
+        Debug.Log($"[HealthInputValidationTestRunner] TC-08 Invalid:{result.IsInvalid} Blocked:{result.IsBlocked}");
     }
 
     /// <summary>
     /// 치사 데미지를 금지하는 CanKill=false 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-08 CanKill False")]
-    public void RunTC08_NoKillDamage()
+    [ContextMenu("TC-09 CanKill False")]
+    public void RunTC09_NoKillDamage()
     {
-        if (!TryValidateTarget("TC-08 CanKill False"))
+        if (!TryValidateTarget("TC-09 CanKill False"))
         {
             return;
         }
@@ -182,22 +182,22 @@ public class HealthInputValidationTestRunner : MonoBehaviour
         DamageContext context = new DamageContext(
             amount: 999f,
             instigator: gameObject,
-            sourceId: "TC-08_NoKillDamage",
+            sourceId: "TC-09_NoKillDamage",
             ignoreInvincibility: false,
             canKill: false,
             damageType: E_DamageType.True);
 
         DamageResult result = _target.ApplyDamage(context);
-        Debug.Log($"[HealthInputValidationTestRunner] TC-08 Current:{result.CurrentHealth} Applied:{result.AppliedAmount}");
+        Debug.Log($"[HealthInputValidationTestRunner] TC-09 Current:{result.CurrentHealth} Applied:{result.AppliedAmount}");
     }
 
     /// <summary>
     /// 빈 SourceId 폴백 경고 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-09 Empty SourceId")]
-    public void RunTC09_EmptySourceId()
+    [ContextMenu("TC-10 Empty SourceId")]
+    public void RunTC10_EmptySourceId()
     {
-        if (!TryValidateTarget("TC-09 Empty SourceId"))
+        if (!TryValidateTarget("TC-10 Empty SourceId"))
         {
             return;
         }
@@ -211,16 +211,16 @@ public class HealthInputValidationTestRunner : MonoBehaviour
             damageType: E_DamageType.Physical);
 
         DamageResult result = _target.ApplyDamage(context);
-        Debug.Log($"[HealthInputValidationTestRunner] TC-09 Fallback:{result.HasWarningFallback}");
+        Debug.Log($"[HealthInputValidationTestRunner] TC-10 Fallback:{result.HasWarningFallback}");
     }
 
     /// <summary>
     /// null 리스너/모디파이어 등록 및 해제 방어 케이스를 실행합니다.
     /// </summary>
-    [ContextMenu("TC-10 Null Listener and Modifier")]
-    public void RunTC10_NullListenerAndModifier()
+    [ContextMenu("TC-11 Null Listener and Modifier")]
+    public void RunTC11_NullListenerAndModifier()
     {
-        if (!TryValidateTarget("TC-10 Null Listener and Modifier"))
+        if (!TryValidateTarget("TC-11 Null Listener and Modifier"))
         {
             return;
         }
@@ -232,7 +232,7 @@ public class HealthInputValidationTestRunner : MonoBehaviour
         _target.AddHealModifier(null);
         _target.RemoveHealModifier(null);
 
-        Debug.Log("[HealthInputValidationTestRunner] TC-10 executed. Check warning logs.");
+        Debug.Log("[HealthInputValidationTestRunner] TC-11 executed. Check warning logs.");
     }
 
     /// <summary>
