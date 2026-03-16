@@ -64,6 +64,12 @@
 
 ## 4) 테스트 러너 역할 분리
 
+아래 Runner 스크립트를 `Runners` 하위 오브젝트에 각각 1개씩 부착해 사용합니다.
+
+- `HealthBasicTestRunner`
+- `HealthInputValidationTestRunner`
+- `HealthModifierTestRunner`
+
 ### 4-1. Basic_Test_Runner
 
 **검증 항목**

@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -7,8 +8,11 @@ public class HealthDebugListener : MonoBehaviour, IHealthListener
 {
     [SerializeField] private HealthComponent _targetHealth; // 구독할 HealthComponent 참조
 
+    private bool _isRegistered;
+    private Coroutine _registerCoroutine;
+
     /// <summary>
-    /// 대상 HealthComponent를 찾아 등록합니다.
+    /// 대상 HealthComponent를 찾아 초기화 완료까지 기다린 뒤 등록합니다.
     /// </summary>
     private void OnEnable()
     {
@@ -23,7 +27,7 @@ public class HealthDebugListener : MonoBehaviour, IHealthListener
             return;
         }
 
-        _targetHealth.AddListener(this);
+        StartRegisterRoutine();
     }
 
     /// <summary>
@@ -31,12 +35,112 @@ public class HealthDebugListener : MonoBehaviour, IHealthListener
     /// </summary>
     private void OnDisable()
     {
-        if (_targetHealth == null)
+        StopRegisterRoutine();
+        UnregisterListener();
+    }
+
+    /// <summary>
+    /// 등록 대기 루틴을 시작합니다.
+    /// </summary>
+    private void StartRegisterRoutine()
+    {
+        StopRegisterRoutine();
+        _registerCoroutine = StartCoroutine(Co_RegisterWhenReady());
+    }
+
+    /// <summary>
+    /// 등록 대기 루틴을 중단합니다.
+    /// </summary>
+    private void StopRegisterRoutine()
+    {
+        if (_registerCoroutine == null)
         {
             return;
         }
 
+        StopCoroutine(_registerCoroutine);
+        _registerCoroutine = null;
+    }
+
+    /// <summary>
+    /// 대상 초기화 완료까지 기다린 뒤 리스너를 등록합니다.
+    /// </summary>
+    private IEnumerator Co_RegisterWhenReady()
+    {
+        if (_targetHealth == null)
+        {
+            Debug.LogWarning($"[HealthDebugListener] Target HealthComponent missing on {name}.");
+            _registerCoroutine = null;
+            yield break;
+        }
+
+        while (_targetHealth != null && _targetHealth.IsInitialized == false)
+        {
+            yield return null;
+        }
+
+        if (_targetHealth == null)
+        {
+            Debug.LogWarning($"[HealthDebugListener] Target destroyed while waiting initialization on {name}.");
+            _registerCoroutine = null;
+            yield break;
+        }
+
+        RegisterListenerInternal();
+        _registerCoroutine = null;
+    }
+
+    /// <summary>
+    /// 실제 리스너 등록을 수행합니다.
+    /// </summary>
+    private void RegisterListenerInternal()
+    {
+        if (_isRegistered)
+        {
+            Debug.LogWarning($"[HealthDebugListener] Listener already registered on {name}.");
+            return;
+        }
+
+        if (_targetHealth == null)
+        {
+            Debug.LogWarning($"[HealthDebugListener] Target missing while registering on {name}.");
+            return;
+        }
+
+        if (_targetHealth.IsInitialized == false)
+        {
+            Debug.LogWarning($"[HealthDebugListener] Target not initialized while registering on {name}.");
+            return;
+        }
+
+        _targetHealth.AddListener(this);
+        _isRegistered = true;
+    }
+
+    /// <summary>
+    /// 리스너를 해제합니다.
+    /// </summary>
+    private void UnregisterListener()
+    {
+        if (_isRegistered == false)
+        {
+            return;
+        }
+
+        if (_targetHealth == null)
+        {
+            _isRegistered = false;
+            return;
+        }
+
+        if (_targetHealth.IsInitialized == false)
+        {
+            _isRegistered = false;
+            return;
+        }
+
         _targetHealth.RemoveListener(this);
+        _isRegistered = false;
     }
 
     /// <summary>
