@@ -1,0 +1,629 @@
+fileFormatVersion: 2
+guid: 6a44586c73c2f1244b8801843c5528a4
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6077099342503013306
+    second: Character_Sprite_Sheet_Test_4_0
+  - first:
+      213: 179941659345456163
+    second: Character_Sprite_Sheet_Test_4_1
+  - first:
+      213: -6816458701404262372
+    second: Character_Sprite_Sheet_Test_4_2
+  - first:
+      213: -1712670870107324164
+    second: Character_Sprite_Sheet_Test_4_3
+  - first:
+      213: 4781467435017323398
+    second: Character_Sprite_Sheet_Test_4_4
+  - first:
+      213: -5825038630969194723
+    second: Character_Sprite_Sheet_Test_4_5
+  - first:
+      213: -5030595089328635143
+    second: Character_Sprite_Sheet_Test_4_6
+  - first:
+      213: -9131984333518480719
+    second: Character_Sprite_Sheet_Test_4_7
+  - first:
+      213: 5554642427982573618
+    second: Character_Sprite_Sheet_Test_4_8
+  - first:
+      213: -5870412876170167891
+    second: Character_Sprite_Sheet_Test_4_9
+  - first:
+      213: 8083433190562002872
+    second: Character_Sprite_Sheet_Test_4_10
+  - first:
+      213: -2217657516499055022
+    second: Character_Sprite_Sheet_Test_4_11
+  - first:
+      213: 8075681344813416428
+    second: Character_Sprite_Sheet_Test_4_12
+  - first:
+      213: -2080058406470270937
+    second: Character_Sprite_Sheet_Test_4_13
+  - first:
+      213: -1897948002731922725
+    second: Character_Sprite_Sheet_Test_4_14
+  - first:
+      213: -9203131587258800041
+    second: Character_Sprite_Sheet_Test_4_15
+  - first:
+      213: -4052942180321288117
+    second: Character_Sprite_Sheet_Test_4_16
+  - first:
+      213: -2049053584896103844
+    second: Character_Sprite_Sheet_Test_4_17
+  - first:
+      213: 8799433632859738945
+    second: Character_Sprite_Sheet_Test_4_18
+  - first:
+      213: -2252129548271592952
+    second: Character_Sprite_Sheet_Test_4_19
+  - first:
+      213: 1805047033250604682
+    second: Character_Sprite_Sheet_Test_4_20
+  - first:
+      213: -9191606852342507408
+    second: Character_Sprite_Sheet_Test_4_21
+  - first:
+      213: -2360836105099367276
+    second: Character_Sprite_Sheet_Test_4_22
+  - first:
+      213: -2358256339296174500
+    second: Character_Sprite_Sheet_Test_4_23
+  - first:
+      213: -7361896918922609875
+    second: Character_Sprite_Sheet_Test_4_24
+  - first:
+      213: 3816119909232184991
+    second: Character_Sprite_Sheet_Test_4_25
+  - first:
+      213: 3412228655768832793
+    second: Character_Sprite_Sheet_Test_4_26
+  - first:
+      213: -625380340699343423
+    second: Character_Sprite_Sheet_Test_4_27
+  - first:
+      213: 6546002014168654691
+    second: Character_Sprite_Sheet_Test_4_28
+  - first:
+      213: 888115475227794223
+    second: Character_Sprite_Sheet_Test_4_29
+  - first:
+      213: 338845888539814577
+    second: Character_Sprite_Sheet_Test_4_30
+  - first:
+      213: 1889757582132200455
+    second: Character_Sprite_Sheet_Test_4_31
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: IdleBreakA_1
+      rect:
+        serializedVersion: 2
+        x: 311
+        y: 695
+        width: 132
+        height: 279
+      alignment: 9
+      pivot: {x: 0.37119663, y: 0.52238566}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1293cf110875aef4493ec41c712918ff
+      internalID: -1370308434
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakA_2
+      rect:
+        serializedVersion: 2
+        x: 510
+        y: 696
+        width: 135
+        height: 278
+      alignment: 9
+      pivot: {x: 0.3791992, y: 0.52870697}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e40127d8c99b0c843828ee173e682f61
+      internalID: -1242897138
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakA_3
+      rect:
+        serializedVersion: 2
+        x: 687
+        y: 696
+        width: 148
+        height: 280
+      alignment: 9
+      pivot: {x: 0.4789, y: 0.5322196}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6735582866f1dd54b928ec37ca159355
+      internalID: 1156501739
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakA_4
+      rect:
+        serializedVersion: 2
+        x: 906
+        y: 696
+        width: 125
+        height: 277
+      alignment: 9
+      pivot: {x: 0.4333799, y: 0.53131586}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4122c8981e0259e4b95e3a16367d4b41
+      internalID: 957480465
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakA_5
+      rect:
+        serializedVersion: 2
+        x: 1117
+        y: 696
+        width: 139
+        height: 281
+      alignment: 9
+      pivot: {x: 0.39016482, y: 0.5296353}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 77f9fec486d14f747a22f4e293a57130
+      internalID: 431930905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakA_6
+      rect:
+        serializedVersion: 2
+        x: 1341
+        y: 696
+        width: 139
+        height: 279
+      alignment: 9
+      pivot: {x: 0.4209845, y: 0.51968306}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e17c5dd9bf5257641ba3cc896aed979a
+      internalID: 58860270
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakB_1
+      rect:
+        serializedVersion: 2
+        x: 310
+        y: 376
+        width: 134
+        height: 280
+      alignment: 9
+      pivot: {x: 0.41520348, y: 0.52272534}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a00c73da702bd74448dd4d8cc1ed8860
+      internalID: 1036893597
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakB_2
+      rect:
+        serializedVersion: 2
+        x: 509
+        y: 376
+        width: 139
+        height: 280
+      alignment: 9
+      pivot: {x: 0.40190464, y: 0.5275953}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 932c8aaba2c8fd242ace7ca75cde5da5
+      internalID: 1827103464
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakB_3
+      rect:
+        serializedVersion: 2
+        x: 694
+        y: 375
+        width: 130
+        height: 281
+      alignment: 9
+      pivot: {x: 0.45105308, y: 0.52264446}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dc5768c3c2d42af4a93bcc1126338ec4
+      internalID: -921269315
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakB_4
+      rect:
+        serializedVersion: 2
+        x: 905
+        y: 375
+        width: 126
+        height: 281
+      alignment: 9
+      pivot: {x: 0.41342697, y: 0.5194096}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 514568aa585888e4b8fd271928144c7b
+      internalID: -1861790399
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakB_5
+      rect:
+        serializedVersion: 2
+        x: 1116
+        y: 376
+        width: 139
+        height: 281
+      alignment: 9
+      pivot: {x: 0.4069025, y: 0.52102715}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 08eab3c07e717e24f96975e861e52bd0
+      internalID: -493563454
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakB_6
+      rect:
+        serializedVersion: 2
+        x: 1342
+        y: 376
+        width: 137
+        height: 279
+      alignment: 9
+      pivot: {x: 0.3872017, y: 0.52606505}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9dcfeed85bd17c54b97d74e9dfc3badb
+      internalID: 1734693010
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakC_1
+      rect:
+        serializedVersion: 2
+        x: 308
+        y: 54
+        width: 136
+        height: 279
+      alignment: 9
+      pivot: {x: 0.4064248, y: 0.5332948}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7ce6621c88f26dc4eacec5ee420b0af4
+      internalID: 1628981921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakC_2
+      rect:
+        serializedVersion: 2
+        x: 510
+        y: 55
+        width: 133
+        height: 277
+      alignment: 9
+      pivot: {x: 0.34280142, y: 0.51312655}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c12ca40facdf73e4cb09cbe6f7d6eb09
+      internalID: 1814976469
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakC_3
+      rect:
+        serializedVersion: 2
+        x: 688
+        y: 54
+        width: 141
+        height: 279
+      alignment: 9
+      pivot: {x: 0.45809525, y: 0.5081452}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cd6ede44d9845cc4884cfca84281fd89
+      internalID: -391756587
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakC_4
+      rect:
+        serializedVersion: 2
+        x: 898
+        y: 54
+        width: 158
+        height: 279
+      alignment: 9
+      pivot: {x: 0.29288185, y: 0.5081452}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 74a346ea9aecb5449999bc01559c48bf
+      internalID: 76805026
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakC_5
+      rect:
+        serializedVersion: 2
+        x: 1116
+        y: 56
+        width: 140
+        height: 280
+      alignment: 9
+      pivot: {x: 0.3831264, y: 0.5227255}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 20c8db14121ee13439cbe41901617fec
+      internalID: -565784340
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: IdleBreakC_6
+      rect:
+        serializedVersion: 2
+        x: 1341
+        y: 56
+        width: 138
+        height: 278
+      alignment: 9
+      pivot: {x: 0.3913132, y: 0.5310636}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0eb2165e504c10142b290a819be6ba94
+      internalID: -2118257714
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 9389ba69410f4ac468b595fc5c5b4f5e
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":1536.0,"y":1024.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      IdleBreakA_1: 6077099342503013306
+      IdleBreakA_2: -1242897138
+      IdleBreakA_3: 1156501739
+      IdleBreakA_4: 957480465
+      IdleBreakA_5: 431930905
+      IdleBreakA_6: 58860270
+      IdleBreakB_1: 1036893597
+      IdleBreakB_2: 1827103464
+      IdleBreakB_3: -921269315
+      IdleBreakB_4: -1861790399
+      IdleBreakB_5: -493563454
+      IdleBreakB_6: 1734693010
+      IdleBreakC_1: 1628981921
+      IdleBreakC_2: 1814976469
+      IdleBreakC_3: -391756587
+      IdleBreakC_4: 76805026
+      IdleBreakC_5: -565784340
+      IdleBreakC_6: -2118257714
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,692 @@
+fileFormatVersion: 2
+guid: ac4ec35696eb2894db00fb8587479a78
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -2428135831036333382
+    second: Character_Sprite_Sheet_Test_2_0
+  - first:
+      213: -7908730245021558013
+    second: Character_Sprite_Sheet_Test_2_1
+  - first:
+      213: 1765552602245100282
+    second: Character_Sprite_Sheet_Test_2_2
+  - first:
+      213: -6594303151606087537
+    second: Character_Sprite_Sheet_Test_2_3
+  - first:
+      213: 3308278440931573581
+    second: Character_Sprite_Sheet_Test_2_4
+  - first:
+      213: -8763841108448888241
+    second: Character_Sprite_Sheet_Test_2_5
+  - first:
+      213: 5713947750333189282
+    second: Character_Sprite_Sheet_Test_2_6
+  - first:
+      213: -36216519305238906
+    second: Character_Sprite_Sheet_Test_2_7
+  - first:
+      213: 2345425281875244417
+    second: Character_Sprite_Sheet_Test_2_8
+  - first:
+      213: -8259131202658751197
+    second: Character_Sprite_Sheet_Test_2_9
+  - first:
+      213: -5920020320184170639
+    second: Character_Sprite_Sheet_Test_2_10
+  - first:
+      213: 8780828171496126062
+    second: Character_Sprite_Sheet_Test_2_11
+  - first:
+      213: -3761934632204855757
+    second: Character_Sprite_Sheet_Test_2_12
+  - first:
+      213: 1904819352825253537
+    second: Character_Sprite_Sheet_Test_2_13
+  - first:
+      213: 5332781837620537058
+    second: Character_Sprite_Sheet_Test_2_14
+  - first:
+      213: 2729429860326875850
+    second: Character_Sprite_Sheet_Test_2_15
+  - first:
+      213: 7462828149707507033
+    second: Character_Sprite_Sheet_Test_2_16
+  - first:
+      213: -2832343014726568653
+    second: Character_Sprite_Sheet_Test_2_17
+  - first:
+      213: 1408587577246069108
+    second: Character_Sprite_Sheet_Test_2_18
+  - first:
+      213: -4771912358198699249
+    second: Character_Sprite_Sheet_Test_2_19
+  - first:
+      213: 5898977844772471037
+    second: Character_Sprite_Sheet_Test_2_20
+  - first:
+      213: 6309202863071492017
+    second: Character_Sprite_Sheet_Test_2_21
+  - first:
+      213: -3547956206517349914
+    second: Character_Sprite_Sheet_Test_2_22
+  - first:
+      213: 1399855492860643901
+    second: Character_Sprite_Sheet_Test_2_23
+  - first:
+      213: 4304592419091779366
+    second: Character_Sprite_Sheet_Test_2_24
+  - first:
+      213: -4193399227749791748
+    second: Character_Sprite_Sheet_Test_2_25
+  - first:
+      213: -3744706288258087893
+    second: Character_Sprite_Sheet_Test_2_26
+  - first:
+      213: 9118294256902209177
+    second: Character_Sprite_Sheet_Test_2_27
+  - first:
+      213: 2112561352577642714
+    second: Character_Sprite_Sheet_Test_2_28
+  - first:
+      213: 8488160733550034326
+    second: Character_Sprite_Sheet_Test_2_29
+  - first:
+      213: 4248681289456205239
+    second: Character_Sprite_Sheet_Test_2_30
+  - first:
+      213: -6347768189452576713
+    second: Character_Sprite_Sheet_Test_2_31
+  - first:
+      213: -7495155862565177799
+    second: Character_Sprite_Sheet_Test_2_32
+  - first:
+      213: -7637816885942032937
+    second: Character_Sprite_Sheet_Test_2_33
+  - first:
+      213: 2203567071118342688
+    second: Character_Sprite_Sheet_Test_2_34
+  - first:
+      213: -3114824495829082128
+    second: Character_Sprite_Sheet_Test_2_35
+  - first:
+      213: 1760856210173054431
+    second: Character_Sprite_Sheet_Test_2_36
+  - first:
+      213: 1699790614300911241
+    second: Character_Sprite_Sheet_Test_2_37
+  - first:
+      213: -7072719603391988005
+    second: Character_Sprite_Sheet_Test_2_38
+  - first:
+      213: -196237283578465958
+    second: Character_Sprite_Sheet_Test_2_39
+  - first:
+      213: 777811072549562344
+    second: Character_Sprite_Sheet_Test_2_40
+  - first:
+      213: -8429314572554807629
+    second: Character_Sprite_Sheet_Test_2_41
+  - first:
+      213: 7915113965761489215
+    second: Character_Sprite_Sheet_Test_2_42
+  - first:
+      213: -4861587282344963001
+    second: Character_Sprite_Sheet_Test_2_43
+  - first:
+      213: -6851253757477547147
+    second: Character_Sprite_Sheet_Test_2_44
+  - first:
+      213: 1586867189474745719
+    second: Character_Sprite_Sheet_Test_2_45
+  - first:
+      213: -5232320567075034913
+    second: Character_Sprite_Sheet_Test_2_46
+  - first:
+      213: -381522817184933776
+    second: Character_Sprite_Sheet_Test_2_47
+  - first:
+      213: -1628350567662915834
+    second: Character_Sprite_Sheet_Test_2_48
+  - first:
+      213: 8060344636109753056
+    second: Character_Sprite_Sheet_Test_2_49
+  - first:
+      213: 9117356584420149596
+    second: Character_Sprite_Sheet_Test_2_50
+  - first:
+      213: -3481882837343322931
+    second: Character_Sprite_Sheet_Test_2_51
+  - first:
+      213: -789046608750343417
+    second: Character_Sprite_Sheet_Test_2_52
+  - first:
+      213: -4735976880503041994
+    second: Character_Sprite_Sheet_Test_2_53
+  - first:
+      213: 8235424916762230991
+    second: Character_Sprite_Sheet_Test_2_54
+  - first:
+      213: 4390974358376907851
+    second: Character_Sprite_Sheet_Test_2_55
+  - first:
+      213: -8931553620922721781
+    second: Character_Sprite_Sheet_Test_2_56
+  - first:
+      213: -4251331095651182567
+    second: Character_Sprite_Sheet_Test_2_57
+  - first:
+      213: -1283650736135257338
+    second: Character_Sprite_Sheet_Test_2_58
+  - first:
+      213: -2141219845738073421
+    second: Character_Sprite_Sheet_Test_2_59
+  - first:
+      213: -1237350696382230472
+    second: Character_Sprite_Sheet_Test_2_60
+  - first:
+      213: -5632372172726849980
+    second: Character_Sprite_Sheet_Test_2_61
+  - first:
+      213: -2692087670593508690
+    second: Character_Sprite_Sheet_Test_2_62
+  - first:
+      213: -2700959752084317697
+    second: Character_Sprite_Sheet_Test_2_63
+  - first:
+      213: 7128951608463876021
+    second: Character_Sprite_Sheet_Test_2_64
+  - first:
+      213: -8224333619442839467
+    second: Character_Sprite_Sheet_Test_2_65
+  - first:
+      213: -6812712727870979980
+    second: Character_Sprite_Sheet_Test_2_66
+  - first:
+      213: 2072597500450339596
+    second: Character_Sprite_Sheet_Test_2_67
+  - first:
+      213: 2286532278677224548
+    second: Character_Sprite_Sheet_Test_2_68
+  - first:
+      213: -8354569833019654362
+    second: Character_Sprite_Sheet_Test_2_69
+  - first:
+      213: 8481796925507940858
+    second: Character_Sprite_Sheet_Test_2_70
+  - first:
+      213: 8413302755253918510
+    second: Character_Sprite_Sheet_Test_2_71
+  - first:
+      213: 2418704763322346896
+    second: Character_Sprite_Sheet_Test_2_72
+  - first:
+      213: 4597907526475150311
+    second: Character_Sprite_Sheet_Test_2_73
+  - first:
+      213: 6441079831263088286
+    second: Character_Sprite_Sheet_Test_2_74
+  - first:
+      213: 173919312864723598
+    second: Character_Sprite_Sheet_Test_2_75
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Jump_4
+      rect:
+        serializedVersion: 2
+        x: 1022
+        y: 770
+        width: 157
+        height: 207
+      alignment: 9
+      pivot: {x: 0.6131864, y: 0.49135748}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 996db8060bcc3b842bbacb696510ab9f
+      internalID: 2112537009
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jump_3
+      rect:
+        serializedVersion: 2
+        x: 800
+        y: 798
+        width: 167
+        height: 174
+      alignment: 9
+      pivot: {x: 0.5691539, y: 0.46086034}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 83548fc32d6d8d540a068686e486c2a7
+      internalID: 1714415860
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jump_2
+      rect:
+        serializedVersion: 2
+        x: 567
+        y: 769
+        width: 156
+        height: 171
+      alignment: 9
+      pivot: {x: 0.57464445, y: 0.4768352}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 299e9f9f4fad4d7489ad62ad4d4b3c52
+      internalID: 1406664146
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Jump_1
+      rect:
+        serializedVersion: 2
+        x: 331
+        y: 767
+        width: 154
+        height: 139
+      alignment: 9
+      pivot: {x: 0.5842055, y: 0.4212923}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ddd8e76ba1b004b47af3b9c6a105ff2d
+      internalID: -92948486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Land_3
+      rect:
+        serializedVersion: 2
+        x: 925
+        y: 576
+        width: 193
+        height: 131
+      alignment: 9
+      pivot: {x: 0.555714, y: 0.38632646}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0b6c9494b2b935c42812b3bf5df83815
+      internalID: 1598640684
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Land_2
+      rect:
+        serializedVersion: 2
+        x: 649
+        y: 574
+        width: 206
+        height: 130
+      alignment: 9
+      pivot: {x: 0.45285213, y: 0.38697088}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ba269a5c6c6ca4b4b85215811cced5ce
+      internalID: -1255098489
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Land_1
+      rect:
+        serializedVersion: 2
+        x: 383
+        y: 576
+        width: 176
+        height: 142
+      alignment: 9
+      pivot: {x: 0.56849325, y: 0.3679195}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 35a724a398fb668488fdb9ad47367f97
+      internalID: 1849624738
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Dash_1
+      rect:
+        serializedVersion: 2
+        x: 233
+        y: 367
+        width: 222
+        height: 135
+      alignment: 9
+      pivot: {x: 0.5694133, y: 0.3846727}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0216b5adcc21df04798d055eff395c86
+      internalID: -628238192
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Dash_2
+      rect:
+        serializedVersion: 2
+        x: 506
+        y: 367
+        width: 242
+        height: 132
+      alignment: 9
+      pivot: {x: 0.5936728, y: 0.4146569}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f103ecf5c2e2751448f9b16a36fce67b
+      internalID: 1746301480
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Dash_3
+      rect:
+        serializedVersion: 2
+        x: 774
+        y: 368
+        width: 271
+        height: 137
+      alignment: 9
+      pivot: {x: 0.614538, y: 0.4028895}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: aec993ce98030d342b0a0be4853b7313
+      internalID: -1236839327
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Dash_4
+      rect:
+        serializedVersion: 2
+        x: 1100
+        y: 368
+        width: 186
+        height: 139
+      alignment: 9
+      pivot: {x: 0.5467871, y: 0.36744043}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 975435161d2f1444e8ba7763ea7f95cf
+      internalID: -958969396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Falling_1
+      rect:
+        serializedVersion: 2
+        x: 376
+        y: 176
+        width: 183
+        height: 144
+      alignment: 9
+      pivot: {x: 0.4955671, y: 0.19362947}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cb12ea674a3c9e74a9a82a85f3bcc25d
+      internalID: -1468866987
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Falling_2
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 167
+        width: 171
+        height: 142
+      alignment: 9
+      pivot: {x: 0.45466265, y: 0.23315322}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7b90761e309287d43bc94b6701726f37
+      internalID: -1954485169
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Falling_3
+      rect:
+        serializedVersion: 2
+        x: 799
+        y: 146
+        width: 178
+        height: 163
+      alignment: 9
+      pivot: {x: 0.47109506, y: 0.22903077}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a471db39a7e4504a8e159e039769a37
+      internalID: -240824882
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Falling_4
+      rect:
+        serializedVersion: 2
+        x: 1022
+        y: 84
+        width: 165
+        height: 240
+      alignment: 9
+      pivot: {x: 0.45786798, y: 0.2942047}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4ab9b89cdec11034e9ebcbccc961d2b7
+      internalID: -220751581
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: f5457c97a485f1b4289393aaf944bb86
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":1536.0,"y":1024.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Dash_1: -628238192
+      Dash_2: 1746301480
+      Dash_3: -1236839327
+      Dash_4: -958969396
+      Falling_1: -1468866987
+      Falling_2: -1954485169
+      Falling_3: -240824882
+      Falling_4: -220751581
+      Jump_1: -92948486
+      Jump_2: 1406664146
+      Jump_3: 1714415860
+      Jump_4: -2428135831036333382
+      Land_1: 1849624738
+      Land_2: -1255098489
+      Land_3: 1598640684
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

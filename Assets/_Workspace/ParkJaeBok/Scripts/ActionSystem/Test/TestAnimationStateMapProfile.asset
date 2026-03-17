@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19cf6d8b129913342ba9f826950f9ae2, type: 3}
+  m_Name: TestAnimationStateMapProfile
+  m_EditorClassIdentifier: Assembly-CSharp::AnimationStateMapProfile
+  _stateMaps:
+  - ActionType: 1
+    StateName: TestIdle
+    LayerIndex: 0
+    IsOneShot: 0
+  - ActionType: 2
+    StateName: TestMove
+    LayerIndex: 0
+    IsOneShot: 0
+  - ActionType: 3
+    StateName: TestJump
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 4
+    StateName: TestLand
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 5
+    StateName: TestDash
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 6
+    StateName: TestFalling
+    LayerIndex: 0
+    IsOneShot: 0
+  - ActionType: 7
+    StateName: TestWallSlide
+    LayerIndex: 0
+    IsOneShot: 0
+  - ActionType: 8
+    StateName: TestWallJump
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 9
+    StateName: TestSlide
+    LayerIndex: 0
+    IsOneShot: 0
+  - ActionType: 13
+    StateName: TestAttack
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 14
+    StateName: TestHit
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 15
+    StateName: TestDie
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 10
+    StateName: TestIdleBreakA
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 11
+    StateName: TestIdleBreakB
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 12
+    StateName: TestIdleBreakC
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 22
+    StateName: TestIdleBreakA
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 23
+    StateName: TestSlide
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 24
+    StateName: TestFalling
+    LayerIndex: 0
+    IsOneShot: 1

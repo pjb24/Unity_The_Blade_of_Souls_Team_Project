@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6fd414a8bc144545af2f7411267e329, type: 3}
+  m_Name: TestActionHitBridgeProfile
+  m_EditorClassIdentifier: Assembly-CSharp::ActionHitBridgeProfile
+  _hitActionType: 14
+  _breakActionType: 19
+  _deadActionType: 15
+  _breakStatusTags:
+  - PoiseBreak
+  - GuardBreak
+  - Break

@@ -1,0 +1,467 @@
+fileFormatVersion: 2
+guid: 5befba2bee81b5b439346e92b6e6fbe6
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -67401833981268096
+    second: Character_Sprite_Sheet_Test_3_0
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: WallSlide_1
+      rect:
+        serializedVersion: 2
+        x: 315
+        y: 707
+        width: 153
+        height: 269
+      alignment: 9
+      pivot: {x: 0.56408215, y: 0.5025887}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5cc1ff888999e194b88adaa56d2cca43
+      internalID: -1129250784
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallSlide_2
+      rect:
+        serializedVersion: 2
+        x: 537
+        y: 707
+        width: 189
+        height: 265
+      alignment: 9
+      pivot: {x: 0.5761867, y: 0.4735962}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 561cb9a7a42013544ab50d104e58aa69
+      internalID: -1560723669
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallSlide_3
+      rect:
+        serializedVersion: 2
+        x: 741
+        y: 725
+        width: 248
+        height: 241
+      alignment: 9
+      pivot: {x: 0.5403238, y: 0.48147342}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7bca09ab44568ff4d91a64e216c9b454
+      internalID: -1364360281
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallSlide_4
+      rect:
+        serializedVersion: 2
+        x: 1000
+        y: 716
+        width: 216
+        height: 233
+      alignment: 9
+      pivot: {x: 0.58338475, y: 0.4848554}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4c11e70354bdd9243a919f802532ae1c
+      internalID: 823054100
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallSlide_5
+      rect:
+        serializedVersion: 2
+        x: 1216
+        y: 735
+        width: 265
+        height: 212
+      alignment: 9
+      pivot: {x: 0.59813714, y: 0.3801333}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b36ee980d14d646409e3a119e0cdf88f
+      internalID: -2012027284
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallJump_1
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 366
+        width: 194
+        height: 281
+      alignment: 9
+      pivot: {x: 0.57397527, y: 0.5443124}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f88749cb5b297a149a585b405c5beaa7
+      internalID: 119824174
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallJump_2
+      rect:
+        serializedVersion: 2
+        x: 518
+        y: 378
+        width: 248
+        height: 282
+      alignment: 9
+      pivot: {x: 0.5890304, y: 0.55659455}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a124cd7dbc9470c449cea6d5ea0c30e2
+      internalID: 1852347571
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallJump_3
+      rect:
+        serializedVersion: 2
+        x: 710
+        y: 373
+        width: 287
+        height: 282
+      alignment: 9
+      pivot: {x: 0.62623984, y: 0.5565168}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0090ad0dc0a90794ba0d0e8cc1d3b269
+      internalID: 1466780503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallJump_4
+      rect:
+        serializedVersion: 2
+        x: 947
+        y: 389
+        width: 268
+        height: 251
+      alignment: 9
+      pivot: {x: 0.6184387, y: 0.5059958}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dad2bd694fc7fbd4aa6f378585e384f4
+      internalID: -480817201
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: WallJump_5
+      rect:
+        serializedVersion: 2
+        x: 1225
+        y: 369
+        width: 300
+        height: 209
+      alignment: 9
+      pivot: {x: 0.3968925, y: 0.40395635}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2453c931c0896664685655016b4cb292
+      internalID: 993284942
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Slide_1
+      rect:
+        serializedVersion: 2
+        x: 187
+        y: 85
+        width: 307
+        height: 189
+      alignment: 9
+      pivot: {x: 0.55113214, y: 0.33259502}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2ce155aaad843844f8251d036e33df34
+      internalID: 2112228901
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Slide_2
+      rect:
+        serializedVersion: 2
+        x: 434
+        y: 84
+        width: 313
+        height: 183
+      alignment: 9
+      pivot: {x: 0.56652635, y: 0.36612514}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4bff7481dea7d9548ac65158e34c37d7
+      internalID: -1112997945
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Slide_3
+      rect:
+        serializedVersion: 2
+        x: 671
+        y: 84
+        width: 309
+        height: 178
+      alignment: 9
+      pivot: {x: 0.5934, y: 0.35406786}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d2ee3209df1d2a94a8d832b4d30dff01
+      internalID: -963196309
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Slide_4
+      rect:
+        serializedVersion: 2
+        x: 980
+        y: 79
+        width: 281
+        height: 189
+      alignment: 9
+      pivot: {x: 0.4113335, y: 0.3490499}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 49341f196aa025649bcbfdbd0f670f9c
+      internalID: -1123640233
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Slide_5
+      rect:
+        serializedVersion: 2
+        x: 1243
+        y: 79
+        width: 281
+        height: 186
+      alignment: 9
+      pivot: {x: 0.3753927, y: 0.36635435}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1fa85520b395e8a4e9487d84fd5802cf
+      internalID: -725111601
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 8949622a4861c024aaa5ed492b378237
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":1536.0,"y":1024.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Slide_1: 2112228901
+      Slide_2: -1112997945
+      Slide_3: -963196309
+      Slide_4: -1123640233
+      Slide_5: -725111601
+      WallJump_1: 119824174
+      WallJump_2: 1852347571
+      WallJump_3: 1466780503
+      WallJump_4: -480817201
+      WallJump_5: 993284942
+      WallSlide_1: -67401833981268096
+      WallSlide_2: -1560723669
+      WallSlide_3: -1364360281
+      WallSlide_4: 823054100
+      WallSlide_5: -2012027284
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
