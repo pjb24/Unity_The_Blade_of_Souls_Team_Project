@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48c37d09f08f43b408b7ae3d890a226a, type: 3}
+  m_Name: ED_LandingDust
+  m_EditorClassIdentifier: Assembly-CSharp::EffectDefinition
+  _effectId: 2
+  _prefab: {fileID: 7396221534255134234, guid: c81a2d6fa757c5b489dd264ad01e7f0a, type: 3}
+  _defaultPoolSize: 4
+  _maxPoolSize: 12
+  _defaultPlayMode: 0
+  _autoReturn: 1
+  _maxLifetime: 1.2
+  _defaultLocalOffset: {x: 0, y: 0, z: 0}
+  _allowFollow: 0
+  _allowAttach: 0
+  _allowDuplicatePlay: 0
+  _priority: 0
+  _fallbackPolicy: 0

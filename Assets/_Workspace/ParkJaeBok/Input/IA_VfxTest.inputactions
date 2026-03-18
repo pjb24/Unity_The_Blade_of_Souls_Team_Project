@@ -1,0 +1,75 @@
+{
+    "version": 1,
+    "name": "IA_VfxTest",
+    "maps": [
+        {
+            "name": "VFXTest",
+            "id": "5777aac7-295b-4015-9750-030ff5145fac",
+            "actions": [
+                {
+                    "name": "Hit",
+                    "type": "Button",
+                    "id": "6dbdc571-b768-48f0-acab-8aa660e32d56",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Landing",
+                    "type": "Button",
+                    "id": "962e487c-5043-4a0e-805f-de837903a36b",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "BuffToggle",
+                    "type": "Button",
+                    "id": "64f55495-24a7-470e-91ff-6f8ee7756a6a",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "91ebe1b3-9635-4d70-87a4-0d7c62aa83d2",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "b7184d83-de96-4e6f-a287-5aeae2c5aeaf",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Landing",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "032f104f-0cb1-4a16-a51e-6a12baaf05c5",
+                    "path": "<Keyboard>/3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "BuffToggle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}
