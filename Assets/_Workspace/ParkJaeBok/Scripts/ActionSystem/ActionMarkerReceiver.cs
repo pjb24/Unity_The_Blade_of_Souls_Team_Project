@@ -8,9 +8,9 @@ public class ActionMarkerReceiver : MonoBehaviour
     [SerializeField] private ActionController _actionController; // 마커를 전달할 액션 컨트롤러
 
     /// <summary>
-    /// Animation Event에서 문자열 마커를 수신해 컨트롤러에 전달합니다.
+    /// Animation Event에서 Object 마커를 수신해 컨트롤러에 전달합니다.
     /// </summary>
-    public void ReceiveMarker(string marker)
+    public void ReceiveMarker(Object markerObject)
     {
         if (!TryResolveActionControllerReference())
         {
@@ -18,7 +18,7 @@ public class ActionMarkerReceiver : MonoBehaviour
             return;
         }
 
-        _actionController.OnAnimationMarker(marker);
+        _actionController.ReceiveMarker(markerObject);
     }
 
     /// <summary>

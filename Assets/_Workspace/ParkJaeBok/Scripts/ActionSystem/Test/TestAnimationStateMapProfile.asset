@@ -82,6 +82,6 @@ MonoBehaviour:
     LayerIndex: 0
     IsOneShot: 1
   - ActionType: 24
-    StateName: TestFalling
+    StateName: TestJump
     LayerIndex: 0
     IsOneShot: 1

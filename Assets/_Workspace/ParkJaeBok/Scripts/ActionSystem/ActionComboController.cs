@@ -20,6 +20,7 @@ public class ActionComboController : MonoBehaviour, IActionListener
     {
         RegisterInputAction();
         RegisterListener();
+        RegisterComboWindowEvent();
     }
 
     /// <summary>
@@ -29,6 +30,7 @@ public class ActionComboController : MonoBehaviour, IActionListener
     {
         UnregisterInputAction();
         UnregisterListener();
+        UnregisterComboWindowEvent();
         ResetBufferedState();
     }
 
@@ -61,19 +63,16 @@ public class ActionComboController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// Animation Event에서 호출해 콤보 입력 허용 창을 엽니다.
+    /// ActionController가 전달한 콤보 입력 허용 창 상태 변경 이벤트를 처리합니다.
     /// </summary>
-    public void OpenComboWindow()
+    private void OnComboWindowChanged(bool isWindowOpen)
     {
-        _isComboWindowOpen = true;
-    }
+        _isComboWindowOpen = isWindowOpen;
 
-    /// <summary>
-    /// Animation Event에서 호출해 콤보 입력 허용 창을 닫고 필요 시 다음 콤보를 요청합니다.
-    /// </summary>
-    public void CloseComboWindow()
-    {
-        _isComboWindowOpen = false;
+        if (_isComboWindowOpen)
+        {
+            return;
+        }
 
         if (!_hasBufferedInput)
         {
@@ -239,6 +238,21 @@ public class ActionComboController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
+    /// ActionController의 콤보 입력 창 이벤트를 구독합니다.
+    /// </summary>
+    private void RegisterComboWindowEvent()
+    {
+        if (_actionController == null)
+        {
+            Debug.LogWarning("[ActionComboController] ActionController is not assigned.");
+            return;
+        }
+
+        _actionController.OnComboInputWindowChanged += OnComboWindowChanged;
+        _isComboWindowOpen = _actionController.IsComboInputWindowOpen;
+    }
+
+    /// <summary>
     /// 액션 컨트롤러 리스너 해제를 수행합니다.
     /// </summary>
     private void UnregisterListener()
@@ -249,6 +263,19 @@ public class ActionComboController : MonoBehaviour, IActionListener
         }
 
         _actionController.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// ActionController의 콤보 입력 창 이벤트 구독을 해제합니다.
+    /// </summary>
+    private void UnregisterComboWindowEvent()
+    {
+        if (_actionController == null)
+        {
+            return;
+        }
+
+        _actionController.OnComboInputWindowChanged -= OnComboWindowChanged;
     }
 
     /// <summary>

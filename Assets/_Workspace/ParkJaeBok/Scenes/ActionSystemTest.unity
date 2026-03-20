@@ -157,9 +157,9 @@ GameObject:
   m_Component:
   - component: {fileID: 358165121}
   - component: {fileID: 358165120}
+  - component: {fileID: 358165117}
   - component: {fileID: 358165119}
   - component: {fileID: 358165118}
-  - component: {fileID: 358165117}
   - component: {fileID: 358165116}
   - component: {fileID: 358165115}
   - component: {fileID: 358165122}
@@ -315,7 +315,6 @@ MonoBehaviour:
   _autoStartDefaultAction: 1
   _defaultActionType: 1
   _actionRuleProfile: {fileID: 11400000, guid: 8293c9662c365364abaac593afeb75ca, type: 2}
-  _animationMarkerProfile: {fileID: 11400000, guid: f7e044b20d132c846bc5b8a6331e8b56, type: 2}
 --- !u!95 &358165120
 Animator:
   serializedVersion: 7

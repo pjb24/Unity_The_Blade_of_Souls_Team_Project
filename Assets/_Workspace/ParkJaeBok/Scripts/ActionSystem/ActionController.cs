@@ -11,12 +11,15 @@ public class ActionController : MonoBehaviour
     [SerializeField] private bool _autoStartDefaultAction = true; // 시작 시 기본 액션 자동 진입 여부
     [SerializeField] private E_ActionType _defaultActionType = E_ActionType.Idle; // 시작 시 자동 요청할 기본 액션 타입
     [SerializeField] private ActionRuleProfile _actionRuleProfile; // 액션 정책을 제공하는 ScriptableObject Rule 프로필
-    [SerializeField] private AnimationMarkerProfile _animationMarkerProfile; // Animation Event marker 해석을 제공하는 ScriptableObject 프로필
 
     private readonly List<IActionListener> _listeners = new List<IActionListener>(); // 액션 변경 알림 리스너 목록
     private readonly Dictionary<E_ActionType, ActionRuleData> _ruleMap = new Dictionary<E_ActionType, ActionRuleData>(); // 빠른 규칙 조회용 맵
-    private readonly Dictionary<string, AnimationMarkerMapData> _animationMarkerMap = new Dictionary<string, AnimationMarkerMapData>(); // 빠른 marker 해석 조회용 맵
     private readonly ActionRuntime _runtime = new ActionRuntime(); // 현재 액션 런타임 상태
+    private bool _isComboInputWindowOpen; // 현재 Combo 입력 허용 구간이 열린 상태인지 여부
+    private bool _isHitWindowOpen; // 현재 공격 Hit 판정 허용 구간이 열린 상태인지 여부
+
+    public System.Action<bool> OnComboInputWindowChanged; // Combo 입력 허용 구간 상태 변경 알림 이벤트
+    public System.Action<bool> OnHitWindowChanged; // Hit 판정 허용 구간 상태 변경 알림 이벤트
 
     /// <summary>
     /// 현재 액션 런타임 상태를 반환합니다.
@@ -29,12 +32,21 @@ public class ActionController : MonoBehaviour
     public E_ActionActorType ActorType => _actorType;
 
     /// <summary>
+    /// 현재 Combo 입력 허용 구간이 열려 있는지 반환합니다.
+    /// </summary>
+    public bool IsComboInputWindowOpen => _isComboInputWindowOpen;
+
+    /// <summary>
+    /// 현재 Hit 판정 허용 구간이 열려 있는지 반환합니다.
+    /// </summary>
+    public bool IsHitWindowOpen => _isHitWindowOpen;
+
+    /// <summary>
     /// 액션 규칙을 초기화하고 기본 액션 진입을 준비합니다.
     /// </summary>
     private void Awake()
     {
         BuildRuleMap();
-        BuildAnimationMarkerMap();
     }
 
     /// <summary>
@@ -98,6 +110,12 @@ public class ActionController : MonoBehaviour
 
         if (_runtime.IsRunning)
         {
+            if (_runtime.ActionType == actionType)
+            {
+                Debug.Log($"[ActionController] Request ignored: already running action {actionType}.");
+                return true;
+            }
+
             if (!CanInterrupt(_runtime.ActionType, actionType))
             {
                 Debug.LogWarning($"[ActionController] Request denied: {_runtime.ActionType} -> {actionType}");
@@ -152,197 +170,85 @@ public class ActionController : MonoBehaviour
     }
 
     /// <summary>
-    /// Animation Event에서 전달된 마커 문자열을 처리합니다.
+    /// Animation Event에서 전달된 Object 마커를 해석해 액션 명령을 실행합니다.
     /// </summary>
-    public void OnAnimationMarker(string marker)
+    public void ReceiveMarker(Object markerObject)
     {
-        if (string.IsNullOrWhiteSpace(marker))
+        if (markerObject == null)
         {
-            Debug.LogWarning("[ActionController] Empty animation marker received.");
+            Debug.LogWarning("[ActionController] Null marker object received.");
             return;
         }
 
-        string normalizedMarker = marker.Trim().ToLowerInvariant(); // marker 매핑 조회에 사용할 정규화 문자열
-
-        if (TryHandleConfiguredMarker(normalizedMarker, marker))
+        if (markerObject is not ActionMarkerCommandObject markerCommandObject)
         {
+            Debug.LogWarning($"[ActionController] Unsupported marker object type: {markerObject.GetType().Name}");
             return;
         }
 
-        if (TryHandleLegacyMarker(normalizedMarker, marker))
-        {
-            return;
-        }
-
-        Debug.LogWarning($"[ActionController] Unknown animation marker: {marker}");
+        ExecuteMarkerCommandObject(markerCommandObject);
     }
 
     /// <summary>
-    /// ScriptableObject marker 프로필 기반으로 marker를 처리하고 성공 여부를 반환합니다.
+    /// Object 마커에 정의된 enum 명령을 실행합니다.
     /// </summary>
-    private bool TryHandleConfiguredMarker(string normalizedMarker, string sourceMarker)
+    private void ExecuteMarkerCommandObject(ActionMarkerCommandObject markerCommandObject)
     {
-        if (!_animationMarkerMap.TryGetValue(normalizedMarker, out AnimationMarkerMapData markerData))
+        switch (markerCommandObject.CommandType)
         {
-            return false;
-        }
-
-        ExecuteMarkerCommand(markerData, sourceMarker);
-        return true;
-    }
-
-    /// <summary>
-    /// 기존 하드코딩 marker 규칙으로 처리하고 성공 여부를 반환합니다.
-    /// </summary>
-    private bool TryHandleLegacyMarker(string normalizedMarker, string sourceMarker)
-    {
-        if (normalizedMarker == "start")
-        {
-            ApplyPhaseFromMarker(E_ActionPhase.Start);
-            return true;
-        }
-
-        if (normalizedMarker == "progress")
-        {
-            ApplyPhaseFromMarker(E_ActionPhase.Progress);
-            return true;
-        }
-
-        if (normalizedMarker == "complete")
-        {
-            CompleteCurrentAction();
-            return true;
-        }
-
-        if (normalizedMarker == "cancel")
-        {
-            CancelCurrentAction("Animation marker cancel");
-            return true;
-        }
-
-        if (normalizedMarker == "jump")
-        {
-            RequestActionFromMarker(E_ActionType.Jump, sourceMarker);
-            return true;
-        }
-
-        if (normalizedMarker == "land")
-        {
-            RequestActionFromMarker(E_ActionType.Land, sourceMarker);
-            return true;
-        }
-
-        if (normalizedMarker == "dash")
-        {
-            RequestActionFromMarker(E_ActionType.Dash, sourceMarker);
-            return true;
-        }
-
-        if (normalizedMarker == "falling")
-        {
-            RequestActionFromMarker(E_ActionType.Falling, sourceMarker);
-            return true;
-        }
-
-        if (normalizedMarker == "wallslide")
-        {
-            RequestActionFromMarker(E_ActionType.WallSlide, sourceMarker);
-            return true;
-        }
-
-        if (normalizedMarker == "walljump")
-        {
-            RequestActionFromMarker(E_ActionType.WallJump, sourceMarker);
-            return true;
-        }
-
-        if (normalizedMarker == "slide")
-        {
-            RequestActionFromMarker(E_ActionType.Slide, sourceMarker);
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// marker 매핑 데이터의 명령 타입에 맞춰 액션/단계 전환 명령을 실행합니다.
-    /// </summary>
-    private void ExecuteMarkerCommand(AnimationMarkerMapData markerData, string sourceMarker)
-    {
-        switch (markerData.CommandType)
-        {
-            case E_AnimationMarkerCommandType.SetPhase:
-                ApplyPhaseFromMarker(markerData.TargetPhase);
-                return;
-            case E_AnimationMarkerCommandType.Complete:
+            case E_ActionMarkerCommandType.CompleteCurrentAction:
                 CompleteCurrentAction();
                 return;
-            case E_AnimationMarkerCommandType.Cancel:
-                string cancelReason = string.IsNullOrWhiteSpace(markerData.CancelReason) ? "Animation marker cancel" : markerData.CancelReason; // marker 취소 명령 실행 시 사용할 취소 사유 문자열
+            case E_ActionMarkerCommandType.CancelCurrentAction:
+                string cancelReason = string.IsNullOrWhiteSpace(markerCommandObject.CancelReason) ? "Animation marker cancel" : markerCommandObject.CancelReason; // Cancel 명령 실행 시 사용할 취소 사유 문자열
                 CancelCurrentAction(cancelReason);
                 return;
-            case E_AnimationMarkerCommandType.RequestAction:
-                RequestActionFromMarker(markerData.TargetActionType, sourceMarker);
+            case E_ActionMarkerCommandType.ComboStart:
+                SetComboInputWindow(true, markerCommandObject.name);
+                return;
+            case E_ActionMarkerCommandType.ComboEnd:
+                SetComboInputWindow(false, markerCommandObject.name);
+                return;
+            case E_ActionMarkerCommandType.HitStart:
+                SetHitWindow(true, markerCommandObject.name);
+                return;
+            case E_ActionMarkerCommandType.HitEnd:
+                SetHitWindow(false, markerCommandObject.name);
                 return;
             default:
-                Debug.LogWarning($"[ActionController] Unsupported marker command type: {markerData.CommandType}");
+                Debug.LogWarning($"[ActionController] Unsupported marker command type: {markerCommandObject.CommandType}");
                 return;
         }
     }
 
     /// <summary>
-    /// marker 명령으로 액션 단계를 변경하고 리스너에게 변경 이벤트를 전파합니다.
+    /// Combo 입력 허용 구간의 시작/종료를 반영하고 변경 시 이벤트를 전파합니다.
     /// </summary>
-    private void ApplyPhaseFromMarker(E_ActionPhase targetPhase)
+    private void SetComboInputWindow(bool isOpen, string sourceMarker)
     {
-        E_ActionPhase previousPhase = _runtime.SetPhase(targetPhase);
-        NotifyActionPhaseChanged(previousPhase, targetPhase);
-    }
-
-    /// <summary>
-    /// 애니메이션 마커 기반 액션 요청을 수행하고 실패 시 원인을 로그로 남깁니다.
-    /// </summary>
-    private void RequestActionFromMarker(E_ActionType actionType, string sourceMarker)
-    {
-        bool requestResult = RequestAction(actionType); // 마커가 지시한 액션 전환 성공 여부
-        if (!requestResult)
+        if (_isComboInputWindowOpen == isOpen)
         {
-            Debug.LogWarning($"[ActionController] Marker action request failed: marker={sourceMarker}, action={actionType}");
-        }
-    }
-
-    /// <summary>
-    /// ScriptableObject marker 프로필을 Dictionary 형태로 구성합니다.
-    /// </summary>
-    private void BuildAnimationMarkerMap()
-    {
-        _animationMarkerMap.Clear();
-
-        if (_animationMarkerProfile == null)
-        {
-            Debug.LogWarning($"[ActionController] AnimationMarkerProfile is not assigned on {name}. Fallback to legacy marker rules.");
             return;
         }
 
-        AnimationMarkerMapData[] markerMaps = _animationMarkerProfile.MarkerMaps; // 현재 컨트롤러가 사용할 marker 매핑 프로필의 원본 배열
-        for (int i = 0; i < markerMaps.Length; i++)
+        _isComboInputWindowOpen = isOpen;
+        OnComboInputWindowChanged?.Invoke(_isComboInputWindowOpen);
+        Debug.Log($"[ActionController] Combo input window set to {_isComboInputWindowOpen} by marker={sourceMarker}");
+    }
+
+    /// <summary>
+    /// 공격 Hit 판정 허용 구간의 시작/종료를 반영하고 변경 시 이벤트를 전파합니다.
+    /// </summary>
+    private void SetHitWindow(bool isOpen, string sourceMarker)
+    {
+        if (_isHitWindowOpen == isOpen)
         {
-            AnimationMarkerMapData mapData = markerMaps[i];
-            if (string.IsNullOrWhiteSpace(mapData.Marker))
-            {
-                Debug.LogWarning("[ActionController] Empty marker string found in AnimationMarkerProfile.");
-                continue;
-            }
-
-            string normalizedMarker = mapData.Marker.Trim().ToLowerInvariant(); // marker 조회 맵에 저장할 정규화 문자열
-            if (_animationMarkerMap.ContainsKey(normalizedMarker))
-            {
-                Debug.LogWarning($"[ActionController] Duplicate animation marker mapping for {normalizedMarker}. Last one wins.");
-            }
-
-            _animationMarkerMap[normalizedMarker] = mapData;
+            return;
         }
+
+        _isHitWindowOpen = isOpen;
+        OnHitWindowChanged?.Invoke(_isHitWindowOpen);
+        Debug.Log($"[ActionController] Hit window set to {_isHitWindowOpen} by marker={sourceMarker}");
     }
 
     /// <summary>
@@ -364,6 +270,12 @@ public class ActionController : MonoBehaviour
         }
 
         ActionRuleData[] profileRules = _actionRuleProfile.Rules; // 현재 컨트롤러가 사용할 Rule 프로필의 원본 배열
+        if (profileRules == null)
+        {
+            Debug.LogWarning($"[ActionController] ActionRuleProfile.Rules is null on {name}. All actions will use fallback rules.");
+            return;
+        }
+
         for (int i = 0; i < profileRules.Length; i++)
         {
             ActionRuleData rule = profileRules[i];
