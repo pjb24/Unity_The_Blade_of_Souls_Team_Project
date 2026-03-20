@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0aeaf1fe378b5a499d1feb99024a7a8, type: 3}
+  m_Name: AS_AttackC
+  m_EditorClassIdentifier: Assembly-CSharp::AttackSpec
+  _attackTypeId: AttackC
+  _baseDamage: 8
+  _areaType: 0
+  _localOffset: {x: 1, y: 0}
+  _radius: 1
+  _boxSize: {x: 2.5, y: 1.2}
+  _targetLayerMask:
+    serializedVersion: 2
+    m_Bits: 256
+  _requireTargetTag: 1
+  _targetTag: Enemy
+  _maxTargets: 2
+  _statusTag: PoiseBreak
+  _allowMultiHitPerSwing: 0
