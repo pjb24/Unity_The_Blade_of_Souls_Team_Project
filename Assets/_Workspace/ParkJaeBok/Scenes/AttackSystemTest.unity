@@ -788,8 +788,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AttackSystemTestRunner
   _actionController: {fileID: 737725757}
   _attackExecutor: {fileID: 737725756}
-  _targetHitReceiver: {fileID: 487272122}
-  _targetHealthComponent: {fileID: 487272121}
   _attackAKey: 41
   _attackBKey: 42
   _attackCKey: 43

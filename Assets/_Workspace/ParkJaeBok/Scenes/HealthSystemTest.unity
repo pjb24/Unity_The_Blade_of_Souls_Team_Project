@@ -739,7 +739,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e56ed958b4767c44da277f4d0c8aad15, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthInputValidationTestRunner
-  _target: {fileID: 633530389}
+  _target: {fileID: 1782664725}
   _enableHotkeys: 1
 --- !u!1 &337293601
 GameObject:
@@ -1976,49 +1976,13 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 571672753666733953, guid: 54624f32da28461499c22d3ba4f9e091, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 633530389}
-    - targetCorrespondingSourceObject: {fileID: 571672753666733953, guid: 54624f32da28461499c22d3ba4f9e091, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 633530388}
+      addedObject: {fileID: 1782664725}
   m_SourcePrefab: {fileID: 100100000, guid: 54624f32da28461499c22d3ba4f9e091, type: 3}
 --- !u!4 &633530386 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2721530003703386155, guid: 54624f32da28461499c22d3ba4f9e091, type: 3}
   m_PrefabInstance: {fileID: 633530385}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &633530387 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 571672753666733953, guid: 54624f32da28461499c22d3ba4f9e091, type: 3}
-  m_PrefabInstance: {fileID: 633530385}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &633530388
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 633530387}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 444c833479dc9bf449c3d3e3bdea9f9c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthDebugListener
-  _targetHealth: {fileID: 633530389}
---- !u!114 &633530389
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 633530387}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ff93807ed5b0f5458fc4cfa20cf1a10, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  _initialMaxHealth: 100
-  _initialCurrentHealth: 100
-  _allowHealWhenDead: 0
 --- !u!1 &660278808
 GameObject:
   m_ObjectHideFlags: 0
@@ -2063,7 +2027,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05f4ce03f921121439d0de2169145454, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthBasicTestRunner
-  _playerTarget: {fileID: 633530389}
+  _playerTarget: {fileID: 1782664725}
   _enemyTarget: {fileID: 2013762664}
   _bossTarget: {fileID: 693700001}
   _destructibleTarget: {fileID: 922414880}
@@ -14442,6 +14406,26 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!1 &1782664724 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 571672753666733953, guid: 54624f32da28461499c22d3ba4f9e091, type: 3}
+  m_PrefabInstance: {fileID: 633530385}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1782664725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1782664724}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff93807ed5b0f5458fc4cfa20cf1a10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
+  _initialMaxHealth: 100
+  _initialCurrentHealth: 100
+  _allowHealWhenDead: 0
 --- !u!1 &1824326990
 GameObject:
   m_ObjectHideFlags: 0
@@ -14517,7 +14501,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63c8283bdbbb44c44bc58eddb7c0752d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthModifierTestRunner
-  _target: {fileID: 633530389}
+  _target: {fileID: 1782664725}
   _isInvincible: 0
   _isHealBlocked: 0
   _damageScale: 1
