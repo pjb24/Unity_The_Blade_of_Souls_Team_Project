@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8878208147026495582}
   - component: {fileID: 7091452386579089586}
+  - component: {fileID: 1020185107138674711}
   m_Layer: 0
   m_Name: --- AudioManager ---
   m_TagString: Untagged
@@ -81,3 +82,30 @@ MonoBehaviour:
   _masterVolume: 1
   _bgmVolume: 1
   _sfxVolume: 1
+--- !u!114 &1020185107138674711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1658755828754675302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d9cddcb00bd2434caf8db06a6a478cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BgmDirector
+  _contextRules:
+  - _contextType: 100
+    _soundId: 1000
+    _priority: 0
+    _crossFadeDuration: 1
+    _minHoldDuration: 1
+  - _contextType: 101
+    _soundId: 1001
+    _priority: 0
+    _crossFadeDuration: 1
+    _minHoldDuration: 1
+  _useFallbackBgm: 0
+  _fallbackBgmId: 0
+  _fallbackFadeDuration: 0.75
+  _globalMinSwitchInterval: 0.05

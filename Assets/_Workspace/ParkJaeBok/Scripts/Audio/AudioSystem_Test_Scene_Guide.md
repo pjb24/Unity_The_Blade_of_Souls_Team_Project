@@ -224,3 +224,43 @@ AudioManager.Instance.PlaySfx(E_SoundId.SFX_Attack, transform);
 
 ---
 
+## 13. BGM 상황별 자동 전환 시스템(BgmDirector) 적용
+
+현재 AudioManager 위에 **BgmDirector**를 추가하면, 게임 상황(탐험/전투/보스/메뉴 등)에 따라 BGM을 자동으로 선택할 수 있다.
+
+### 13-1. 구성 요소
+
+- `BgmDirector`
+  - 활성 컨텍스트 요청을 수집하고 우선순위가 가장 높은 BGM을 선택
+  - 실제 재생은 기존 `AudioManager.PlayBgm / CrossFadeBgm / FadeOutBgm`을 호출
+- `BgmContextRule`
+  - 컨텍스트 타입별 BGM ID, 우선순위, CrossFade 시간, 최소 유지 시간 정의
+- `BgmContextBridge`
+  - 개별 시스템/오브젝트에서 `PushContext`, `PopContext`를 쉽게 호출하는 브리지
+- `E_BgmContextType`
+  - `Title`, `Exploration`, `Combat`, `Boss`, `Menu`, `Cutscene` 등 컨텍스트 분류 enum
+
+### 13-2. 씬 설정 절차
+
+1. 빈 오브젝트를 생성하고 `BgmDirector` 컴포넌트를 추가한다.
+2. `Context Rules`에 프로젝트에서 사용할 컨텍스트 규칙을 등록한다.
+   - 예시
+     - Exploration -> `BGM_Stage01`, Priority 30
+     - Combat -> `BGM_Boss`(임시), Priority 70
+     - Boss -> `BGM_Boss`, Priority 100
+3. `Use Fallback Bgm`을 켜고 `Fallback Bgm Id`를 기본 탐험 곡으로 지정한다.
+4. 필요 시스템 오브젝트에 `BgmContextBridge`를 붙이고, 상황 시작/종료 지점에서 `PushContext`/`PopContext`를 연결한다.
+
+### 13-3. 권장 동작 규칙
+
+- 상위 우선순위 컨텍스트가 들어오면 즉시 전환
+- 하위 우선순위로 복귀할 때는 `MinHoldDuration`을 활용해 떨림 전환 방지
+- 같은 BGM ID 재요청은 무시되어 불필요한 재시작 방지
+
+### 13-4. 빠른 검증 시나리오
+
+1. Play 시작 후 활성 컨텍스트가 없는 상태에서 폴백 BGM 재생 확인
+2. Combat 컨텍스트 Push 시 전투 BGM으로 크로스페이드 확인
+3. Boss 컨텍스트 Push 시 보스 BGM으로 전환 확인
+4. Boss Pop 후 Combat이 남아 있으면 전투 BGM 복귀 확인
+5. 모든 컨텍스트 Pop 시 폴백 BGM(또는 FadeOut) 복귀 확인
