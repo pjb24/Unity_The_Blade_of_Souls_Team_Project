@@ -6,6 +6,7 @@ public class EffectInstance : MonoBehaviour
     private ParticleSystem[] _particleSystems; // 재생/정지 제어 대상 파티클 목록
     private TrailRenderer[] _trailRenderers; // 궤적 리셋/정지 제어 대상 목록
     private Animator[] _animators; // 애니메이터 속도 제어 대상 목록
+    private Quaternion _initialLocalRotation; // 프리팹 원본 기준 로컬 회전값
 
     private int _handleToken; // 서비스에서 발급한 핸들 식별자
     private EffectDefinition _definition; // 현재 인스턴스가 참조하는 정의
@@ -33,6 +34,7 @@ public class EffectInstance : MonoBehaviour
         _particleSystems = GetComponentsInChildren<ParticleSystem>(true);
         _trailRenderers = GetComponentsInChildren<TrailRenderer>(true);
         _animators = GetComponentsInChildren<Animator>(true);
+        _initialLocalRotation = transform.localRotation;
         gameObject.SetActive(false);
     }
 
@@ -192,6 +194,7 @@ public class EffectInstance : MonoBehaviour
         {
             transform.SetParent(_attachTarget, false);
             transform.localPosition = offset;
+            ApplyFacingAtStart();
             return;
         }
 
@@ -200,10 +203,32 @@ public class EffectInstance : MonoBehaviour
         if (_request.PlayMode == E_EffectPlayMode.Follow && _followTarget != null)
         {
             transform.position = _followTarget.position + offset;
+            ApplyFacingAtStart();
             return;
         }
 
         transform.position = _spawnPosition + offset;
+        ApplyFacingAtStart();
+    }
+
+    /// <summary>
+    /// 요청된 좌/우 방향에 맞춰 시작 회전을 설정한다.
+    /// </summary>
+    private void ApplyFacingAtStart()
+    {
+        if (_request.FacingDirection == E_EffectFacingDirection.Left)
+        {
+            transform.localRotation = _initialLocalRotation * Quaternion.Euler(0f, 180f, 0f);
+            return;
+        }
+
+        if (_request.FacingDirection == E_EffectFacingDirection.Right)
+        {
+            transform.localRotation = _initialLocalRotation;
+            return;
+        }
+
+        transform.localRotation = _initialLocalRotation;
     }
 
     /// <summary>

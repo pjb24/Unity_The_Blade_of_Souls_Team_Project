@@ -38,3 +38,13 @@ public enum E_EffectFallbackPolicy
     ReuseOldest = 1,
     DropRequest = 2,
 }
+
+/// <summary>
+/// 이펙트 시작 방향(좌/우) 제어 모드.
+/// </summary>
+public enum E_EffectFacingDirection
+{
+    UsePrefab = 0,
+    Right = 1,
+    Left = 2,
+}

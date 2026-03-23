@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48c37d09f08f43b408b7ae3d890a226a, type: 3}
   m_Name: ED_LandingDust
   m_EditorClassIdentifier: Assembly-CSharp::EffectDefinition
-  _effectId: 2
+  _effectId: 3
   _prefab: {fileID: 7396221534255134234, guid: c81a2d6fa757c5b489dd264ad01e7f0a, type: 3}
   _defaultPoolSize: 4
   _maxPoolSize: 12

@@ -968,13 +968,48 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4391109432192289971, guid: e8724c814373fff4097368dee9de6678, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1864467905}
   m_SourcePrefab: {fileID: 100100000, guid: e8724c814373fff4097368dee9de6678, type: 3}
 --- !u!4 &1864467903 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6974003468345572428, guid: e8724c814373fff4097368dee9de6678, type: 3}
   m_PrefabInstance: {fileID: 1864467902}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1864467904 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4391109432192289971, guid: e8724c814373fff4097368dee9de6678, type: 3}
+  m_PrefabInstance: {fileID: 1864467902}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1864467905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1864467904}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2681d95fb6f2294fb0fdcd85505130a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionVfxBridge
+  _actionController: {fileID: 2119003847}
+  _retryInterval: 0.1
+  _maxRetryCount: 30
+  _actionEffectMaps:
+  - ActionType: 5
+    StartEffectId: 3
+    CompleteEffectId: 0
+    CancelEffectId: 0
+  _useHitWindowTrail: 0
+  _hitWindowTrailEffectId: 6
+  _trailAttachTarget: {fileID: 0}
+  _useTransformScaleForFacing: 0
+  _defaultFacingDirection: 0
+  _usePlayerMovementFacing: 1
+  _playerMovement: {fileID: 485055503}
 --- !u!114 &1895332627
 MonoBehaviour:
   m_ObjectHideFlags: 0

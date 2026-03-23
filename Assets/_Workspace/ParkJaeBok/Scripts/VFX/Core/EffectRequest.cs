@@ -16,6 +16,7 @@ public struct EffectRequest
     public bool AutoReturn; // 자동 반환 여부 오버라이드 값
     public float LifetimeOverride; // 생존 시간 오버라이드 값(0 이하이면 정의값 사용)
     public bool IgnoreDuplicateGuard; // 중복 제한 무시 여부
+    public E_EffectFacingDirection FacingDirection; // 이펙트 시작 좌/우 방향
 
     /// <summary>
     /// EffectId와 위치만으로 OneShot 요청을 간단하게 생성한다.
@@ -34,6 +35,7 @@ public struct EffectRequest
         request.AutoReturn = true;
         request.LifetimeOverride = 0f;
         request.IgnoreDuplicateGuard = false;
+        request.FacingDirection = E_EffectFacingDirection.UsePrefab;
         return request;
     }
 }
