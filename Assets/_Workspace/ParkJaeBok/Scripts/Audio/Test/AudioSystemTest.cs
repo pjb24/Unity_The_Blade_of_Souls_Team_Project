@@ -44,6 +44,15 @@ public class AudioSystemTest : MonoBehaviour
     [Range(0.01f, 0.2f)]
     private float _volumeStep = 0.1f; // 키 입력 시 볼륨 증감 폭
 
+    [Header("Listener Bind Retry")]
+    [SerializeField]
+    [Min(0.01f)]
+    private float _retryInterval = 0.1f; // AudioManager 재탐색 코루틴의 재시도 간격(초)
+
+    [SerializeField]
+    [Min(1)]
+    private int _maxRetryCount = 30; // AudioManager 재탐색 코루틴의 최대 재시도 횟수
+
     private bool _isKeyboardMissingLogged = false; // Keyboard 장치 없음 경고를 1회만 출력하기 위한 플래그
     private bool _isVolumeListenerRegistered = false; // AudioManager 볼륨 리스너 등록 상태 플래그
     private Coroutine _registerCoroutine; // AudioManager 준비 대기 후 리스너 등록을 수행하는 코루틴 핸들
@@ -54,7 +63,7 @@ public class AudioSystemTest : MonoBehaviour
     /// </summary>
     private void OnEnable()
     {
-        StartRegisterRoutine();
+        RestartRegisterCoroutine();
     }
 
     /// <summary>
@@ -62,44 +71,85 @@ public class AudioSystemTest : MonoBehaviour
     /// </summary>
     private void OnDisable()
     {
-        StopRegisterRoutine();
-        UnregisterVolumeListener();
+        StopRunningCoroutine(ref _registerCoroutine);
+        TryImmediateUnregisterOnDisable();
     }
 
     /// <summary>
-    /// 등록 대기 루틴을 시작한다.
+    /// 파괴 시 등록 대기 코루틴을 정리하고 마지막으로 리스너 해제를 시도한다.
     /// </summary>
-    private void StartRegisterRoutine()
+    private void OnDestroy()
     {
-        StopRegisterRoutine();
-        _registerCoroutine = StartCoroutine(CoRegisterVolumeListenerWhenReady());
+        StopRunningCoroutine(ref _registerCoroutine);
+
+        if (_isVolumeListenerRegistered && _cachedAudioManager != null)
+        {
+            _cachedAudioManager.RemoveVolumeChangedListener(OnVolumeChanged);
+            _isVolumeListenerRegistered = false;
+        }
     }
 
     /// <summary>
-    /// 등록 대기 루틴을 중단한다.
+    /// 리스너 등록 코루틴을 재시작한다.
     /// </summary>
-    private void StopRegisterRoutine()
+    private void RestartRegisterCoroutine()
     {
-        if (_registerCoroutine == null)
+        StopRunningCoroutine(ref _registerCoroutine);
+        _registerCoroutine = StartCoroutine(RegisterVolumeListenerWithRetryCoroutine());
+    }
+
+    /// <summary>
+    /// 비활성화 시점에 코루틴 없이 안전하게 리스너 해제를 시도한다.
+    /// </summary>
+    private void TryImmediateUnregisterOnDisable()
+    {
+        if (_isVolumeListenerRegistered == false)
         {
             return;
         }
 
-        StopCoroutine(_registerCoroutine);
-        _registerCoroutine = null;
+        if (TryResolveAudioManager(out AudioManager audioManager))
+        {
+            audioManager.RemoveVolumeChangedListener(OnVolumeChanged);
+            _isVolumeListenerRegistered = false;
+            return;
+        }
+
+        _isVolumeListenerRegistered = false;
+        Debug.LogWarning($"[AudioSystemTest] OnDisable could not resolve AudioManager on {name}. RemoveVolumeChangedListener skipped.", this);
     }
 
     /// <summary>
-    /// AudioManager가 준비될 때까지 기다린 뒤 볼륨 리스너를 등록한다.
+    /// AudioManager가 준비될 때까지 재시도한 뒤 볼륨 리스너를 등록한다.
     /// </summary>
-    private IEnumerator CoRegisterVolumeListenerWhenReady()
+    private IEnumerator RegisterVolumeListenerWithRetryCoroutine()
     {
-        while (TryResolveAudioManager(out _) == false)
+        int safeMaxRetry = Mathf.Max(1, _maxRetryCount); // 잘못된 최대 재시도 설정을 보정한 안전 값
+        float safeInterval = Mathf.Max(0.01f, _retryInterval); // 잘못된 재시도 간격을 보정한 안전 값
+
+        if (_maxRetryCount < 1 || _retryInterval <= 0f)
         {
-            yield return null;
+            Debug.LogWarning($"[AudioSystemTest] Invalid retry settings on {name}. Fallback maxRetry={safeMaxRetry}, interval={safeInterval}.", this);
         }
 
-        RegisterVolumeListenerInternal();
+        for (int retryIndex = 0; retryIndex < safeMaxRetry; retryIndex++)
+        {
+            if (TryResolveAudioManager(out AudioManager audioManager))
+            {
+                RegisterVolumeListenerInternal(audioManager);
+                _registerCoroutine = null;
+                yield break;
+            }
+
+            if (retryIndex == 0)
+            {
+                Debug.LogWarning($"[AudioSystemTest] AudioManager is null on {name}. Delaying AddVolumeChangedListener registration.", this);
+            }
+
+            yield return new WaitForSeconds(safeInterval);
+        }
+
+        Debug.LogWarning($"[AudioSystemTest] AddVolumeChangedListener registration failed after retries on {name}.", this);
         _registerCoroutine = null;
     }
 
@@ -127,17 +177,11 @@ public class AudioSystemTest : MonoBehaviour
     /// <summary>
     /// 볼륨 리스너 실제 등록을 수행한다.
     /// </summary>
-    private void RegisterVolumeListenerInternal()
+    private void RegisterVolumeListenerInternal(AudioManager audioManager)
     {
         if (_isVolumeListenerRegistered)
         {
             Debug.LogWarning($"[AudioSystemTest] Volume listener is already registered on {name}.", this);
-            return;
-        }
-
-        if (TryResolveAudioManager(out AudioManager audioManager) == false)
-        {
-            Debug.LogWarning($"[AudioSystemTest] AudioManager is missing while registering volume listener on {name}.", this);
             return;
         }
 
@@ -146,23 +190,17 @@ public class AudioSystemTest : MonoBehaviour
     }
 
     /// <summary>
-    /// 볼륨 리스너를 안전하게 해제한다.
+    /// 실행 중인 코루틴을 안전하게 중지하고 참조를 정리한다.
     /// </summary>
-    private void UnregisterVolumeListener()
+    private void StopRunningCoroutine(ref Coroutine coroutineHandle)
     {
-        if (_isVolumeListenerRegistered == false)
+        if (coroutineHandle == null)
         {
             return;
         }
 
-        if (_cachedAudioManager == null)
-        {
-            _isVolumeListenerRegistered = false;
-            return;
-        }
-
-        _cachedAudioManager.RemoveVolumeChangedListener(OnVolumeChanged);
-        _isVolumeListenerRegistered = false;
+        StopCoroutine(coroutineHandle);
+        coroutineHandle = null;
     }
 
     /// <summary>

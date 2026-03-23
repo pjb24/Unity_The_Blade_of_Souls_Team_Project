@@ -264,3 +264,48 @@ AudioManager.Instance.PlaySfx(E_SoundId.SFX_Attack, transform);
 3. Boss 컨텍스트 Push 시 보스 BGM으로 전환 확인
 4. Boss Pop 후 Combat이 남아 있으면 전투 BGM 복귀 확인
 5. 모든 컨텍스트 Pop 시 폴백 BGM(또는 FadeOut) 복귀 확인
+
+---
+
+## 14. SFX Orchestrator(이벤트 라우팅 레이어) 적용
+
+`AudioManager`를 직접 호출하는 대신, 중간 레이어인 `SfxOrchestrator`를 통해 **이벤트 기반으로 SFX를 라우팅**할 수 있다.
+
+### 14-1. 구성 요소
+
+- `E_SfxEventType`
+  - 게임플레이 이벤트 타입 enum (`AttackSwing`, `HitConfirm`, `Footstep`, `UiClick` 등)
+- `SfxEventRule`
+  - `EventType(+SubTypeKey) -> E_SoundId` 매핑과 호출 제한 정책 정의
+  - `GlobalMinInterval`, `PerEmitterMinInterval`, `MaxRequestsPerSecond` 포함
+- `SfxOrchestrator`
+  - 이벤트 요청 수신
+  - 룰 매칭
+  - 중복/과도 호출 제한
+  - 최종적으로 `AudioManager.PlaySfx(...)` 호출
+
+### 14-2. 씬 설정 절차
+
+1. 빈 오브젝트 생성 후 `SfxOrchestrator` 컴포넌트 추가
+2. `Rules`에 이벤트별 매핑 등록
+   - 예시 A: `EventType=AttackSwing`, `SubTypeKey="weapon.sword"`, `SoundId=SFX_Attack`
+   - 예시 B: `EventType=Footstep`, `SubTypeKey="surface.stone"`, `SoundId=SFX_Hit`(임시)
+   - 예시 C: `EventType=UiClick`, `SubTypeKey=""`, `SoundId=SFX_UI_Click`
+3. 필요 시 누락 룰 폴백 사용
+   - `Use Fallback On Missing Rule` 활성화
+   - `Fallback Sound Id` 설정
+
+### 14-3. 호출 예시 패턴
+
+- 이벤트 타입만:
+  - `Request(E_SfxEventType.Jump, transform)`
+- 이벤트 + 세부 타입:
+  - `Request(E_SfxEventType.Footstep, "surface.stone", transform)`
+- 이벤트 + 세부 타입 + 좌표 강제:
+  - `Request(E_SfxEventType.HitConfirm, "weapon.spear", transform, hitPoint)`
+
+### 14-4. 운영 권장
+
+- 기존 코드에서 `AudioManager.Instance.PlaySfx(...)`를 직접 부르는 지점을 점진적으로 `SfxOrchestrator.Request(...)`로 치환
+- 사운드 클립/볼륨/랜덤피치/기본 쿨다운은 기존 `SoundDatabase`에서 유지
+- 빈번한 이벤트(발소리/연타 타격음)는 `MaxRequestsPerSecond`와 `PerEmitterMinInterval`을 함께 사용
