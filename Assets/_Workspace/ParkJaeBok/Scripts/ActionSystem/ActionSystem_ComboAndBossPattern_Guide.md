@@ -2,13 +2,16 @@
 
 이 문서는 **콤보 어택**과 **보스 패턴** 확장 절차를 다룹니다.
 
-> 일반 액션/애니메이션 추가는 `ActionSystem_GeneralAction_Add_Guide.md`를 참고하세요.
+> 일반 액션/애니메이션 추가는 `ActionSystem_GeneralAction_Add.md`를 참고하세요.
+> Player 입력/이동/인터럽트 통합 설정은 `ActionSystem_PlayerAction_Integration_Guide.md`를 참고하세요.
 
 ---
 
 ## 1) Attack Combo 추가 순서
 
-아래 순서는 `ActionComboController` 기준입니다.
+> 입력 오케스트레이션은 `ActionContextualAttackController` + `AttackContextRuleProfile` 사용
+
+아래 순서는 `ActionContextualAttackController` 기준입니다.
 
 ### Step 1. 콤보 액션 타입 추가
 
@@ -31,11 +34,11 @@
 2. `ActionAnimationPresenter._stateMapProfile`에 해당 매핑 프로필 자산을 연결
 3. 콤보 단계는 보통 `IsOneShot = true`
 
-### Step 4. Combo Controller 배치
+### Step 4. Contextual Attack Controller 배치
 
-1. 대상 오브젝트에 `ActionComboController` 추가
+1. 대상 오브젝트에 `ActionContextualAttackController` 추가
 2. `_actionController`를 같은 오브젝트의 `ActionController`로 연결
-3. `_comboActions` 순서를 실제 콤보 순서와 동일하게 구성
+3. `_playerMovement`를 연결하고 `_attackInputRoutes`에 공격 라우트를 구성
 
 ### Step 4-1. 피격 이벤트 브리지 연결(권장)
 
@@ -54,18 +57,20 @@
 ### Step 5. 플레이어 입력 연결 (중요)
 
 1. Input Actions 에셋에 공격 버튼 Action을 생성합니다.
-2. 해당 Action을 `ActionComboController._attackInputAction`에 연결합니다.
-3. 입력 처리 전략은 **버퍼링 방식**을 권장합니다.
-   - 첫 입력: `AttackCombo1` 요청
-   - 콤보 중 추가 입력: `_hasBufferedInput=true`
-   - `CloseComboWindow()` 시점에 버퍼 소비 후 다음 단계 요청
+2. `ActionContextualAttackController._attackInputRoutes`에 라우트를 추가하고 `InputAction`을 연결합니다.
+   - 한 입력만 쓰면 라우트 1개, 여러 입력을 쓰면 라우트별로 분리 구성합니다.
+   - 단일 입력 구성에서도 `_attackInputRoutes`를 반드시 설정합니다.
+3. `AttackContextRuleProfile`에서 현재 상태별 출력 액션을 설정합니다.
+   - 예: `Grounded -> AttackCombo1`
+   - 예: `RequireComboWindowOpen=true` + `AllowedCurrentActions=AttackCombo1` + `OutputActionType=AttackCombo2`
+   - 예: `RequireComboWindowOpen=true` + `AllowedCurrentActions=AttackCombo2` + `OutputActionType=AttackCombo3`
 
 ### Step 6. Animation Event 윈도우 설정
 
 각 콤보 클립에 Animation Event를 넣습니다.
 
-- 입력 허용 시작 프레임: `OpenComboWindow()`
-- 입력 허용 종료 프레임: `CloseComboWindow()`
+- 입력 허용 시작 프레임: `ComboStart`
+- 입력 허용 종료 프레임: `ComboEnd`
 
 필요하면 `ActionController._animationMarkerProfile`을 통해 marker 명령을 ScriptableObject로 관리합니다.
 
@@ -148,6 +153,6 @@
   - 잠금 시작: `_presentationLockTriggerActions`
   - 잠금 해제(Revive 성격): `_presentationLockReleaseActions`
 
-- 콤보와 패턴은 오케스트레이터(`ActionComboController`, `BossPatternController`)가 담당합니다.
+- 콤보와 패턴은 오케스트레이터(`ActionContextualAttackController`, `BossPatternController`)가 담당합니다.
 - 실제 액션 실행/상태 전이는 `ActionController`가 담당합니다.
 - 역할 분리를 유지하면 디버깅과 확장이 훨씬 쉬워집니다.

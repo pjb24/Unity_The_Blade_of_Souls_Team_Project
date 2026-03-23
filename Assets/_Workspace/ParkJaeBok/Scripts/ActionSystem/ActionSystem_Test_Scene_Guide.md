@@ -4,8 +4,7 @@
 
 문서 목표:
 1. 테스트 씬 생성부터 컴포넌트/프로필 연결까지 빠짐없이 수행
-2. 15개 액션(Attack, Dash, Die, Falling, Hit, Idle, IdleBreakA/B/C, Jump, Land, Move, Slide, WallJump, WallSlide)을 모두 검증
-3. marker를 통한 Combo/Hit window + lifecycle 신호를 정확히 테스트
+2. marker를 통한 Combo/Hit window + lifecycle 신호를 정확히 테스트
 
 ---
 
@@ -13,9 +12,10 @@
 
 현재 시스템은 아래 원칙으로 동작합니다.
 
-- 문자열 marker 맵(`AnimationMarkerProfile`, `AnimationMarkerMapData`)은 사용하지 않음
+- Object marker 명령(`ActionMarkerCommandObject`) 기반으로 구성
+
 - Animation Event 진입점은 `ReceiveMarker(Object)` 단일 방식
-- marker는 액션 요청이 아니라 window/lifecycle 신호 용도
+- marker는 window/lifecycle 신호 용도
   - `ComboStart`, `ComboEnd`, `HitStart`, `HitEnd`, `CompleteCurrentAction`, `CancelCurrentAction`
 
 ---
@@ -37,7 +37,7 @@
    - `ActionController`
    - `ActionAnimationPresenter`
    - `ActionMarkerReceiver`
-   - `ActionSystemInputTest`
+   - `ActionSystemInputTest` (선택: 개별 액션 단축키 테스트 전용)
 
 > 필요 시 시각 확인용 `SpriteRenderer`를 추가해도 됩니다.
 

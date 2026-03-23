@@ -11,6 +11,16 @@ public class ActionController : MonoBehaviour
     [SerializeField] private bool _autoStartDefaultAction = true; // 시작 시 기본 액션 자동 진입 여부
     [SerializeField] private E_ActionType _defaultActionType = E_ActionType.Idle; // 시작 시 자동 요청할 기본 액션 타입
     [SerializeField] private ActionRuleProfile _actionRuleProfile; // 액션 정책을 제공하는 ScriptableObject Rule 프로필
+    [SerializeField] private ActionInterruptPolicyProfile _interruptPolicyProfile; // 현재/요청 액션 조합별 인터럽트 허용 정책 프로필
+    [SerializeField] private E_ActionType[] _ignoreMarkerEndActions = new E_ActionType[] {
+        E_ActionType.Jump,
+        E_ActionType.Land,
+        E_ActionType.Dash,
+        E_ActionType.Falling,
+        E_ActionType.WallSlide,
+        E_ActionType.WallJump,
+        E_ActionType.Slide
+    }; // 마커 기반 Complete/Cancel을 무시할 액션 목록
 
     private readonly List<IActionListener> _listeners = new List<IActionListener>(); // 액션 변경 알림 리스너 목록
     private readonly Dictionary<E_ActionType, ActionRuleData> _ruleMap = new Dictionary<E_ActionType, ActionRuleData>(); // 빠른 규칙 조회용 맵
@@ -197,9 +207,21 @@ public class ActionController : MonoBehaviour
         switch (markerCommandObject.CommandType)
         {
             case E_ActionMarkerCommandType.CompleteCurrentAction:
+                if (ShouldIgnoreMarkerDrivenEnd())
+                {
+                    Debug.Log($"[ActionController] Complete marker ignored for runtime action {_runtime.ActionType}.");
+                    return;
+                }
+
                 CompleteCurrentAction();
                 return;
             case E_ActionMarkerCommandType.CancelCurrentAction:
+                if (ShouldIgnoreMarkerDrivenEnd())
+                {
+                    Debug.Log($"[ActionController] Cancel marker ignored for runtime action {_runtime.ActionType}.");
+                    return;
+                }
+
                 string cancelReason = string.IsNullOrWhiteSpace(markerCommandObject.CancelReason) ? "Animation marker cancel" : markerCommandObject.CancelReason; // Cancel 명령 실행 시 사용할 취소 사유 문자열
                 CancelCurrentAction(cancelReason);
                 return;
@@ -219,6 +241,27 @@ public class ActionController : MonoBehaviour
                 Debug.LogWarning($"[ActionController] Unsupported marker command type: {markerCommandObject.CommandType}");
                 return;
         }
+    }
+
+    /// <summary>
+    /// 현재 실행 액션이 마커 기반 종료 무시 대상인지 판정합니다.
+    /// </summary>
+    private bool ShouldIgnoreMarkerDrivenEnd()
+    {
+        if (!_runtime.IsRunning)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < _ignoreMarkerEndActions.Length; i++)
+        {
+            if (_ignoreMarkerEndActions[i] == _runtime.ActionType)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -302,6 +345,11 @@ public class ActionController : MonoBehaviour
     /// </summary>
     private bool CanInterrupt(E_ActionType currentAction, E_ActionType requestedAction)
     {
+        if (TryResolveInterruptPolicyDecision(currentAction, requestedAction, out bool policyDecision))
+        {
+            return policyDecision;
+        }
+
         ActionRuleData currentRule = GetRule(currentAction);
         ActionRuleData requestedRule = GetRule(requestedAction);
 
@@ -311,6 +359,96 @@ public class ActionController : MonoBehaviour
         }
 
         return requestedRule.Priority >= currentRule.Priority;
+    }
+
+    /// <summary>
+    /// 인터럽트 정책 프로필 규칙을 평가해 허용/거부 결정을 반환합니다.
+    /// </summary>
+    private bool TryResolveInterruptPolicyDecision(E_ActionType currentAction, E_ActionType requestedAction, out bool decision)
+    {
+        decision = false;
+
+        if (_interruptPolicyProfile == null)
+        {
+            return false;
+        }
+
+        ActionInterruptRuleData[] rules = _interruptPolicyProfile.Rules; // 현재/요청 액션 인터럽트 정책 평가에 사용할 규칙 배열
+        if (rules == null || rules.Length == 0)
+        {
+            return false;
+        }
+
+        int bestPriority = int.MinValue; // 현재까지 선택된 규칙 우선순위
+        bool hasMatch = false;
+        ActionInterruptRuleData selectedRule = default;
+
+        for (int i = 0; i < rules.Length; i++)
+        {
+            ActionInterruptRuleData candidate = rules[i];
+            if (!candidate.Enabled)
+            {
+                continue;
+            }
+
+            if (!IsInterruptRuleActionMatch(candidate.CurrentActionType, currentAction))
+            {
+                continue;
+            }
+
+            if (!IsInterruptRuleActionMatch(candidate.RequestedActionType, requestedAction))
+            {
+                continue;
+            }
+
+            if (candidate.RequireComboWindowOpen && !_isComboInputWindowOpen)
+            {
+                continue;
+            }
+
+            if (candidate.RequireHitWindowOpen && !_isHitWindowOpen)
+            {
+                continue;
+            }
+
+            if (candidate.RequireCurrentPhaseMatch && _runtime.Phase != candidate.RequiredCurrentPhase)
+            {
+                continue;
+            }
+
+            if (!hasMatch || candidate.Priority > bestPriority)
+            {
+                selectedRule = candidate;
+                bestPriority = candidate.Priority;
+                hasMatch = true;
+            }
+        }
+
+        if (!hasMatch)
+        {
+            return false;
+        }
+
+        if (selectedRule.Decision == E_ActionInterruptDecision.UseDefault)
+        {
+            return false;
+        }
+
+        decision = selectedRule.Decision == E_ActionInterruptDecision.Allow;
+        return true;
+    }
+
+    /// <summary>
+    /// 인터럽트 정책 규칙 액션 필터와 현재 평가 대상 액션의 일치 여부를 판정합니다.
+    /// </summary>
+    private bool IsInterruptRuleActionMatch(E_ActionType ruleActionType, E_ActionType evaluatedActionType)
+    {
+        if (ruleActionType == E_ActionType.None)
+        {
+            return true;
+        }
+
+        return ruleActionType == evaluatedActionType;
     }
 
     /// <summary>

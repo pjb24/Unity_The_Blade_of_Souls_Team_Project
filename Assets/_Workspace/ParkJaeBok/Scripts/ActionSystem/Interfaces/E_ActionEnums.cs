@@ -44,6 +44,10 @@ public enum E_ActionType
     BossPatternLoopA,
     BossPatternLoopB,
     BossPatternFinish,
+
+    AttackAir,
+    AttackDash,
+    AttackWall,
 }
 
 /// <summary>
@@ -67,4 +71,32 @@ public enum E_ActionRunState
     Running,
     Completed,
     Cancelled,
+}
+
+/// <summary>
+/// 액션 인터럽트 규칙 평가 결과를 정의하는 enum입니다.
+/// </summary>
+public enum E_ActionInterruptDecision
+{
+    UseDefault,
+    Allow,
+    Deny,
+}
+
+/// <summary>
+/// 공격 입력 시점의 이동/상태 맥락을 비트 플래그로 표현한 enum입니다.
+/// </summary>
+[System.Flags]
+public enum E_AttackContextFlags
+{
+    None = 0,
+    Grounded = 1 << 0,
+    Airborne = 1 << 1,
+    Moving = 1 << 2,
+    Jumping = 1 << 3,
+    Falling = 1 << 4,
+    Dashing = 1 << 5,
+    WallSliding = 1 << 6,
+    WallJumping = 1 << 7,
+    Sliding = 1 << 8,
 }

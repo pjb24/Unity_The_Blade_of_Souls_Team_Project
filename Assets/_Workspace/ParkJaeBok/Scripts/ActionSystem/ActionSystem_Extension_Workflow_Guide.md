@@ -9,28 +9,33 @@
 요청에 맞게 확장 문서를 아래처럼 분리했습니다.
 
 1. 일반 동작(애니메이션) 및 액터 타입 확장
-   - `ActionSystem_GeneralAction_Add_Guide.md`
+   - `ActionSystem_GeneralAction_Add.md`
 2. Combo Attack / Boss Pattern 확장
    - `ActionSystem_ComboAndBossPattern_Guide.md`
+3. Player 이동/공격/인터럽트 통합 설정
+   - `ActionSystem_PlayerAction_Integration_Guide.md`
 
 ---
 
 ## 어떤 문서를 보면 되는가?
 
 - `Dash`, `Stun`, `Use` 같은 일반 액션을 추가하려면
-  - `ActionSystem_GeneralAction_Add_Guide.md`
+  - `ActionSystem_GeneralAction_Add.md`
 - `NPC`, `Trap` 같은 신규 타입을 추가하려면
-  - `ActionSystem_GeneralAction_Add_Guide.md`
+  - `ActionSystem_GeneralAction_Add.md`
 - 플레이어 콤보 공격을 추가하려면
   - `ActionSystem_ComboAndBossPattern_Guide.md`
 - 보스 패턴 시퀀스/인터럽트(피격, 브레이크)까지 구성하려면
   - `ActionSystem_ComboAndBossPattern_Guide.md`
+- Player 이동/공격/인터럽트 세팅을 한 문서에서 보려면
+  - `ActionSystem_PlayerAction_Integration_Guide.md`
 
 ---
 
 ## 공통 운영 원칙
 
 - 액션 허용/비허용은 코드 분기보다 Rule(`Enabled`) 중심으로 관리합니다.
+- enum은 `E_ActionEnums.cs` 단일 파일에서 관리합니다(`E_ActionType`, `E_ActionPhase`, `E_ActionInterruptDecision`, `E_AttackContextFlags`).
 - Rule 데이터는 `ActionRuleProfile` ScriptableObject로 관리하고 `ActionController._actionRuleProfile`에 연결합니다.
 - 애니메이션 매핑은 `AnimationStateMapProfile` ScriptableObject로 관리하고 `ActionAnimationPresenter._stateMapProfile`에 연결합니다.
 - Animation Event marker 명령은 `AnimationMarkerProfile` ScriptableObject로 관리하고 `ActionController._animationMarkerProfile`에 연결합니다.
@@ -41,4 +46,6 @@
 - 예외 흐름은 Warning 로그로 드러나게 유지합니다.
 - 오케스트레이션(Combo/BossPattern)과 실행(Source of Truth)은 분리합니다.
   - 실행: `ActionController`
-  - 오케스트레이션: `ActionComboController`, `BossPatternController`
+  - 오케스트레이션: `ActionContextualAttackController`, `BossPatternController`
+- 공격 입력이 여러 종류(예: Light/Heavy/Skill)라면 `ActionContextualAttackController._attackInputRoutes`에 입력별 라우트를 분리하고 각 라우트에 별도 `AttackContextRuleProfile`을 연결합니다.
+- 단일 입력 프로젝트도 `ActionContextualAttackController._attackInputRoutes`에 라우트를 최소 1개 이상 구성합니다.

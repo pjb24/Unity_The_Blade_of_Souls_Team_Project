@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 410a67a4f032ffa48a9dbbcc88ee98bf, type: 3}
+  m_Name: TestAttackContextRuleProfile
+  m_EditorClassIdentifier: Assembly-CSharp::AttackContextRuleProfile
+  _fallbackActionType: 0
+  _attackInputBufferSeconds: 0.15
+  _rules:
+  - Name: Attack_In_Air
+    Enabled: 1
+    Priority: 0
+    RequiredFlags: 2
+    ExcludedFlags: 96
+    AllowedCurrentActions: 
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    BlockAttack: 0
+    BufferWhenBlocked: 0
+    OutputActionType: 13
+  - Name: Attack_Normal_1
+    Enabled: 1
+    Priority: 0
+    RequiredFlags: 1
+    ExcludedFlags: 96
+    AllowedCurrentActions: 0100000002000000
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    BlockAttack: 0
+    BufferWhenBlocked: 0
+    OutputActionType: 22
+  - Name: Attack_Normal_2
+    Enabled: 1
+    Priority: 0
+    RequiredFlags: 1
+    ExcludedFlags: 96
+    AllowedCurrentActions: 16000000
+    RequireComboWindowOpen: 1
+    RequireHitWindowOpen: 1
+    BlockAttack: 0
+    BufferWhenBlocked: 0
+    OutputActionType: 23
+  - Name: Attack_Normal_3
+    Enabled: 1
+    Priority: 0
+    RequiredFlags: 1
+    ExcludedFlags: 96
+    AllowedCurrentActions: 17000000
+    RequireComboWindowOpen: 1
+    RequireHitWindowOpen: 1
+    BlockAttack: 0
+    BufferWhenBlocked: 0
+    OutputActionType: 24

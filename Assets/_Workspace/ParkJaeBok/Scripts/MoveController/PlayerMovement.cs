@@ -161,6 +161,14 @@ public class PlayerMovement : MonoBehaviour
 
     // 현재 달리기 입력 유지 여부를 외부에 노출한다.
     public bool IsRunning => InputManager.RunIsHeld;
+    // 점프 상승 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
+    public bool IsJumpingState => _isJumping;
+    // 일반 낙하 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
+    public bool IsFallingState => _isFalling;
+    // 벽 슬라이드 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
+    public bool IsWallSlidingState => _isWallSliding;
+    // 벽 점프 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
+    public bool IsWallJumpingState => _isWallJumping;
 
     // 필수 컴포넌트 참조를 캐싱하고 초기 바라보는 방향을 설정한다.
     private void Awake()

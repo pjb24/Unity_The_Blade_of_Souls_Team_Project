@@ -26,47 +26,47 @@ MonoBehaviour:
     AutoCompleteSeconds: 0
   - ActionType: 3
     Enabled: 1
-    Priority: 3
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0.45
   - ActionType: 4
     Enabled: 1
-    Priority: 4
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0.25
   - ActionType: 5
     Enabled: 1
-    Priority: 5
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0.3
   - ActionType: 6
     Enabled: 1
-    Priority: 6
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
   - ActionType: 7
     Enabled: 1
-    Priority: 7
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
   - ActionType: 8
     Enabled: 1
-    Priority: 8
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0.45
   - ActionType: 9
     Enabled: 1
-    Priority: 9
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
   - ActionType: 13
     Enabled: 1
-    Priority: 10
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0.5
   - ActionType: 14
     Enabled: 1
-    Priority: 10
+    Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0.35
   - ActionType: 15
