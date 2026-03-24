@@ -46,6 +46,38 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NearestTargetByTagProvider
   _targetTag: Player
   _maxAcquireRange: 20
+  _retargetInterval: 0.15
+--- !u!1 &2772910353734552397
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7211318698680056686}
+  m_Layer: 8
+  m_Name: GameObject (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7211318698680056686
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2772910353734552397}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 7.52, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5654065627000513322}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3245205275192854914
 GameObject:
   m_ObjectHideFlags: 0
@@ -299,6 +331,39 @@ MonoBehaviour:
   _attackSubType: enemy_attack
   _hitSubType: enemy_hit
   _deathSubType: enemy_die
+--- !u!1 &5692918466907743818
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5654065627000513322}
+  m_Layer: 8
+  m_Name: PatrolRoutes
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5654065627000513322
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5692918466907743818}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 712456319171412186}
+  - {fileID: 7211318698680056686}
+  m_Father: {fileID: 8110841741010526554}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6837736977413250070
 GameObject:
   m_ObjectHideFlags: 0
@@ -375,6 +440,7 @@ GameObject:
   - component: {fileID: 667880077206292230}
   - component: {fileID: 6119379395608869573}
   - component: {fileID: 3380811875358341511}
+  - component: {fileID: 884178302033124260}
   m_Layer: 8
   m_Name: --- Enemy Base ---
   m_TagString: Enemy
@@ -400,6 +466,7 @@ Transform:
   - {fileID: 8460189829084171138}
   - {fileID: 5444107091486401705}
   - {fileID: 1749927397742992062}
+  - {fileID: 5654065627000513322}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &8953421357085236303
@@ -421,6 +488,7 @@ MonoBehaviour:
   _actionController: {fileID: 2086281143833739421}
   _movementDriver: {fileID: 6119379395608869573}
   _healthComponent: {fileID: 2454503219973314871}
+  _patrolRouteProvider: {fileID: 884178302033124260}
   _decisionPolicyBehaviour: {fileID: 0}
   _skillExecutorBehaviour: {fileID: 0}
   _patternRunnerBehaviour: {fileID: 0}
@@ -515,6 +583,25 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &884178302033124260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8916bf99128c65846a0ec40fd1fab51c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyPatrolRouteProvider
+  _routePoints:
+  - {fileID: 712456319171412186}
+  - {fileID: 7211318698680056686}
+  _routeMode: 0
+  _useWorldPositionSnapshot: 1
+  _fallbackPolicy: 0
+  _collectChildrenOnAwakeWhenRouteEmpty: 0
 --- !u!1 &8447307058324025745
 GameObject:
   m_ObjectHideFlags: 0
@@ -565,3 +652,34 @@ MonoBehaviour:
     _attackSpec: {fileID: 11400000, guid: cbc194a3f7560354ba44704f0d489ab6, type: 2}
   _autoExecuteOnHitWindowOpen: 1
   _drawGizmos: 1
+--- !u!1 &8620420168890578096
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 712456319171412186}
+  m_Layer: 8
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &712456319171412186
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8620420168890578096}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -7.01, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5654065627000513322}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

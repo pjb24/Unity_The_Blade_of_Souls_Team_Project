@@ -70,6 +70,21 @@ Enemy GameObject에 아래 컴포넌트를 추가합니다.
 - `PatrolRadius`
 - `PatrolWaitTime`
 
+#### Patrol Route Provider(선택)
+- `EnemyPatrolRouteProvider`를 Enemy 오브젝트에 추가하면 순찰 지점을 **명시적 경로 기반**으로 제어할 수 있습니다.
+- 디자이너 워크플로우
+  1. Enemy 하위에 빈 GameObject들을 생성 (`PatrolPoint_01`, `PatrolPoint_02` 등)
+  2. 각 자식의 위치를 순찰 포인트로 배치
+  3. `EnemyPatrolRouteProvider`의 `Collect Route Points From Children` 실행(또는 Awake 자동 수집 옵션 사용)
+  4. 기본값인 `Use World Position Snapshot`을 유지해 초기 월드 좌표를 고정하면 Enemy 이동 시에도 포인트가 같이 끌려가지 않습니다.
+- 순찰 모드
+  - `Loop`: 끝까지 간 뒤 처음으로 반복
+  - `PingPong`: 끝점에서 역방향으로 왕복
+  - `RandomNoRepeat`: 직전 포인트를 제외하고 랜덤 선택
+- 경로가 비어 있거나 null만 있을 때 fallback
+  - `SpawnRandom`: 기존 반경 기반 랜덤 목적지
+  - `IdleFixed`: 현재 위치 고정(Idle 성격)
+
 ### Action Mapping
 - `SpawnAction`
 - `IdleAction`

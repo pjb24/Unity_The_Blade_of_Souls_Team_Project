@@ -33,6 +33,8 @@ public class EnemyBrain : MonoBehaviour
     [SerializeField] private EnemyMovementDriver _movementDriver; // 추적/복귀/순찰 이동 실행을 담당할 이동 드라이버 참조입니다.
     [Tooltip("사망 상태 감지를 위한 체력 컴포넌트 참조입니다.")]
     [SerializeField] private HealthComponent _healthComponent; // 사망 상태 감지를 위한 체력 컴포넌트 참조입니다.
+    [Tooltip("순찰 경로 기반 목적지 계산을 제공하는 RouteProvider 컴포넌트 참조입니다.")]
+    [SerializeField] private EnemyPatrolRouteProvider _patrolRouteProvider; // 순찰 경로 기반 목적지 계산에 사용할 RouteProvider 컴포넌트 참조입니다.
 
     [Header("Advanced Extensions")]
     [Tooltip("IEnemyDecisionPolicy 구현체를 담는 전술 정책 컴포넌트 참조입니다.")]
@@ -279,8 +281,14 @@ public class EnemyBrain : MonoBehaviour
         float distanceToPatrolDestination = Vector2.Distance(transform.position, _patrolDestination); // 현재 위치와 순찰 목적지 사이 거리 값입니다.
         if (distanceToPatrolDestination <= GetStoppingDistance())
         {
-            _patrolDestination = PickPatrolDestination();
-            _nextPatrolPickTime = Time.time + GetPatrolWaitTime();
+            if (_patrolRouteProvider != null)
+            {
+                _patrolDestination = _patrolRouteProvider.GetNextPoint(_spawnPosition, GetPatrolRadius(), transform.position);
+            }
+            else
+            {
+                _patrolDestination = PickPatrolDestination();
+            }
         }
 
         _movementDriver.SetTargetPosition(_patrolDestination);
@@ -662,6 +670,11 @@ public class EnemyBrain : MonoBehaviour
         if (_healthComponent == null)
         {
             _healthComponent = GetComponent<HealthComponent>();
+        }
+
+        if (_patrolRouteProvider == null)
+        {
+            _patrolRouteProvider = GetComponent<EnemyPatrolRouteProvider>();
         }
 
         return _actionController != null && _movementDriver != null;
