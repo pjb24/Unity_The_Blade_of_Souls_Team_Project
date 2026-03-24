@@ -26,13 +26,6 @@ public class ActionVfxBridge : MonoBehaviour, IActionListener
     [SerializeField]
     private ActionController _actionController; // 액션 이벤트를 구독할 ActionController 참조
 
-    [Header("Register Retry")]
-    [SerializeField]
-    private float _retryInterval = 0.1f; // 리스너 등록/해제 재시도 간격(초)
-
-    [SerializeField]
-    private int _maxRetryCount = 30; // 리스너 등록/해제 재시도 최대 횟수
-
     [Header("Action Event Mapping")]
     [SerializeField]
     private ActionEffectMap[] _actionEffectMaps; // 액션 타입별 시작/완료/취소 이펙트 매핑 배열
@@ -58,8 +51,7 @@ public class ActionVfxBridge : MonoBehaviour, IActionListener
     private bool _usePlayerMovementFacing = true; // PlayerMovement.IsFacingRight 값을 우선 사용해 방향을 결정할지 여부
 
     private EffectHandle _trailHandle; // 현재 활성 궤적 이펙트를 제어하는 핸들
-    private Coroutine _registerCoroutine; // 지연 등록 코루틴 핸들
-    private Coroutine _unregisterCoroutine; // 지연 해제 코루틴 핸들
+    private Coroutine _delayedRegisterCoroutine; // 활성화 직후 1프레임 지연 등록을 처리하는 코루틴 핸들
     private bool _isSubscribed; // ActionController 이벤트 구독이 완료된 상태인지 여부
     [SerializeField] private PlayerMovement _playerMovement; // PlayerMovement 방향 정보를 조회할 참조
 
@@ -73,30 +65,29 @@ public class ActionVfxBridge : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 활성화 시 리스너 등록 코루틴을 시작합니다.
+    /// 활성화 시 1프레임 지연 리스너 등록 코루틴을 시작합니다.
     /// </summary>
     private void OnEnable()
     {
-        RestartRegisterCoroutine();
+        RestartDelayedRegisterCoroutine();
     }
 
-    /// <summary>
-    /// 비활성화 시 리스너 해제 코루틴을 시작하고 지속형 이펙트를 정리합니다.
+    //// <summary>
+    /// 비활성화 시 지연 등록 코루틴을 중지하고 리스너를 즉시 해제한 뒤 지속형 이펙트를 정리합니다.
     /// </summary>
     private void OnDisable()
     {
-        StopRunningCoroutine(ref _registerCoroutine);
-        RestartUnregisterCoroutine();
+        StopRunningCoroutine(ref _delayedRegisterCoroutine);
+        TryImmediateUnregister();
         StopTrailIfPlaying();
     }
 
     /// <summary>
-    /// 오브젝트 파괴 시 실행 중 코루틴을 정리하고 리스너 해제를 마지막으로 시도합니다.
+    /// 오브젝트 파괴 시 지연 등록 코루틴을 정리하고 리스너 해제를 마지막으로 시도합니다.
     /// </summary>
     private void OnDestroy()
     {
-        StopRunningCoroutine(ref _registerCoroutine);
-        StopRunningCoroutine(ref _unregisterCoroutine);
+        StopRunningCoroutine(ref _delayedRegisterCoroutine);
 
         TryImmediateUnregister();
         StopTrailIfPlaying();
@@ -150,85 +141,36 @@ public class ActionVfxBridge : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 등록 코루틴을 재시작합니다.
+    /// 활성화 직후 1프레임 지연 등록 코루틴을 재시작합니다.
     /// </summary>
-    private void RestartRegisterCoroutine()
+    private void RestartDelayedRegisterCoroutine()
     {
-        StopRunningCoroutine(ref _unregisterCoroutine);
-        StopRunningCoroutine(ref _registerCoroutine);
-        _registerCoroutine = StartCoroutine(RegisterListenerWithRetryCoroutine());
+        StopRunningCoroutine(ref _delayedRegisterCoroutine);
+        _delayedRegisterCoroutine = StartCoroutine(DelayedRegisterCoroutine());
     }
 
     /// <summary>
-    /// 해제 코루틴을 재시작합니다.
+    /// 활성화 직후 1프레임을 기다렸다가 ActionController 리스너 등록을 시도합니다.
     /// </summary>
-    private void RestartUnregisterCoroutine()
+    private IEnumerator DelayedRegisterCoroutine()
     {
-        StopRunningCoroutine(ref _unregisterCoroutine);
-        _unregisterCoroutine = StartCoroutine(UnregisterListenerWithRetryCoroutine());
-    }
+        yield return null;
 
-    /// <summary>
-    /// ActionController가 준비될 때까지 재시도한 뒤 리스너를 등록합니다.
-    /// </summary>
-    private IEnumerator RegisterListenerWithRetryCoroutine()
-    {
-        int safeMaxRetry = Mathf.Max(1, _maxRetryCount); // 잘못된 최대 재시도 설정을 보정한 안전 값
-        float safeInterval = Mathf.Max(0.01f, _retryInterval); // 잘못된 재시도 간격을 보정한 안전 값
-
-        if (_maxRetryCount < 1 || _retryInterval <= 0f)
+        if (!isActiveAndEnabled)
         {
-            Debug.LogWarning($"[ActionVfxBridge] Invalid retry settings on {name}. Fallback maxRetry={safeMaxRetry}, interval={safeInterval}.", this);
+            _delayedRegisterCoroutine = null;
+            yield break;
         }
 
-        for (int retryIndex = 0; retryIndex < safeMaxRetry; retryIndex++)
+        if (TryResolveActionControllerReference())
         {
-            if (TryResolveActionControllerReference())
-            {
-                RegisterToActionController();
-                _registerCoroutine = null;
-                yield break;
-            }
-
-            if (retryIndex == 0)
-            {
-                Debug.LogWarning($"[ActionVfxBridge] ActionController is null on {name}. Delaying AddListener registration.", this);
-            }
-
-            yield return new WaitForSeconds(safeInterval);
+            RegisterToActionController();
+            _delayedRegisterCoroutine = null;
+            yield break;
         }
 
-        Debug.LogWarning($"[ActionVfxBridge] AddListener registration failed after retries on {name}.", this);
-        _registerCoroutine = null;
-    }
-
-    /// <summary>
-    /// ActionController가 준비될 때까지 재시도한 뒤 리스너 해제를 수행합니다.
-    /// </summary>
-    private IEnumerator UnregisterListenerWithRetryCoroutine()
-    {
-        int safeMaxRetry = Mathf.Max(1, _maxRetryCount); // 잘못된 최대 재시도 설정을 보정한 안전 값
-        float safeInterval = Mathf.Max(0.01f, _retryInterval); // 잘못된 재시도 간격을 보정한 안전 값
-
-        for (int retryIndex = 0; retryIndex < safeMaxRetry; retryIndex++)
-        {
-            if (TryResolveActionControllerReference())
-            {
-                UnregisterFromActionController();
-                _unregisterCoroutine = null;
-                yield break;
-            }
-
-            if (retryIndex == 0)
-            {
-                Debug.LogWarning($"[ActionVfxBridge] ActionController is null on {name}. Delaying RemoveListener unregistration.", this);
-            }
-
-            yield return new WaitForSeconds(safeInterval);
-        }
-
-        Debug.LogWarning($"[ActionVfxBridge] RemoveListener unregistration failed after retries on {name}.", this);
-        _unregisterCoroutine = null;
+        Debug.LogWarning($"[ActionVfxBridge] ActionController is null on {name}. Delayed AddListener registration skipped.", this);
+        _delayedRegisterCoroutine = null;
     }
 
     /// <summary>

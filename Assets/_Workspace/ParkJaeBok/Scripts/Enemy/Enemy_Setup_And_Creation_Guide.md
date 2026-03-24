@@ -1,0 +1,306 @@
+# Enemy 기본 설정 및 제작 가이드
+
+이 문서는 현재 프로젝트의 Enemy 프레임워크(`EnemyBrain`, `EnemyArchetypeData`, `EnemyMovementDriver`, `EnemySfxBridge`)를 사용해
+**새 Enemy를 만드는 표준 절차**를 설명합니다.
+
+---
+
+## 1) 공통 개요
+
+Enemy는 다음 역할 분리 구조를 기본으로 합니다.
+
+- **Brain**: 상태 전환(Spawn/Idle/Patrol/Chase/Attack/Recover/HitStun/Dead)
+- **Movement**: 이동 실행
+- **Action/Attack/Hit/Health**: 전투/판정/피격/체력
+- **SFX/VFX**: 연출 브리지
+- **Targeting**: 타겟 획득 전략
+
+---
+
+## 2) 필수 컴포넌트 체크리스트
+
+Enemy GameObject에 아래 컴포넌트를 추가합니다.
+
+### Core
+- `EnemyBrain`
+- `EnemyMovementDriver`
+- `EnemyMovementActionSync`
+- `ActionController`
+- `AttackExecutor`
+- `HitReceiver`
+- `HealthComponent`
+- `EnemySfxBridge`
+
+### Optional
+- `NearestTargetByTagProvider` (기본 타겟팅)
+- `ActionHitBridge` (피격->액션 변환)
+- `HitVfxBridge`, `HealthVfxBridge`, `ActionVfxBridge`
+
+---
+
+## 3) EnemyArchetypeData 생성 및 연결
+
+1. Project 창에서 `Create > Enemy > Enemy Archetype Data` 생성
+2. `EnemyBrain._archetype`에 연결
+3. 아래 항목을 타입별로 설정
+
+### Identity
+- `ArchetypeId`: 식별 이름 (`Enemy_Melee_A`, `Enemy_Ranged_B` 등)
+
+### Movement
+- `MoveSpeed`
+- `StoppingDistance`
+
+### Perception
+- `DetectRange`
+- `LoseRange`
+
+### Combat
+- `AttackRange`
+- `AttackCooldown`
+- `RecoverDuration`
+- `HitStunDuration`
+
+### Leash
+- `UseLeash`
+- `LeashDistance`
+
+### Patrol
+- `UsePatrol`
+- `PatrolRadius`
+- `PatrolWaitTime`
+
+### Action Mapping
+- `SpawnAction`
+- `IdleAction`
+- `PatrolAction`
+- `MoveAction`
+- `AttackAction`
+- `RecoverAction`
+- `HitStunAction`
+- `DeadAction`
+
+---
+
+## 4) ActionController 설정
+
+1. `ActionRuleProfile` 연결
+2. Enemy에서 사용할 액션(`Idle`, `Move`, `Attack`, `Hit`, `Die` 등)을 Enable
+3. `Priority`, `IsInterruptible` 정책 점검
+4. 기본 액션을 `Idle` 또는 `Spawn` 규칙에 맞춰 지정
+
+### 4-1) ActionController용 SO 생성 방법 (예시)
+
+아래 ScriptableObject는 ActionController 품질을 좌우하므로 Enemy 제작 시 기본 세트로 함께 생성하는 것을 권장합니다.
+
+1. `Create > ActionSystem > Action Rule Profile`
+   - 파일명 예시: `ARP_Enemy_Melee_Basic`
+2. `Create > ActionSystem > Action Interrupt Policy Profile`
+   - 파일명 예시: `AIPP_Enemy_Melee_Basic`
+3. `Create > ActionSystem > Animation State Map Profile`
+   - 파일명 예시: `ASMP_Enemy_Melee_Basic`
+4. (선택) `Create > ActionSystem > Action Hit Bridge Profile`
+   - 파일명 예시: `AHBP_Enemy_Melee_Basic`
+
+#### ActionRuleProfile 권장 입력값 예시
+
+- `Idle`: Enabled=true, Priority=0, IsInterruptible=true
+- `Move`: Enabled=true, Priority=1, IsInterruptible=true
+- `Attack`: Enabled=true, Priority=10, IsInterruptible=false, AutoCompleteSeconds=0(마커 기반 완료 권장)
+- `Hit`: Enabled=true, Priority=20, IsInterruptible=false
+- `Die`: Enabled=true, Priority=100, IsInterruptible=false
+
+#### ActionInterruptPolicyProfile 권장 정책 예시
+
+- `Attack -> Hit`: Allow
+- `Attack -> Die`: Allow
+- `Move -> Attack`: Allow
+- `Hit -> Attack`: Deny (경직 유지 의도 시)
+
+#### AnimationStateMapProfile 예시
+
+- `Idle` -> Animator State: `Idle`
+- `Move` -> Animator State: `Run`
+- `Attack` -> Animator State: `Attack_A`
+- `Hit` -> Animator State: `Hit`
+- `Die` -> Animator State: `Die`
+
+> 핵심: Rule/Interrupt/AnimationMap 3종을 한 세트로 맞춰야 런타임 액션 불일치가 줄어듭니다.
+
+### 4-2) Action Animation Presenter 설정
+
+`ActionAnimationPresenter`는 ActionController 상태를 Animator 파라미터/상태로 반영하는 핵심 브리지입니다.
+
+#### 필수 연결
+
+1. Enemy 오브젝트(또는 Animator가 있는 자식)에 `ActionAnimationPresenter` 추가
+2. 아래 참조를 Inspector에서 연결
+   - `ActionController`
+   - `Animator`
+   - `AnimationStateMapProfile` (`ASMP_Enemy_*`)
+
+#### 권장 파라미터/상태 매핑 규칙
+
+- 액션 상태 이름은 `AnimationStateMapProfile`에 단일 소스로 관리
+- ActionType과 Animator State 이름을 1:1로 맞추는 것을 권장
+  - `Idle` -> `Idle`
+  - `Move` -> `Run`
+  - `Attack` -> `Attack_A`
+  - `Hit` -> `Hit`
+  - `Die` -> `Die`
+
+#### 운영 팁
+
+1. **Presentation Lock 사용**
+   - 사망/피격 등 특정 액션에서 즉시 상태가 바뀌지 않게 유지 연출 가능
+2. **해제 허용 액션 명시**
+   - Lock을 풀 수 있는 액션(예: `Die`, `Idle`)을 명확히 설정
+3. **애니메이션 마커와 역할 분리**
+   - 상태 전환은 `ActionController`
+   - 타격 타이밍은 마커(`HitStart/HitEnd`)
+   - 애니메이션 출력은 `ActionAnimationPresenter`
+
+#### 자주 발생하는 문제
+
+- 문제: 액션은 바뀌는데 애니메이션이 안 바뀜
+  - 점검: `AnimationStateMapProfile` 연결 여부, 상태 이름 오탈자
+- 문제: 피격/사망 연출이 중간에 끊김
+  - 점검: Presentation Lock 옵션과 인터럽트 정책
+- 문제: 공격 판정은 맞는데 타격 모션 타이밍이 어긋남
+  - 점검: 마커 프레임(`HitStart/HitEnd`) 위치
+
+---
+
+## 5) AttackExecutor 설정
+
+1. `_actionMaps` 구성
+   - `AttackAction`에 대응하는 `AttackSpec` 연결
+2. `_autoExecuteOnHitWindowOpen` 필요에 맞게 설정
+3. HitWindow 마커(`HitStart/HitEnd`)가 애니메이션에 배치되어 있는지 확인
+
+### 5-1) AttackExecutor용 SO 생성 방법 (예시)
+
+AttackExecutor는 `AttackSpec` SO 품질이 핵심입니다.
+
+1. `Create > AttackSystem > Attack Spec`
+2. Enemy 공격 수만큼 생성
+   - 예시 파일명:
+     - `AS_Enemy_Melee_A`
+     - `AS_Enemy_Melee_B`
+     - `AS_Enemy_Ranged_Shot`
+3. `AttackExecutor._actionMaps`에서 액션 타입과 AttackSpec을 1:1 또는 1:N 규칙으로 매핑
+
+#### 근접 기본타(`AS_Enemy_Melee_A`) 예시값
+
+- `AttackTypeId`: `EnemyMeleeA`
+- `BaseDamage`: `10`
+- `AreaType`: `Circle`
+- `LocalOffset`: `(1.0, 0.0)`
+- `Radius`: `1.0`
+- `TargetLayerMask`: `Player`
+- `RequireTargetTag`: `true`
+- `TargetTag`: `Player`
+- `MaxTargets`: `1`
+- `StatusTag`: `EnemyMeleeA`
+- `AllowMultiHitPerSwing`: `false`
+
+#### 원거리 샷(`AS_Enemy_Ranged_Shot`) 예시값
+
+- `AttackTypeId`: `EnemyShotA`
+- `BaseDamage`: `8`
+- `AreaType`: `Circle` (투사체 직접 판정을 안 쓰는 경우 작게 설정)
+- `LocalOffset`: `(0.8, 0.0)`
+- `Radius`: `0.5`
+- `TargetLayerMask`: `Player`
+- `RequireTargetTag`: `true`
+- `TargetTag`: `Player`
+- `MaxTargets`: `1`
+- `StatusTag`: `EnemyShotA`
+- `AllowMultiHitPerSwing`: `false`
+
+#### ActionMap 연결 예시
+
+- `ActionType=Attack` -> `AttackSpec=AS_Enemy_Melee_A`
+- `ActionType=AttackCombo1` -> `AttackSpec=AS_Enemy_Melee_B`
+- `ActionType=AttackAir` -> `AttackSpec=AS_Enemy_Ranged_Shot`
+
+---
+
+## 6) Hit/Health 설정
+
+### HealthComponent
+- 초기 체력
+- 사망 중 회복 허용 여부
+
+### HitReceiver
+- `_incomingDamageMultiplier`
+- 무적 상태 초기값
+
+권장: `ActionHitBridge`를 연결해 `Hit/Break/Die` 액션 연동
+
+---
+
+## 7) Targeting 설정
+
+### 기본 방식
+- `NearestTargetByTagProvider` 추가
+- `_targetTag`를 `Player`로 지정
+- `_maxAcquireRange` 설정
+- `EnemyBrain._targetProviderBehaviour`에 Provider 연결
+
+### 대체 방식
+- 직접 `_target` 할당
+- 커스텀 `IEnemyTargetProvider` 구현체 사용
+
+---
+
+## 8) 신규 Enemy 제작 절차 (권장)
+
+1. 기존 Enemy 베이스 오브젝트 복제
+2. `EnemyArchetypeData` 새로 만들거나 기존 데이터 재사용
+3. ActionController용 SO 세트 생성/연결
+   - `ActionRuleProfile`
+   - `ActionInterruptPolicyProfile`
+   - `AnimationStateMapProfile`
+   - (선택) `ActionHitBridgeProfile`
+4. AttackExecutor용 `AttackSpec` 세트 생성/연결
+5. Action 맵/룰 확인
+6. Targeting/연출 설정
+7. 테스트 씬에서 검증
+
+---
+
+## 9) 제작 규칙
+
+- 신규 Enemy마다 Brain 코드를 새로 만들지 않고, **Archetype + AttackSpec + 정책 모듈** 조합으로 제작합니다.
+- 상태 추가가 필요하면 Brain 확장보다 `Advanced` 모듈 적용을 우선 검토합니다.
+
+---
+
+## 10) Enemy 제작 시 필수/권장 SO 목록
+
+### 필수 SO
+
+1. `EnemyArchetypeData`
+   - 이동/감지/전투/순찰/액션 매핑
+2. `ActionRuleProfile`
+   - 액션 허용/우선순위
+3. `ActionInterruptPolicyProfile`
+   - 액션 간 인터럽트 정책
+4. `AnimationStateMapProfile`
+   - 액션-애니메이션 상태 매핑
+5. `AttackSpec` (1개 이상)
+   - 실제 공격 데미지/범위/필터 규칙
+
+### 권장 SO
+
+1. `ActionHitBridgeProfile`
+   - 피격 결과->액션 변환 룰
+2. `BossPhaseData` (보스 전용)
+   - 체력 임계치 패턴 전환 데이터
+
+### 타입별 권장 SO 세트
+
+- 근접 Enemy: `EnemyArchetypeData + Action(3종) + AttackSpec(1~2종)`
+- 원거리 Enemy: `EnemyArchetypeData + Action(3종) + AttackSpec(1~3종) + (Advanced 정책/스킬 모듈)`
+- 보스 Enemy: `EnemyArchetypeData + Action(3종) + AttackSpec(다수) + BossPhaseData + Pattern 데이터`

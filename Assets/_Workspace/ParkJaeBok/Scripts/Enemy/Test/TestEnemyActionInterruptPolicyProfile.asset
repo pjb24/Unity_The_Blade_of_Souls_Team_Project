@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37c14f381b7ced940a6e5ba2febe56f5, type: 3}
+  m_Name: TestEnemyActionInterruptPolicyProfile
+  m_EditorClassIdentifier: Assembly-CSharp::ActionInterruptPolicyProfile
+  _rules:
+  - Name: Attack_To_Hit
+    Enabled: 1
+    Priority: 0
+    CurrentActionType: 13
+    RequestedActionType: 14
+    Decision: 1
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    RequireCurrentPhaseMatch: 0
+    RequiredCurrentPhase: 0
+  - Name: Attack_To_Die
+    Enabled: 1
+    Priority: 0
+    CurrentActionType: 13
+    RequestedActionType: 15
+    Decision: 1
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    RequireCurrentPhaseMatch: 0
+    RequiredCurrentPhase: 0
+  - Name: Move_To_Attack
+    Enabled: 1
+    Priority: 0
+    CurrentActionType: 2
+    RequestedActionType: 13
+    Decision: 1
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    RequireCurrentPhaseMatch: 0
+    RequiredCurrentPhase: 0
+  - Name: Hit_To_Attack
+    Enabled: 1
+    Priority: 0
+    CurrentActionType: 14
+    RequestedActionType: 13
+    Decision: 2
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    RequireCurrentPhaseMatch: 0
+    RequiredCurrentPhase: 0

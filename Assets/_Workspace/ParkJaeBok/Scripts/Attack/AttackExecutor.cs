@@ -265,7 +265,7 @@ public class AttackExecutor : MonoBehaviour
                 continue;
             }
 
-            HitReceiver receiver = candidateCollider.GetComponentInParent<HitReceiver>();
+            HitReceiver receiver = ResolveHitReceiver(candidateCollider);
             if (receiver == null)
             {
                 continue;
@@ -283,6 +283,32 @@ public class AttackExecutor : MonoBehaviour
 
             targets.Add(receiver);
         }
+    }
+
+    /// <summary>
+    /// 충돌체 기준으로 대상 자신/부모/자식 계층 순서로 HitReceiver를 탐색합니다.
+    /// </summary>
+    private HitReceiver ResolveHitReceiver(Collider2D candidateCollider)
+    {
+        if (candidateCollider == null)
+        {
+            return null;
+        }
+
+        HitReceiver receiverOnSelf = candidateCollider.GetComponent<HitReceiver>(); // 충돌체가 붙은 동일 오브젝트에서 찾은 HitReceiver 참조입니다.
+        if (receiverOnSelf != null)
+        {
+            return receiverOnSelf;
+        }
+
+        HitReceiver receiverOnParent = candidateCollider.GetComponentInParent<HitReceiver>(); // 상위 계층에서 찾은 HitReceiver 참조입니다.
+        if (receiverOnParent != null)
+        {
+            return receiverOnParent;
+        }
+
+        HitReceiver receiverOnChild = candidateCollider.GetComponentInChildren<HitReceiver>(); // 하위 계층에서 찾은 HitReceiver 참조입니다.
+        return receiverOnChild;
     }
 
     /// <summary>
