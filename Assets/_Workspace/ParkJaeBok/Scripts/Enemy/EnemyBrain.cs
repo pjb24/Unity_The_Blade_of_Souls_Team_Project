@@ -534,10 +534,15 @@ public class EnemyBrain : MonoBehaviour
     }
 
     /// <summary>
-    /// 타겟 제공자 또는 태그 fallback으로 추적 대상을 보정합니다.
+    /// 타겟 제공자 또는 태그 fallback 레지스트리로 추적 대상을 보정합니다.
     /// </summary>
     private void TryResolveTarget()
     {
+        if (!IsTargetAvailable(_target))
+        {
+            _target = null;
+        }
+
         if (_targetProvider != null)
         {
             _target = _targetProvider.ResolveTarget(transform);
@@ -550,8 +555,16 @@ public class EnemyBrain : MonoBehaviour
             return;
         }
 
-        GameObject targetObject = GameObject.FindGameObjectWithTag(_fallbackTargetTag); // fallback 타겟 보정을 위해 탐색한 오브젝트 참조입니다.
-        _target = targetObject != null ? targetObject.transform : null;
+        IReadOnlyList<Transform> fallbackTargets = TargetRegistry.GetTargets(_fallbackTargetTag); // fallback 타겟 보정을 위해 조회한 레지스트리 타겟 목록입니다.
+        _target = fallbackTargets.Count > 0 ? fallbackTargets[0] : null;
+    }
+
+    /// <summary>
+    /// 타겟 Transform이 유효하고 활성 상태인지 검증합니다.
+    /// </summary>
+    private static bool IsTargetAvailable(Transform target)
+    {
+        return target != null && target.gameObject.activeInHierarchy;
     }
 
     /// <summary>

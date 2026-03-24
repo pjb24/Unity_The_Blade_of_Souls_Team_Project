@@ -242,11 +242,25 @@ AttackExecutor는 `AttackSpec` SO 품질이 핵심입니다.
 
 ## 7) Targeting 설정
 
-### 기본 방식
-- `NearestTargetByTagProvider` 추가
-- `_targetTag`를 `Player`로 지정
-- `_maxAcquireRange` 설정
+### 기본 방식 (Registry 캐시 기반)
+- Enemy에 `NearestTargetByTagProvider` 추가
+- Provider `_targetTag`를 `Player`(또는 원하는 타겟 태그)로 지정
+- Provider `_maxAcquireRange`와 `_retargetInterval(0.1~0.25s)` 설정
 - `EnemyBrain._targetProviderBehaviour`에 Provider 연결
+
+### TargetRegistryMember 사용법 (필수)
+`NearestTargetByTagProvider`는 전역 검색 대신 `TargetRegistry`를 조회하므로, **타겟 오브젝트에 등록 컴포넌트가 필요**합니다.
+
+1. 추적 대상 오브젝트(예: Player) 선택
+2. `TargetRegistryMember` 컴포넌트 추가
+3. `_targetTag` 설정
+   - 비워두면 `GameObject.tag`를 사용
+   - 문자열을 입력하면 해당 태그로 강제 등록
+4. 런타임 동작 확인
+   - 오브젝트 활성화 시 자동 등록(`OnEnable`)
+   - 오브젝트 비활성화/파괴 시 자동 해제(`OnDisable`)
+
+> 체크 포인트: Provider `_targetTag`와 TargetRegistryMember의 최종 등록 태그가 동일해야 Enemy가 타겟을 찾을 수 있습니다.
 
 ### 대체 방식
 - 직접 `_target` 할당

@@ -18,6 +18,8 @@
 ### 플레이어
 - `Player` 오브젝트 1개
 - 이동/공격 가능 상태
+- `TargetRegistryMember` 부착 (Enemy 타겟 레지스트리 등록용)
+- `TargetRegistryMember._targetTag`와 Enemy Provider `_targetTag` 일치 확인
 
 ### Enemy
 - 근접 Enemy 1개
@@ -100,8 +102,8 @@
 2. ActionRuleProfile에서 액션 Enable 여부
 3. AttackSpec 연결 여부
 4. Layer/Tag 필터 설정
-5. TargetProvider 설정 여부
-6. SFX/VFX 시스템 인스턴스 존재 여부
+6. Player(타겟)에 `TargetRegistryMember` 부착 및 태그 일치 여부
+7. SFX/VFX 시스템 인스턴스 존재 여부
 
 ---
 
