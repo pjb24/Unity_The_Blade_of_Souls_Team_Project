@@ -48,13 +48,22 @@ public class HealthComponent : MonoBehaviour
     /// </summary>
     public void AddListener(IHealthListener listener)
     {
+        TryAddListener(listener);
+    }
+
+    /// <summary>
+    /// 외부에서 리스너 등록을 시도하고 성공 여부를 반환합니다.
+    /// </summary>
+    public bool TryAddListener(IHealthListener listener)
+    {
         if (_healthCore == null)
         {
             Debug.LogWarning($"[HealthComponent] AddListener called before initialization on {name}.");
-            return;
+            return false;
         }
 
         _healthCore.AddListener(listener);
+        return true;
     }
 
     /// <summary>
@@ -62,13 +71,22 @@ public class HealthComponent : MonoBehaviour
     /// </summary>
     public void RemoveListener(IHealthListener listener)
     {
+        TryRemoveListener(listener);
+    }
+
+    /// <summary>
+    /// 외부에서 리스너 해제를 시도하고 성공 여부를 반환합니다.
+    /// </summary>
+    public bool TryRemoveListener(IHealthListener listener)
+    {
         if (_healthCore == null)
         {
             Debug.LogWarning($"[HealthComponent] RemoveListener called before initialization on {name}.");
-            return;
+            return false;
         }
 
         _healthCore.RemoveListener(listener);
+        return true;
     }
 
     /// <summary>

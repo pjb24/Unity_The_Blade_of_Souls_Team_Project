@@ -11,6 +11,7 @@ public class HitDebugListener : MonoBehaviour, IHitListener
     [SerializeField] private int _maxRetryCount = 30; // 리시버 재탐색 코루틴의 최대 재시도 횟수입니다.
 
     private Coroutine _registerCoroutine; // 지연 등록 코루틴 핸들입니다.
+    private bool _isSubscribed; // HitReceiver 리스너 등록 완료 여부를 추적하는 플래그입니다.
 
     /// <summary>
     /// 활성화 시 지연 등록 코루틴을 시작해 리시버에 리스너를 안전하게 등록합니다.
@@ -36,9 +37,9 @@ public class HitDebugListener : MonoBehaviour, IHitListener
     {
         StopRunningCoroutine(ref _registerCoroutine);
 
-        if (_receiver != null)
+        if (_isSubscribed && _receiver != null && _receiver.TryRemoveListener(this))
         {
-            _receiver.RemoveListener(this);
+            _isSubscribed = false;
         }
     }
 
@@ -67,13 +68,16 @@ public class HitDebugListener : MonoBehaviour, IHitListener
     /// </summary>
     private void TryImmediateUnregisterOnDisable()
     {
-        if (TryResolveReceiverReference())
+        if (_isSubscribed && TryResolveReceiverReference() && _receiver.TryRemoveListener(this))
         {
-            _receiver.RemoveListener(this);
+            _isSubscribed = false;
             return;
         }
 
-        Debug.LogWarning($"[HitDebugListener] OnDisable could not resolve receiver on {name}. RemoveListener skipped.");
+        if (_isSubscribed)
+        {
+            Debug.LogWarning($"[HitDebugListener] OnDisable could not resolve receiver on {name}. RemoveListener skipped.");
+        }
     }
 
     /// <summary>
@@ -91,11 +95,14 @@ public class HitDebugListener : MonoBehaviour, IHitListener
 
         for (int retryIndex = 0; retryIndex < safeMaxRetry; retryIndex++)
         {
-            if (TryResolveReceiverReference())
+            if (!_isSubscribed && TryResolveReceiverReference())
             {
-                _receiver.AddListener(this);
-                _registerCoroutine = null;
-                yield break;
+                _isSubscribed = _receiver.TryAddListener(this);
+                if (_isSubscribed)
+                {
+                    _registerCoroutine = null;
+                    yield break;
+                }
             }
 
             if (retryIndex == 0)

@@ -48,19 +48,28 @@ public class HitReceiver : MonoBehaviour
     /// </summary>
     public void AddListener(IHitListener listener)
     {
+        TryAddListener(listener);
+    }
+
+    /// <summary>
+    /// 외부 리스너 등록을 시도하고 성공 여부를 반환합니다.
+    /// </summary>
+    public bool TryAddListener(IHitListener listener)
+    {
         if (listener == null)
         {
             Debug.LogWarning($"[HitReceiver] AddListener received null on {name}.");
-            return;
+            return false;
         }
 
         if (_listeners.Contains(listener))
         {
             Debug.LogWarning($"[HitReceiver] AddListener received duplicate listener on {name}.");
-            return;
+            return false;
         }
 
         _listeners.Add(listener);
+        return true;
     }
 
     /// <summary>
@@ -68,16 +77,27 @@ public class HitReceiver : MonoBehaviour
     /// </summary>
     public void RemoveListener(IHitListener listener)
     {
+        TryRemoveListener(listener);
+    }
+
+    /// <summary>
+    /// 외부 리스너 등록 해제를 시도하고 성공 여부를 반환합니다.
+    /// </summary>
+    public bool TryRemoveListener(IHitListener listener)
+    {
         if (listener == null)
         {
             Debug.LogWarning($"[HitReceiver] RemoveListener received null on {name}.");
-            return;
+            return false;
         }
 
         if (_listeners.Remove(listener) == false)
         {
             Debug.LogWarning($"[HitReceiver] RemoveListener could not find listener on {name}.");
+            return false;
         }
+
+        return true;
     }
 
     /// <summary>

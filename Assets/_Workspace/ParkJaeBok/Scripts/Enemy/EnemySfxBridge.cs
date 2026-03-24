@@ -67,21 +67,20 @@ public class EnemySfxBridge : MonoBehaviour, IActionListener, IHitListener, IHea
         StopRunningCoroutine(ref _registerCoroutine);
         StopRunningCoroutine(ref _unregisterCoroutine);
 
-        if (_actionController != null)
+        if (_isActionSubscribed && _actionController != null)
         {
             _actionController.RemoveListener(this);
             _isActionSubscribed = false;
         }
 
-        if (_hitReceiver != null)
+        if (_isHitSubscribed && _hitReceiver != null)
         {
             _hitReceiver.RemoveListener(this);
             _isHitSubscribed = false;
         }
 
-        if (_healthComponent != null)
+        if (_isHealthSubscribed && _healthComponent != null && _healthComponent.TryRemoveListener(this))
         {
-            _healthComponent.RemoveListener(this);
             _isHealthSubscribed = false;
         }
     }
@@ -256,9 +255,15 @@ public class EnemySfxBridge : MonoBehaviour, IActionListener, IHitListener, IHea
             {
                 if (TryResolveHealthComponentReference())
                 {
-                    _healthComponent.AddListener(this);
-                    _isHealthSubscribed = true;
-                    didRegisterAny = true;
+                    _isHealthSubscribed = _healthComponent.TryAddListener(this);
+                    if (_isHealthSubscribed)
+                    {
+                        didRegisterAny = true;
+                    }
+                    else
+                    {
+                        allResolved = false;
+                    }
                 }
                 else
                 {
@@ -329,8 +334,10 @@ public class EnemySfxBridge : MonoBehaviour, IActionListener, IHitListener, IHea
                 hasPendingUnregister = true;
                 if (TryResolveHealthComponentReference())
                 {
-                    _healthComponent.RemoveListener(this);
-                    _isHealthSubscribed = false;
+                    if (_healthComponent.TryRemoveListener(this))
+                    {
+                        _isHealthSubscribed = false;
+                    }
                 }
             }
 
@@ -379,9 +386,9 @@ public class EnemySfxBridge : MonoBehaviour, IActionListener, IHitListener, IHea
 
         if (_isHealthSubscribed)
         {
-            if (_healthComponent != null || TryResolveHealthComponentReference())
+            if ((_healthComponent != null || TryResolveHealthComponentReference()) && _healthComponent.TryRemoveListener(this))
             {
-                _healthComponent.RemoveListener(this);
+                _isHealthSubscribed = false;
             }
 
             _isHealthSubscribed = false;
