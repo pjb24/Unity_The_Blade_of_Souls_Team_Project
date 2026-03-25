@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 156a6d5cba43a8d47a4117b236024a76, type: 3}
+  m_Name: TestSD_Stage01
+  m_EditorClassIdentifier: Assembly-CSharp::StageDefinition
+  _stageId: stage_01
+  _sceneName: Stage_Test_01
+  _stageEntryPointId: Stage01_Entry_A
+  _townReturnPointId: Town_Return_A
+  _bgmContextType: 100

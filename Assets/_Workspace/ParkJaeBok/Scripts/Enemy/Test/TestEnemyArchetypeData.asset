@@ -15,7 +15,7 @@ MonoBehaviour:
   _archetypeId: Enemy_Normal
   _moveSpeed: 2.5
   _stoppingDistance: 0.5
-  _defaultLocomotionType: 1
+  _defaultLocomotionType: 0
   _canSwitchLocomotion: 0
   _switchCooldown: 0.8
   _minAirTime: 0.6
@@ -44,9 +44,9 @@ MonoBehaviour:
   _patrolRadius: 2.5
   _patrolWaitTime: 1
   _spawnAction: 16
-  _idleAction: 32
-  _patrolAction: 33
-  _moveAction: 33
+  _idleAction: 1
+  _patrolAction: 2
+  _moveAction: 2
   _attackAction: 13
   _recoverAction: 10
   _hitStunAction: 14

@@ -58,6 +58,7 @@ GameObject:
   - component: {fileID: 3141237076942185798}
   - component: {fileID: 1249389477860502122}
   - component: {fileID: 6425684032707822883}
+  - component: {fileID: 8424043009532580256}
   m_Layer: 7
   m_Name: --- PLAYER ---
   m_TagString: Player
@@ -195,6 +196,21 @@ MonoBehaviour:
   _verticalProbeDistance: 0.1
   _horizontalProbeDistance: 0.1
   _safetyGraceDuration: 0.08
+--- !u!114 &8424043009532580256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6058810458548238607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4073ba6280ef174e96a22ae240b4c0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StagePlayerSpawnTarget
+  _isPrimary: 1
+  _priority: 0
+  _spawnPivot: {fileID: 0}
 --- !u!1001 &482668432451794149
 PrefabInstance:
   m_ObjectHideFlags: 0
