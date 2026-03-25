@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4612746055970905576
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5731235033646339261}
+  - component: {fileID: 1062464341028435986}
+  - component: {fileID: 7347136258853585919}
+  - component: {fileID: 7907846679888443586}
+  m_Layer: 0
+  m_Name: --- SaveSystem ---
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5731235033646339261
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4612746055970905576}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1062464341028435986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4612746055970905576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1025aaafb63027e4ca1c667bd95e0211, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveCoordinator
+  _backendComponent: {fileID: 7347136258853585919}
+  _channelPolicies:
+  - {fileID: 11400000, guid: 3385849dc8efb364ead3c28c0afce128, type: 2}
+  - {fileID: 11400000, guid: a0fb07ed79a01754ea9928fa866edaf6, type: 2}
+  - {fileID: 11400000, guid: ae0afca5f1f51784b9eb13e8055bb422, type: 2}
+  _forceClosePolicy: {fileID: 11400000, guid: 06b999e934430a340bdb6c1cce76e177, type: 2}
+  _recoveryPolicy: {fileID: 11400000, guid: 772488118b955b941866bf0d814080d5, type: 2}
+  _autoRegisterParticipants: 1
+  _refreshParticipantsAfterSceneLoad: 1
+  _autoLoadOnStart: 0
+--- !u!114 &7347136258853585919
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4612746055970905576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e42df5fe028de7e4d9a0aaea6aeb0a0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JsonFileSaveBackend
+  _saveFolderName: SaveData
+--- !u!114 &7907846679888443586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4612746055970905576}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42d09913b196673448d1a07ac9bcd389, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RecoveryService
+  _loadRecoveryOnEnable: 0

@@ -5,6 +5,18 @@ using UnityEngine;
 /// </summary>
 public class StageSession : MonoBehaviour
 {
+    /// <summary>
+    /// StageSession의 직렬화 가능한 스냅샷 데이터입니다.
+    /// </summary>
+    [System.Serializable]
+    public struct SnapshotData
+    {
+        public string SelectedStageId; // 마지막으로 선택한 스테이지 ID입니다.
+        public string TargetStageEntryPointId; // 다음 씬 진입에 사용할 엔트리 포인트 ID입니다.
+        public string TargetTownReturnPointId; // 마을 복귀에 사용할 포인트 ID입니다.
+        public E_BgmContextType RequestedBgmContextType; // 다음 씬에 적용할 BGM 컨텍스트 타입입니다.
+    }
+
     private static StageSession _instance; // 전역 접근을 위한 StageSession 싱글톤 인스턴스입니다.
 
     [Tooltip("씬 전환 후에도 StageSession 오브젝트를 유지할지 여부입니다.")]
@@ -117,5 +129,30 @@ public class StageSession : MonoBehaviour
         E_BgmContextType consumedContextType = _requestedBgmContextType; // 소비 후 반환할 요청 컨텍스트 값입니다.
         _requestedBgmContextType = E_BgmContextType.None;
         return consumedContextType;
+    }
+
+    /// <summary>
+    /// 현재 StageSession 상태를 스냅샷으로 반환합니다.
+    /// </summary>
+    public SnapshotData CreateSnapshot()
+    {
+        return new SnapshotData
+        {
+            SelectedStageId = _selectedStageId,
+            TargetStageEntryPointId = _targetStageEntryPointId,
+            TargetTownReturnPointId = _targetTownReturnPointId,
+            RequestedBgmContextType = _requestedBgmContextType
+        };
+    }
+
+    /// <summary>
+    /// 전달된 스냅샷 데이터를 StageSession에 적용합니다.
+    /// </summary>
+    public void ApplySnapshot(SnapshotData snapshot)
+    {
+        _selectedStageId = snapshot.SelectedStageId;
+        _targetStageEntryPointId = snapshot.TargetStageEntryPointId;
+        _targetTownReturnPointId = snapshot.TargetTownReturnPointId;
+        _requestedBgmContextType = snapshot.RequestedBgmContextType;
     }
 }
