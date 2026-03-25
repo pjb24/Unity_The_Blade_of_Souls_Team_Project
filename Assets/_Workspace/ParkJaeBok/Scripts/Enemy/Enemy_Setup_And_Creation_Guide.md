@@ -85,6 +85,18 @@ Enemy GameObject에 아래 컴포넌트를 추가합니다.
   - `SpawnRandom`: 기존 반경 기반 랜덤 목적지
   - `IdleFixed`: 현재 위치 고정(Idle 성격)
 
+#### Patrol Recovery(순찰 정체 복구)
+- `EnemyBrain`의 `Patrol Recovery` 섹션으로 순찰 정체(stuck) 복구를 제어할 수 있습니다.
+  - `Enable Patrol Stuck Recovery`
+  - `Patrol Progress Distance Threshold`
+  - `Patrol Stuck Time Threshold`
+  - `Patrol Stuck Recover Cooldown`
+  - `Patrol Bypass Hold Time`
+- 동작 요약
+  1. 순찰 중 목적지 접근 진행량이 임계치 이하로 일정 시간 유지되면 stuck 판정
+  2. `EnemyMovementDriver.TryGetEdgeBypassCandidate(...)` 우회 후보를 우선 사용
+  3. 우회 후보가 없으면 RouteProvider/랜덤 목적지로 fallback
+
 ### Action Mapping
 - `SpawnAction`
 - `IdleAction`
@@ -94,6 +106,50 @@ Enemy GameObject에 아래 컴포넌트를 추가합니다.
 - `RecoverAction`
 - `HitStunAction`
 - `DeadAction`
+
+### Locomotion (지상/부유 전환)
+- `DefaultLocomotionType`
+- `CanSwitchLocomotion`
+- `SwitchCooldown`
+- `MinAirTime`
+
+#### Locomotion - Grounded
+- `GroundProbeDistance`
+- `SlopeLimit`
+- `EdgeStopDistance`
+
+#### Locomotion - Floating
+- `HoverHeight`
+- `HoverDamping`
+- `VerticalMaxSpeed`
+- `MaxAirTime`
+
+> 참고: 위 값은 런타임에 `EnemyMovementDriver`, `LocomotionDecisionPolicy`, `SafeLandingResolver`로 자동 반영됩니다.
+
+#### Floating 전용 Enemy Y축 추적
+- `EnemyBrain > Floating Altitude Follow`
+  - `Follow Move Target Y When Floating`: 이동 목표 Y를 따라 고도 명령을 매 프레임 갱신합니다.
+  - `Floating Move Target Y Offset`: 목표 Y에 더할 오프셋 값입니다.
+  - `Resolved Floating Altitude Command`: 최종 계산 고도 디버그 값입니다.
+
+> Floating 전용 Enemy가 플레이어를 X축만 따라가고 Y축 추적을 못 할 때 위 항목을 먼저 점검합니다.
+
+#### EnemyMovementDriver Grounded Auto Tuning 체크
+- `EnemyMovementDriver > Grounded Auto Tuning`
+  - `Auto Tune Ground Snap By Collider`
+  - `Ground Reference Collider`
+  - `Probe Distance By Collider Height`
+  - `Snap Distance By Collider Height`
+  - `Edge Stop By Collider Width`
+  - `Auto Tune Collider Size Epsilon`
+  - `Auto Tune Ground Probe Offset By Collider`
+  - `Probe Offset Lift By Collider Height`
+  - `Auto Probe Offset Lift Min/Max`
+- Runtime 디버그 확인 값
+  - `Resolved Ground Probe Distance`
+  - `Resolved Ground Snap Distance`
+  - `Resolved Edge Probe Forward Offset`
+  - `Ground Collider Bounds Min Y`
 
 ---
 
@@ -136,11 +192,15 @@ Enemy GameObject에 아래 컴포넌트를 추가합니다.
 
 - `Idle` -> Animator State: `Idle`
 - `Move` -> Animator State: `Run`
+- `HoverIdle` -> Animator State: `Enemy_HoverIdle_Test` (또는 프로젝트 표준 Hover Idle 상태)
+- `FlyMove` -> Animator State: `Enemy_FlyMove_Test` (또는 프로젝트 표준 Fly Move 상태)
 - `Attack` -> Animator State: `Attack_A`
 - `Hit` -> Animator State: `Hit`
 - `Die` -> Animator State: `Die`
 
 > 핵심: Rule/Interrupt/AnimationMap 3종을 한 세트로 맞춰야 런타임 액션 불일치가 줄어듭니다.
+>
+> 부유 Enemy 사용 시 `ActionRuleProfile`과 `AnimationStateMapProfile`에 `HoverIdle`, `FlyMove`를 반드시 추가해 액션 요청 실패를 방지합니다.
 
 ### 4-2) Action Animation Presenter 설정
 

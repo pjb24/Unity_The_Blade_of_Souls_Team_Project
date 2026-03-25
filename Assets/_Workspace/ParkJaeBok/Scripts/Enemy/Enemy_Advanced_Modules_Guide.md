@@ -9,6 +9,8 @@
 ### 핵심 인터페이스
 - `IEnemyDecisionPolicy`
   - Brain 기본 판단을 상황별로 오버라이드
+- `IEnemyLocomotionDecisionPolicy`
+  - Brain 이동 모드(지상/부유) 전환 판단을 오버라이드
 - `IEnemySkillExecutor`
   - 공격 상태에서 전용 스킬 실행
 - `IEnemyPatternRunner`
@@ -19,6 +21,8 @@
 ### 공통 문맥 데이터
 - `EnemyBrainContext`
   - Self, Target, DistanceToTarget, SpawnPosition, Archetype 전달
+- `EnemyLocomotionContext`
+  - 타겟 거리/고도 차, 전방 장애물, 접지 여부, 전환 시각/쿨다운, 공중 체류시간, 착지 후보 정보를 전달
 
 ### 결정 결과
 - `EnemyDecisionResult` + `E_EnemyDecisionType`
@@ -119,3 +123,72 @@
 - 기믹은 GimmickModule로 캡슐화
 
 이 방식을 따르면 Enemy 타입이 늘어도 코드 중복 없이 확장 가능합니다.
+
+---
+
+## 8) Locomotion 확장 모듈(부유/호버) 가이드
+
+### 관련 컴포넌트
+- `LocomotionDecisionPolicy`
+  - Grounded -> Floating / Floating -> Grounded 전환 판단
+  - 시나리오 로그 이유값 예시
+    - `ScenarioA_ObstacleDetected`
+    - `ScenarioB_TargetAltitudeRise`
+    - `ScenarioC_NoGroundCandidate`
+    - `ScenarioC_ForceGroundedByMaxAirTime`
+- `SafeLandingResolver`
+  - 다중 샘플 하향 프로브 기반 안전 착지 후보 탐색
+  - 후보 개수/선택 인덱스/실패 사유 텔레메트리 제공
+
+### Brain 연결 항목 (`EnemyBrain > Advanced Extensions`)
+- `LocomotionDecisionPolicyBehaviour`: `IEnemyLocomotionDecisionPolicy` 구현체
+- `SafeLandingResolver`: 착지 후보 탐색기
+
+### 필수 운영 포인트
+1. `EnemyArchetypeData > Locomotion` 값이 Driver/Policy/Resolver에 런타임 반영됩니다.
+2. 전환 로그는 `EnemyBrain`의 시나리오 로그(`EnemyLocomotionScenarioLog`)로 출력됩니다.
+3. 전환 금지 규칙(Dead/HitStun/Recover)은 유지되며, 해당 차단은 `ScenarioD_TransitionBlockedByCombatPriority`로 확인합니다.
+
+### 최근 추가된 운영 포인트
+4. `EnemyMovementDriver`는 Grounded 엣지 감지 시 우회 후보를 생성하며 `TryGetEdgeBypassCandidate(out Vector2)` API로 노출합니다.
+5. `EnemyBrain`은 `Patrol Recovery` 섹션을 통해 순찰 진행 정체(stuck) 복구를 수행합니다.
+   - `_enablePatrolStuckRecovery`
+   - `_patrolProgressDistanceThreshold`
+   - `_patrolStuckTimeThreshold`
+   - `_patrolStuckRecoverCooldown`
+   - `_patrolBypassHoldTime`
+6. Floating 전용 Enemy의 Y축 추적을 위해 `EnemyBrain > Floating Altitude Follow`를 사용합니다.
+   - `_followMoveTargetYWhenFloating`
+   - `_floatingMoveTargetYOffset`
+   - `_resolvedFloatingAltitudeCommand`(디버그)
+
+---
+
+## 9) Patrol 정체(Stuck) 복구 설계
+
+Grounded 순찰 중 엣지 감지/지형 경계로 인해 이동이 멈춘 상태가 지속되면 `EnemyBrain`이 정체를 감지합니다.
+
+1. 현재 목적지 거리 변화량을 프레임 단위로 기록
+2. 일정 시간 이상 유의미한 접근이 없으면 stuck 판정
+3. 우선순위에 따라 복구 시도
+   - 1순위: `EnemyMovementDriver.TryGetEdgeBypassCandidate(...)`
+   - 2순위: `EnemyPatrolRouteProvider.GetNextPoint(...)`
+   - 3순위: `PickPatrolDestination()` fallback
+
+이 구조로 “끝점에서 다음 포인트로 못 넘어가며 제자리 왕복” 문제를 완화할 수 있습니다.
+
+---
+
+## 10) Floating 전용 Enemy의 Y축 추적
+
+Floating solver는 X는 이동 목표를 따르고, Y는 Brain이 전달하는 `TargetAltitude`를 따릅니다.
+따라서 Brain의 고도 명령이 고정값이면 Y축 추적이 정지된 것처럼 보일 수 있습니다.
+
+현재는 `EnemyBrain.ResolveFloatingAltitudeCommand(...)`가 아래 조건에서 고도 명령을 동적으로 갱신합니다.
+
+- 고도 명령 사용 상태
+- `_followMoveTargetYWhenFloating == true`
+- 전환 상태(`SwitchingToFloating`, `SwitchingToGrounded`)가 아님
+- 이동 의도(`_combatWantsMove`)가 유효함
+
+실전 튜닝은 `_floatingMoveTargetYOffset`으로 수행합니다.

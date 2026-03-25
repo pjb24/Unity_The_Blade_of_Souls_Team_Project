@@ -49,3 +49,13 @@ MonoBehaviour:
     Priority: 0
     IsInterruptible: 0
     AutoCompleteSeconds: 0
+  - ActionType: 32
+    Enabled: 1
+    Priority: 0
+    IsInterruptible: 1
+    AutoCompleteSeconds: 0
+  - ActionType: 33
+    Enabled: 1
+    Priority: 0
+    IsInterruptible: 1
+    AutoCompleteSeconds: 0

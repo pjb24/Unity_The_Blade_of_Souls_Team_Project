@@ -41,3 +41,11 @@ MonoBehaviour:
     StateName: Enemy_Recover_Test
     LayerIndex: 0
     IsOneShot: 1
+  - ActionType: 32
+    StateName: Enemy_Hover_Idle_Test
+    LayerIndex: 0
+    IsOneShot: 1
+  - ActionType: 33
+    StateName: Enemy_Fly_Move_Test
+    LayerIndex: 0
+    IsOneShot: 1

@@ -479,6 +479,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
   m_Asset: {fileID: -944628639613478452, guid: 2c93d8b7d7348f342902a296f35fa9fc, type: 3}
   m_ActionId: c2ecfd06-8c5a-4d8b-944c-df37a5808ad9
+--- !u!61 &1401418031 stripped
+BoxCollider2D:
+  m_CorrespondingSourceObject: {fileID: 3380811875358341511, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+  m_PrefabInstance: {fileID: 1557582018}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1482644535
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -544,17 +549,65 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _groundLayerMask.m_Bits
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _groundReferenceCollider
+      value: 
+      objectReference: {fileID: 1401418031}
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _resolvedGroundSnapDistance
+      value: 0.18
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _resolvedGroundProbeDistance
+      value: 0.28
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _resolvedEdgeProbeForwardOffset
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _lastGroundReferenceColliderSize.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _lastGroundReferenceColliderSize.y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6027247365780205597, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
       propertyPath: _sfxOrchestrator
       value: 
       objectReference: {fileID: 79875071}
+    - target: {fileID: 6119379395608869573, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _resolvedGroundSnapDistance
+      value: 0.18
+      objectReference: {fileID: 0}
+    - target: {fileID: 6119379395608869573, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _resolvedGroundProbeDistance
+      value: 0.28
+      objectReference: {fileID: 0}
+    - target: {fileID: 6119379395608869573, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _resolvedEdgeProbeForwardOffset
+      value: 0.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 6119379395608869573, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _lastGroundReferenceColliderSize.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6119379395608869573, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
+      propertyPath: _lastGroundReferenceColliderSize.y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8110841741010526554, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
       propertyPath: m_LocalPosition.x
       value: -46.97
       objectReference: {fileID: 0}
     - target: {fileID: 8110841741010526554, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 7.85
+      value: 10.59
       objectReference: {fileID: 0}
     - target: {fileID: 8110841741010526554, guid: 6e84d166cb61d844584eaabfb586b2a1, type: 3}
       propertyPath: m_LocalPosition.z

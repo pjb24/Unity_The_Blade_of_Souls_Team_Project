@@ -16,6 +16,48 @@ public class EnemyArchetypeData : ScriptableObject
     [Tooltip("목표 지점 도달로 판정할 최소 거리입니다.")]
     [SerializeField] private float _stoppingDistance = 0.1f; // 목표 지점 도달로 판정할 최소 거리입니다.
 
+    [Header("Locomotion")]
+    [Tooltip("초기 로코모션 기본 타입입니다.")]
+    [SerializeField] private E_EnemyLocomotionType _defaultLocomotionType = E_EnemyLocomotionType.Grounded; // 초기 로코모션 기본 타입입니다.
+    [Tooltip("로코모션 전환 허용 여부입니다.")]
+    [SerializeField] private bool _canSwitchLocomotion = true; // 로코모션 전환 허용 여부입니다.
+    [Tooltip("로코모션 전환 최소 쿨다운 시간(초)입니다.")]
+    [SerializeField] private float _switchCooldown = 0.8f; // 로코모션 전환 최소 쿨다운 시간(초)입니다.
+    [Tooltip("공중 상태 최소 체류 시간(초)입니다.")]
+    [SerializeField] private float _minAirTime = 0.6f; // 공중 상태 최소 체류 시간(초)입니다.
+
+    [Header("Locomotion - Grounded")]
+    [Tooltip("지상 이동 접지 판정 프로브 거리입니다.")]
+    [SerializeField] private float _groundProbeDistance = 0.3f; // 지상 이동 접지 판정 프로브 거리입니다.
+    [Tooltip("지상 이동에서 허용할 최대 경사 각도(도)입니다.")]
+    [SerializeField] private float _slopeLimit = 45f; // 지상 이동에서 허용할 최대 경사 각도(도)입니다.
+    [Tooltip("지상 이동에서 엣지 정지 판정 전방 거리입니다.")]
+    [SerializeField] private float _edgeStopDistance = 0.35f; // 지상 이동에서 엣지 정지 판정 전방 거리입니다.
+
+    [Header("Locomotion - Floating")]
+    [Tooltip("부유 이동 시 유지할 목표 고도 오프셋입니다.")]
+    [SerializeField] private float _hoverHeight = 1.5f; // 부유 이동 시 유지할 목표 고도 오프셋입니다.
+    [Tooltip("부유 이동 수직 감쇠 계수입니다.")]
+    [SerializeField] private float _hoverDamping = 4f; // 부유 이동 수직 감쇠 계수입니다.
+    [Tooltip("부유 이동 수직 속도 최대값입니다.")]
+    [SerializeField] private float _verticalMaxSpeed = 3.5f; // 부유 이동 수직 속도 최대값입니다.
+    [Tooltip("공중 상태 최대 체류 시간(초)입니다.")]
+    [SerializeField] private float _maxAirTime = 4f; // 공중 상태 최대 체류 시간(초)입니다.
+
+    [Header("Movement Transition (Legacy Compatibility)")]
+    [Tooltip("공격 상태 중 이동 모드 전환 허용 여부입니다.")]
+    [SerializeField] private bool _allowMovementTransitionDuringAttack; // 공격 상태 중 이동 모드 전환 허용 여부입니다.
+    [Tooltip("부유 이동 모드를 사용할지 여부입니다.")]
+    [SerializeField] private bool _useFloatingMovement = true; // 부유 이동 모드를 사용할지 여부입니다.
+    [Tooltip("이동 모드 전환 상태를 유지할 시간(초)입니다.")]
+    [SerializeField] private float _movementSwitchDuration = 0.2f; // 이동 모드 전환 상태를 유지할 시간(초)입니다.
+    [Tooltip("전방 장애물 감지에 사용할 레이 길이 값입니다.")]
+    [SerializeField] private float _locomotionObstacleCheckDistance = 0.75f; // 전방 장애물 감지에 사용할 레이 길이 값입니다.
+    [Tooltip("접지/착지 지면 감지에 사용할 레이 길이 값입니다.")]
+    [SerializeField] private float _locomotionGroundCheckDistance = 1.25f; // 접지/착지 지면 감지에 사용할 레이 길이 값입니다.
+    [Tooltip("유효 착지 후보가 없을 때 재탐색까지 대기할 쿨다운 시간(초)입니다.")]
+    [SerializeField] private float _landingRequeryCooldown = 0.3f; // 유효 착지 후보가 없을 때 재탐색까지 대기할 쿨다운 시간(초)입니다.
+
     [Header("Perception")]
     [Tooltip("타겟을 추적 상태로 전환할 감지 반경입니다.")]
     [SerializeField] private float _detectRange = 6f; // 타겟을 추적 상태로 전환할 감지 반경입니다.
@@ -78,6 +120,91 @@ public class EnemyArchetypeData : ScriptableObject
     /// 목표 도달 판정 거리를 안전 값으로 반환합니다.
     /// </summary>
     public float StoppingDistance => Mathf.Max(0.01f, _stoppingDistance);
+
+    /// <summary>
+    /// 공격 상태 중 이동 모드 전환 허용 여부를 반환합니다.
+    /// </summary>
+    public bool AllowMovementTransitionDuringAttack => _allowMovementTransitionDuringAttack;
+
+    /// <summary>
+    /// 기본 로코모션 타입을 반환합니다.
+    /// </summary>
+    public E_EnemyLocomotionType DefaultLocomotionType => _defaultLocomotionType;
+
+    /// <summary>
+    /// 로코모션 전환 허용 여부를 반환합니다.
+    /// </summary>
+    public bool CanSwitchLocomotion => _canSwitchLocomotion;
+
+    /// <summary>
+    /// 로코모션 전환 최소 쿨다운 시간을 안전 값으로 반환합니다.
+    /// </summary>
+    public float SwitchCooldown => Mathf.Max(0f, _switchCooldown);
+
+    /// <summary>
+    /// 공중 최소 체류 시간을 안전 값으로 반환합니다.
+    /// </summary>
+    public float MinAirTime => Mathf.Max(0f, _minAirTime);
+
+    /// <summary>
+    /// 지상 이동 접지 판정 프로브 거리를 안전 값으로 반환합니다.
+    /// </summary>
+    public float GroundProbeDistance => Mathf.Max(0.05f, _groundProbeDistance);
+
+    /// <summary>
+    /// 지상 이동 경사 제한 각도를 안전 값으로 반환합니다.
+    /// </summary>
+    public float SlopeLimit => Mathf.Clamp(_slopeLimit, 0f, 89f);
+
+    /// <summary>
+    /// 지상 이동 엣지 정지 판정 거리를 안전 값으로 반환합니다.
+    /// </summary>
+    public float EdgeStopDistance => Mathf.Max(0.05f, _edgeStopDistance);
+
+    /// <summary>
+    /// 부유 이동 모드 사용 여부를 반환합니다.
+    /// </summary>
+    public bool UseFloatingMovement => _useFloatingMovement;
+
+    /// <summary>
+    /// 부유 이동 시 유지할 고도 오프셋 값을 반환합니다.
+    /// </summary>
+    public float FloatingAltitude => _hoverHeight;
+
+    /// <summary>
+    /// 부유 이동 수직 감쇠 계수를 안전 값으로 반환합니다.
+    /// </summary>
+    public float HoverDamping => Mathf.Max(0f, _hoverDamping);
+
+    /// <summary>
+    /// 부유 이동 수직 속도 최대값을 안전 값으로 반환합니다.
+    /// </summary>
+    public float VerticalMaxSpeed => Mathf.Max(0f, _verticalMaxSpeed);
+
+    /// <summary>
+    /// 공중 최대 체류 시간을 안전 값으로 반환합니다.
+    /// </summary>
+    public float MaxAirTime => Mathf.Max(MinAirTime, _maxAirTime);
+
+    /// <summary>
+    /// 이동 모드 전환 시간을 안전 값으로 반환합니다.
+    /// </summary>
+    public float MovementSwitchDuration => Mathf.Max(0f, _movementSwitchDuration);
+
+    /// <summary>
+    /// 전방 장애물 감지 레이 길이 값을 안전 값으로 반환합니다.
+    /// </summary>
+    public float LocomotionObstacleCheckDistance => Mathf.Max(0.1f, _locomotionObstacleCheckDistance);
+
+    /// <summary>
+    /// 접지/착지 지면 감지 레이 길이 값을 안전 값으로 반환합니다.
+    /// </summary>
+    public float LocomotionGroundCheckDistance => Mathf.Max(0.1f, _locomotionGroundCheckDistance);
+
+    /// <summary>
+    /// 착지 후보 재탐색 쿨다운 시간을 안전 값으로 반환합니다.
+    /// </summary>
+    public float LandingRequeryCooldown => Mathf.Max(0f, _landingRequeryCooldown);
 
     /// <summary>
     /// 감지 반경을 안전 값으로 반환합니다.

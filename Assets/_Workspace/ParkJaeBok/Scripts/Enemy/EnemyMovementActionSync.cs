@@ -18,6 +18,10 @@ public class EnemyMovementActionSync : MonoBehaviour
     [SerializeField] private E_ActionType _idleActionType = E_ActionType.Idle; // 정지 상태에서 요청할 액션 타입입니다.
     [Tooltip("이동 상태에서 요청할 액션 타입입니다.")]
     [SerializeField] private E_ActionType _moveActionType = E_ActionType.Move; // 이동 상태에서 요청할 액션 타입입니다.
+    [Tooltip("부유 정지 상태에서 요청할 액션 타입입니다.")]
+    [SerializeField] private E_ActionType _hoverIdleActionType = E_ActionType.HoverIdle; // 부유 정지 상태에서 요청할 액션 타입입니다.
+    [Tooltip("부유 이동 상태에서 요청할 액션 타입입니다.")]
+    [SerializeField] private E_ActionType _flyMoveActionType = E_ActionType.FlyMove; // 부유 이동 상태에서 요청할 액션 타입입니다.
 
     /// <summary>
     /// 매 프레임 이동 상태를 읽어 액션 요청을 수행합니다.
@@ -34,8 +38,23 @@ public class EnemyMovementActionSync : MonoBehaviour
             return;
         }
 
-        E_ActionType targetAction = _movementDriver.IsMoving ? _moveActionType : _idleActionType;
+        E_ActionType targetAction = ResolveLocomotionActionType(); // 현재 이동 모드/속도 기준으로 계산한 목표 액션 타입입니다.
         RequestIfNeeded(targetAction);
+    }
+
+    /// <summary>
+    /// 현재 로코모션 타입과 이동 여부를 조합해 목표 액션 타입을 반환합니다.
+    /// </summary>
+    private E_ActionType ResolveLocomotionActionType()
+    {
+        bool isMoving = _movementDriver.IsMoving; // 현재 프레임 이동 여부입니다.
+        E_EnemyLocomotionType locomotionType = _movementDriver.CurrentLocomotionType; // 현재 프레임 로코모션 타입입니다.
+        if (locomotionType == E_EnemyLocomotionType.Floating)
+        {
+            return isMoving ? _flyMoveActionType : _hoverIdleActionType;
+        }
+
+        return isMoving ? _moveActionType : _idleActionType;
     }
 
     /// <summary>
@@ -69,7 +88,10 @@ public class EnemyMovementActionSync : MonoBehaviour
             return false;
         }
 
-        return runtime.ActionType != _idleActionType && runtime.ActionType != _moveActionType;
+        return runtime.ActionType != _idleActionType &&
+               runtime.ActionType != _moveActionType &&
+               runtime.ActionType != _hoverIdleActionType &&
+               runtime.ActionType != _flyMoveActionType;
     }
 
     /// <summary>

@@ -48,6 +48,9 @@ public enum E_ActionType
     AttackAir,
     AttackDash,
     AttackWall,
+
+    HoverIdle,
+    FlyMove,
 }
 
 /// <summary>
