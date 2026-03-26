@@ -150,7 +150,8 @@ public class StageSpawnResolver : MonoBehaviour
             return true;
         }
 
-        StageEntryPoint selectedPoint = FindBestPoint(points, string.Empty); // 체크포인트가 없을 때 사용할 기본/폴백 엔트리 포인트입니다.
+        string requestedEntryId = session.TargetStageEntryPointId; // StageSession이 요청한 다음 진입 엔트리 포인트 ID입니다.
+        StageEntryPoint selectedPoint = FindBestPoint(points, requestedEntryId); // 체크포인트가 없을 때 사용할 엔트리 포인트입니다.
         if (selectedPoint == null)
         {
             return false;

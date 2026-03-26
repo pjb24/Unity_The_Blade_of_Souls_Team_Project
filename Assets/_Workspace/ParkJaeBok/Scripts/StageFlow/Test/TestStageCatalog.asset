@@ -16,3 +16,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e61843a84489adc4d9d2fd64443c0f30, type: 2}
   - {fileID: 11400000, guid: 2eb7557974fd6594ab5c73178dc40272, type: 2}
   - {fileID: 11400000, guid: a5222609578ca4b4d87e56be9f1a0c54, type: 2}
+  _townStageId: town_main

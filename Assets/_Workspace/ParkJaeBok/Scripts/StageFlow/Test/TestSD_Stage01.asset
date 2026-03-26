@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StageDefinition
   _stageId: stage_01
   _sceneName: Stage_Test_01
+  _displayName: Stage 1 Yongnimsa (Dragon Grove Temple)
+  _isTownStage: 0
   _stageEntryPointId: Stage01_Entry_A
   _townReturnPointId: Town_Return_A
+  _isEntryEnabled: 1
+  _isInitiallyUnlocked: 1
+  _unlockConditions: []
+  _allowMultiplayer: 1
   _bgmContextType: 100

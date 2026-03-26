@@ -12,8 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 156a6d5cba43a8d47a4117b236024a76, type: 3}
   m_Name: TestSD_Town
   m_EditorClassIdentifier: Assembly-CSharp::StageDefinition
-  _stageId: town
+  _stageId: town_main
   _sceneName: Town_Test
-  _stageEntryPointId: Town_Return_A
-  _townReturnPointId: Town_Return_A
+  _displayName: "\uB9C8\uC744"
+  _isTownStage: 1
+  _stageEntryPointId: Town_Default
+  _townReturnPointId: Town_Default
+  _isEntryEnabled: 1
+  _isInitiallyUnlocked: 1
+  _unlockConditions: []
+  _allowMultiplayer: 0
   _bgmContextType: 100

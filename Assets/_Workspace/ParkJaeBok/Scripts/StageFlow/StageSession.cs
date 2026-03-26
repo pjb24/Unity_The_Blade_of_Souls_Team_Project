@@ -146,6 +146,14 @@ public class StageSession : MonoBehaviour
     /// </summary>
     public void SetNextStage(StageDefinition stageDefinition)
     {
+        SetNextStage(stageDefinition, null);
+    }
+
+    /// <summary>
+    /// 다음 스테이지 진입 문맥을 저장하며 필요 시 엔트리 포인트를 오버라이드합니다.
+    /// </summary>
+    public void SetNextStage(StageDefinition stageDefinition, string entryPointOverrideId)
+    {
         if (stageDefinition == null)
         {
             Debug.LogWarning("[StageSession] stageDefinition이 null이라 SetNextStage를 건너뜁니다.", this);
@@ -153,7 +161,7 @@ public class StageSession : MonoBehaviour
         }
 
         _selectedStageId = stageDefinition.StageId;
-        _targetStageEntryPointId = stageDefinition.StageEntryPointId;
+        _targetStageEntryPointId = string.IsNullOrWhiteSpace(entryPointOverrideId) ? stageDefinition.StageEntryPointId : entryPointOverrideId;
         _targetTownReturnPointId = stageDefinition.TownReturnPointId;
         _requestedBgmContextType = stageDefinition.BgmContextType;
         _useCheckpointForNextSpawn = false;
