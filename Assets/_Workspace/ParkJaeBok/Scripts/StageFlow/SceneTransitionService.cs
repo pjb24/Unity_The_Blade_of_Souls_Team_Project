@@ -58,6 +58,15 @@ public class SceneTransitionService : MonoBehaviour
     }
 
     /// <summary>
+    /// 새 인스턴스를 생성하지 않고 현재 존재하는 SceneTransitionService를 반환합니다.
+    /// </summary>
+    public static bool TryGetExistingInstance(out SceneTransitionService service)
+    {
+        service = _instance != null ? _instance : FindAnyObjectByType<SceneTransitionService>();
+        return service != null;
+    }
+
+    /// <summary>
     /// 싱글톤 중복을 방지하고 필요 시 DDOL을 설정합니다.
     /// </summary>
     private void Awake()

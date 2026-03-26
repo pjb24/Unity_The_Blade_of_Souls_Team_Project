@@ -1,12 +1,17 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 씬 로드 후 플레이어를 StageEntryPoint 기준 위치로 이동시키는 리졸버입니다.
 /// </summary>
 public class StageSpawnResolver : MonoBehaviour
 {
+    [Header("Checkpoint Resolve")]
+    [Tooltip("Recovery 체크포인트를 정의한 카탈로그 참조입니다.")]
+    [SerializeField] private CheckpointCatalog _checkpointCatalog; // 체크포인트 ID를 실제 스폰 규칙으로 해석할 카탈로그 참조입니다.
+
     [Header("Player Resolve")]
     [Tooltip("가장 우선으로 사용할 플레이어 Transform 직접 참조입니다. 비어 있으면 자동 탐색을 시도합니다.")]
     [SerializeField] private Transform _explicitPlayerTransform; // 자동 탐색보다 먼저 사용할 플레이어 Transform 직접 참조입니다.
@@ -19,6 +24,9 @@ public class StageSpawnResolver : MonoBehaviour
 
     [Tooltip("태그 fallback 탐색에 사용할 태그 이름입니다.")]
     [SerializeField] private string _playerTag = "Player"; // 태그 기반 폴백 탐색 시 사용할 플레이어 태그입니다.
+
+    [Tooltip("TargetRegistryMember가 붙은 오브젝트를 플레이어로 식별했을 때 부모 Transform을 이동 대상으로 사용할지 여부입니다.")]
+    [SerializeField] private bool _useParentTransformWhenTargetRegistryMember = true; // TargetRegistryMember 기반 식별 시 부모 오브젝트를 실제 이동 대상으로 사용할지 여부입니다.
 
     [Header("Resolve Retry")]
     [Tooltip("로드 직후 플레이어 생성 지연을 고려해 스폰 해석을 재시도할 최대 횟수입니다.")]
@@ -63,6 +71,14 @@ public class StageSpawnResolver : MonoBehaviour
     }
 
     /// <summary>
+    /// Recovery 직후처럼 씬 재로딩 없이 즉시 스폰 해석이 필요할 때 외부에서 호출하는 메서드입니다.
+    /// </summary>
+    public bool TryResolveSpawnNow()
+    {
+        return TryResolveSpawnAndMovePlayer();
+    }
+
+    /// <summary>
     /// StageSession의 엔트리 포인트 ID를 기준으로 플레이어 배치 위치를 해석합니다.
     /// </summary>
     private IEnumerator ResolveSpawnRoutine()
@@ -93,7 +109,10 @@ public class StageSpawnResolver : MonoBehaviour
             return false;
         }
 
-        string requestedEntryId = StageSession.Instance.TargetStageEntryPointId; // StageSession이 요청한 진입 포인트 ID입니다.
+        if (!StageSession.TryGetExistingInstance(out StageSession session))
+        {
+            return false;
+        }
 
         StageEntryPoint[] points = FindObjectsByType<StageEntryPoint>(FindObjectsSortMode.None); // 씬에서 사용 가능한 모든 엔트리 포인트 목록입니다.
         if (points == null || points.Length == 0)
@@ -101,14 +120,82 @@ public class StageSpawnResolver : MonoBehaviour
             return false;
         }
 
-        StageEntryPoint selectedPoint = FindBestPoint(points, requestedEntryId); // 요청 ID 기준으로 선택된 배치 포인트입니다.
+        if (!TryResolveSpawnPosition(session, points, out Vector3 resolvedSpawnPosition, out bool consumeCheckpointRequest))
+        {
+            return false;
+        }
+
+        playerTransform.position = resolvedSpawnPosition;
+        if (consumeCheckpointRequest)
+        {
+            session.ConsumeCheckpointSpawnRequest();
+        }
+
+        session.ConsumeEntryPoint();
+        GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterPlayerSpawn);
+        return true;
+    }
+
+    /// <summary>
+    /// Recovery 체크포인트 우선 규칙을 포함해 최종 플레이어 스폰 좌표를 계산합니다.
+    /// </summary>
+    private bool TryResolveSpawnPosition(StageSession session, StageEntryPoint[] points, out Vector3 spawnPosition, out bool consumeCheckpointRequest)
+    {
+        spawnPosition = Vector3.zero;
+        consumeCheckpointRequest = false;
+
+        if (TryResolveByRecoveryCheckpoint(session, points, out spawnPosition))
+        {
+            consumeCheckpointRequest = true;
+            return true;
+        }
+
+        StageEntryPoint selectedPoint = FindBestPoint(points, string.Empty); // 체크포인트가 없을 때 사용할 기본/폴백 엔트리 포인트입니다.
         if (selectedPoint == null)
         {
             return false;
         }
 
-        playerTransform.position = selectedPoint.transform.position;
-        StageSession.Instance.ConsumeEntryPoint();
+        spawnPosition = selectedPoint.transform.position;
+        return true;
+    }
+
+    /// <summary>
+    /// Recovery 체크포인트 요청을 우선 적용해 플레이어 스폰 좌표를 해석합니다.
+    /// </summary>
+    private bool TryResolveByRecoveryCheckpoint(StageSession session, StageEntryPoint[] points, out Vector3 spawnPosition)
+    {
+        spawnPosition = Vector3.zero;
+
+        if (session == null)
+        {
+            return false;
+        }
+
+        if (!session.TryGetCheckpointSpawnRequest(out string checkpointId, out string checkpointSceneName, out Vector3 checkpointWorldPosition))
+        {
+            return false;
+        }
+
+        string activeSceneName = SceneManager.GetActiveScene().name; // 체크포인트 유효 씬 일치 여부를 비교할 현재 활성 씬 이름입니다.
+        if (!string.IsNullOrWhiteSpace(checkpointSceneName) && checkpointSceneName != activeSceneName)
+        {
+            return false;
+        }
+
+        if (_checkpointCatalog != null && _checkpointCatalog.TryGetByIdAndScene(checkpointId, activeSceneName, out CheckpointDefinition checkpointDefinition))
+        {
+            if (TryFindPointById(points, checkpointDefinition.EntryPointId, out StageEntryPoint checkpointPoint))
+            {
+                spawnPosition = checkpointPoint.transform.position;
+                return true;
+            }
+
+            spawnPosition = checkpointDefinition.WorldPosition;
+            return true;
+        }
+
+        spawnPosition = checkpointWorldPosition;
         return true;
     }
 
@@ -236,8 +323,30 @@ public class StageSpawnResolver : MonoBehaviour
             Debug.LogWarning($"[StageSpawnResolver] Player 태그 후보가 {taggedObjects.Length}개여서 우선순위 규칙으로 대상을 선택했습니다. 명시적으로 StagePlayerSpawnTarget 사용을 권장합니다.", this);
         }
 
-        playerTransform = bestObject.transform;
+        playerTransform = ResolveMoveTransformFromTaggedObject(bestObject);
         return playerTransform != null;
+    }
+
+    /// <summary>
+    /// 태그 기반으로 식별한 오브젝트에서 실제 이동시킬 Transform을 결정합니다.
+    /// </summary>
+    private Transform ResolveMoveTransformFromTaggedObject(GameObject taggedObject)
+    {
+        if (taggedObject == null)
+        {
+            return null;
+        }
+
+        if (_useParentTransformWhenTargetRegistryMember && taggedObject.TryGetComponent<TargetRegistryMember>(out _))
+        {
+            Transform parentTransform = taggedObject.transform.parent; // TargetRegistryMember가 붙은 오브젝트의 부모 Transform 참조입니다.
+            if (parentTransform != null)
+            {
+                return parentTransform;
+            }
+        }
+
+        return taggedObject.transform;
     }
 
     /// <summary>
@@ -307,5 +416,35 @@ public class StageSpawnResolver : MonoBehaviour
         }
 
         return fallbackPoint;
+    }
+
+    /// <summary>
+    /// 엔트리 포인트 ID로 씬 내 StageEntryPoint를 탐색합니다.
+    /// </summary>
+    private bool TryFindPointById(StageEntryPoint[] points, string entryPointId, out StageEntryPoint foundPoint)
+    {
+        foundPoint = null;
+
+        if (points == null || points.Length == 0 || string.IsNullOrWhiteSpace(entryPointId))
+        {
+            return false;
+        }
+
+        for (int index = 0; index < points.Length; index++)
+        {
+            StageEntryPoint candidate = points[index]; // ID 매칭을 검사할 현재 엔트리 포인트 후보입니다.
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if (candidate.EntryPointId == entryPointId)
+            {
+                foundPoint = candidate;
+                return true;
+            }
+        }
+
+        return false;
     }
 }

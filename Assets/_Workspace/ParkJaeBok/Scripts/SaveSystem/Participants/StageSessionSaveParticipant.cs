@@ -12,7 +12,7 @@ public class StageSessionSaveParticipant : MonoBehaviour, ISaveParticipant
     [SerializeField] private bool _respectRecoveryPolicy = true; // 복구 채널 복원 시 정책 적용 여부입니다.
 
     public string ParticipantId => _participantId;
-    public int PayloadVersion => 1;
+    public int PayloadVersion => 2;
 
     [System.Serializable]
     private class StageSessionPayload
@@ -21,6 +21,10 @@ public class StageSessionSaveParticipant : MonoBehaviour, ISaveParticipant
         public string TargetStageEntryPointId; // 다음 씬 진입 포인트 ID입니다.
         public string TargetTownReturnPointId; // 마을 복귀 포인트 ID입니다.
         public E_BgmContextType RequestedBgmContextType; // 다음 씬 적용 예정 BGM 컨텍스트입니다.
+        public string LastCheckpointId; // 마지막으로 도달한 체크포인트 ID입니다.
+        public string LastCheckpointSceneName; // 마지막 체크포인트가 속한 씬 이름입니다.
+        public Vector3 LastCheckpointWorldPosition; // 마지막 체크포인트 월드 좌표입니다.
+        public bool UseCheckpointForNextSpawn; // 다음 스폰에서 체크포인트 복원을 우선 적용할지 여부입니다.
     }
 
     /// <summary>
@@ -28,7 +32,7 @@ public class StageSessionSaveParticipant : MonoBehaviour, ISaveParticipant
     /// </summary>
     public bool CanSave(in SaveContext context)
     {
-        return StageSession.Instance != null;
+        return StageSession.TryGetExistingInstance(out _);
     }
 
     /// <summary>
@@ -36,13 +40,22 @@ public class StageSessionSaveParticipant : MonoBehaviour, ISaveParticipant
     /// </summary>
     public string CaptureAsJson(in SaveContext context)
     {
-        StageSession.SnapshotData snapshot = StageSession.Instance.CreateSnapshot();
+        if (!StageSession.TryGetExistingInstance(out StageSession stageSession))
+        {
+            return string.Empty;
+        }
+
+        StageSession.SnapshotData snapshot = stageSession.CreateSnapshot();
         StageSessionPayload payload = new StageSessionPayload
         {
             SelectedStageId = snapshot.SelectedStageId,
             TargetStageEntryPointId = snapshot.TargetStageEntryPointId,
             TargetTownReturnPointId = snapshot.TargetTownReturnPointId,
-            RequestedBgmContextType = snapshot.RequestedBgmContextType
+            RequestedBgmContextType = snapshot.RequestedBgmContextType,
+            LastCheckpointId = snapshot.LastCheckpointId,
+            LastCheckpointSceneName = snapshot.LastCheckpointSceneName,
+            LastCheckpointWorldPosition = snapshot.LastCheckpointWorldPosition,
+            UseCheckpointForNextSpawn = snapshot.UseCheckpointForNextSpawn
         };
 
         return JsonUtility.ToJson(payload);
@@ -61,7 +74,7 @@ public class StageSessionSaveParticipant : MonoBehaviour, ISaveParticipant
         if (context.ChannelType == E_SaveChannelType.Recovery && _respectRecoveryPolicy)
         {
             RecoveryPolicy recoveryPolicy = SaveCoordinator.Instance != null ? SaveCoordinator.Instance.RecoveryPolicy : null;
-            if (recoveryPolicy != null && !recoveryPolicy.RestoreStageSession)
+            if (!RecoveryPolicyRuleHelper.ShouldRestoreStageSession(recoveryPolicy, _participantId))
             {
                 return;
             }
@@ -78,9 +91,29 @@ public class StageSessionSaveParticipant : MonoBehaviour, ISaveParticipant
             SelectedStageId = payload.SelectedStageId,
             TargetStageEntryPointId = payload.TargetStageEntryPointId,
             TargetTownReturnPointId = payload.TargetTownReturnPointId,
-            RequestedBgmContextType = payload.RequestedBgmContextType
+            RequestedBgmContextType = payload.RequestedBgmContextType,
+            LastCheckpointId = payload.LastCheckpointId,
+            LastCheckpointSceneName = payload.LastCheckpointSceneName,
+            LastCheckpointWorldPosition = payload.LastCheckpointWorldPosition,
+            UseCheckpointForNextSpawn = payload.UseCheckpointForNextSpawn
         };
 
-        StageSession.Instance.ApplySnapshot(snapshot);
+        StageSession stageSession = StageSession.Instance; // 역직렬화 결과를 적용할 StageSession 인스턴스입니다.
+        stageSession.ApplySnapshot(snapshot);
+        ApplyRecoveryCheckpointIntentIfNeeded(stageSession, payload, context);
+    }
+
+    /// <summary>
+    /// Recovery 복원 시 체크포인트 스폰 의도를 명시적으로 정리합니다.
+    /// </summary>
+    private void ApplyRecoveryCheckpointIntentIfNeeded(StageSession stageSession, StageSessionPayload payload, in SaveContext context)
+    {
+        if (context.ChannelType != E_SaveChannelType.Recovery || stageSession == null)
+        {
+            return;
+        }
+
+        bool hasCheckpoint = !string.IsNullOrWhiteSpace(payload.LastCheckpointId); // 복원 페이로드에 체크포인트 ID가 포함되어 있는지 여부입니다.
+        stageSession.MarkUseCheckpointForNextSpawn(hasCheckpoint);
     }
 }

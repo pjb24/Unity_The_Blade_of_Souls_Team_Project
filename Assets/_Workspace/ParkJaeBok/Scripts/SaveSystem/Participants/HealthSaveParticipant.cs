@@ -97,7 +97,7 @@ public class HealthSaveParticipant : MonoBehaviour, ISaveParticipant, IHealthLis
         if (context.ChannelType == E_SaveChannelType.Recovery && _respectRecoveryPolicy)
         {
             RecoveryPolicy recoveryPolicy = SaveCoordinator.Instance != null ? SaveCoordinator.Instance.RecoveryPolicy : null;
-            if (recoveryPolicy != null && !recoveryPolicy.RestoreHealth)
+            if (!RecoveryPolicyRuleHelper.ShouldRestoreHealth(recoveryPolicy, _participantId))
             {
                 return;
             }

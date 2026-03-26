@@ -12,7 +12,15 @@ public class BossPhaseController : MonoBehaviour
     [Tooltip("페이즈 임계치/패턴 ID를 제공하는 데이터 자산 참조입니다.")]
     [SerializeField] private BossPhaseData _phaseData; // 페이즈 임계치/패턴 ID를 제공하는 데이터 자산 참조입니다.
 
+    [Tooltip("현재 적용된 보스 페이즈 인덱스 디버그 값입니다.")]
+    [SerializeField] private int _currentPhaseIndex; // 현재 적용된 보스 페이즈 인덱스입니다.
+
     private int _nextPhaseIndex; // 다음으로 검사할 페이즈 인덱스입니다.
+
+    /// <summary>
+    /// 현재 페이즈 인덱스를 반환합니다.
+    /// </summary>
+    public int CurrentPhaseIndex => Mathf.Max(0, _currentPhaseIndex);
 
     /// <summary>
     /// 초기 참조를 자동 보정합니다.
@@ -66,7 +74,39 @@ public class BossPhaseController : MonoBehaviour
                 _patternController.StartPattern(entry.PatternId);
             }
 
+            _currentPhaseIndex = _nextPhaseIndex;
             _nextPhaseIndex++;
+        }
+    }
+
+    /// <summary>
+    /// Recovery 복원을 위해 외부에서 페이즈 인덱스를 주입합니다.
+    /// </summary>
+    public void SetPhaseIndexForRecovery(int phaseIndex)
+    {
+        if (_phaseData == null)
+        {
+            _currentPhaseIndex = Mathf.Max(0, phaseIndex);
+            _nextPhaseIndex = Mathf.Max(0, phaseIndex + 1);
+            return;
+        }
+
+        BossPhaseData.PhaseEntry[] phases = _phaseData.Phases; // Recovery 페이즈 보정에 사용할 페이즈 배열입니다.
+        if (phases == null || phases.Length == 0)
+        {
+            _currentPhaseIndex = 0;
+            _nextPhaseIndex = 0;
+            return;
+        }
+
+        int clampedIndex = Mathf.Clamp(phaseIndex, 0, phases.Length - 1); // 유효 범위로 보정한 Recovery 페이즈 인덱스입니다.
+        _currentPhaseIndex = clampedIndex;
+        _nextPhaseIndex = Mathf.Clamp(clampedIndex + 1, 0, phases.Length);
+
+        BossPhaseData.PhaseEntry entry = phases[clampedIndex]; // 복원 직후 시작할 대상 페이즈 엔트리입니다.
+        if (!string.IsNullOrWhiteSpace(entry.PatternId) && _patternController != null)
+        {
+            _patternController.StartPattern(entry.PatternId);
         }
     }
 }

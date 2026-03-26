@@ -38,6 +38,7 @@ public class SaveCoordinator : MonoBehaviour
 
     private ISaveBackend _backend; // 저장/로드를 담당하는 백엔드 인터페이스 참조입니다.
     private Coroutine _periodicSaveCoroutine; // 주기 저장 루프 코루틴 핸들입니다.
+    private SceneTransitionService _sceneTransitionService; // 씬 전환 이벤트 구독/해제를 위한 서비스 참조입니다.
 
     public static SaveCoordinator Instance { get; private set; }
 
@@ -77,10 +78,10 @@ public class SaveCoordinator : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        if (SceneTransitionService.Instance != null)
+        if (SceneTransitionService.TryGetExistingInstance(out _sceneTransitionService))
         {
-            SceneTransitionService.Instance.OnBeforeSceneLoad += HandleBeforeSceneLoad;
-            SceneTransitionService.Instance.OnAfterSceneLoad += HandleAfterSceneLoad;
+            _sceneTransitionService.OnBeforeSceneLoad += HandleBeforeSceneLoad;
+            _sceneTransitionService.OnAfterSceneLoad += HandleAfterSceneLoad;
         }
 
         if (_autoLoadOnStart)
@@ -97,10 +98,10 @@ public class SaveCoordinator : MonoBehaviour
     /// </summary>
     private void OnDestroy()
     {
-        if (SceneTransitionService.Instance != null)
+        if (_sceneTransitionService != null)
         {
-            SceneTransitionService.Instance.OnBeforeSceneLoad -= HandleBeforeSceneLoad;
-            SceneTransitionService.Instance.OnAfterSceneLoad -= HandleAfterSceneLoad;
+            _sceneTransitionService.OnBeforeSceneLoad -= HandleBeforeSceneLoad;
+            _sceneTransitionService.OnAfterSceneLoad -= HandleAfterSceneLoad;
         }
 
         StopPeriodicSaveLoop();
@@ -273,6 +274,8 @@ public class SaveCoordinator : MonoBehaviour
         {
             RefreshParticipants();
         }
+
+        GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterSceneLoad);
     }
 
     /// <summary>

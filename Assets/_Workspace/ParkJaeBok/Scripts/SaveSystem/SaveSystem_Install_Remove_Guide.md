@@ -330,3 +330,204 @@ Recovery 테스트가 어려운 경우, `RecoveryService`의 아래 메서드를
 - [ ] RecoveryPolicy 영향 확인됨
 - [ ] 기존 저장 파일로 로드 회귀 테스트 완료
 - [ ] 사망/씬전환/재실행 시나리오 확인 완료
+
+---
+
+## Rule Set 기반 RecoveryPolicy 연결 절차
+
+`RecoveryPolicy`는 기존 bool 플래그(하위호환)와 함께 Rule Set 참조를 사용할 수 있습니다.
+
+### 1) Rule Set 에셋 생성
+
+`Create > Game > Save System > Rule Sets` 하위 메뉴에서 다음 에셋을 생성합니다.
+
+- `Checkpoint Rule Set`
+- `Enemy Reset Rule Set`
+- `Gimmick Restore Rule Set`
+- `Item Restore Rule Set`
+- `Boss Restart Rule Set`
+
+각 Rule Set은 아래 공통 구조를 가집니다.
+
+- `Default Restore`: 오버라이드 미적용 시 기본 동작
+- `Overrides`: `ID + Allow Restore` 목록
+
+### 2) RecoveryPolicy에 연결
+
+`RecoveryPolicy` 인스펙터의 `Rule Set References`에 생성한 에셋을 연결합니다.
+
+- `Checkpoint Rule Set`
+- `Enemy Reset Rule Set`
+- `Gimmick Restore Rule Set`
+- `Item Restore Rule Set`
+- `Boss Restart Rule Set`
+
+### 3) Participant에서 공통 헬퍼 사용
+
+Recovery 채널 복원 시에는 `RecoveryPolicyRuleHelper`를 사용해 복원 허용 여부를 판단합니다.
+
+- 체력 복원: `ShouldRestoreHealth(recoveryPolicy, subjectId)`
+- StageSession 복원: `ShouldRestoreStageSession(recoveryPolicy, subjectId)`
+- 체크포인트/적/기믹/아이템/보스: 대응 `ShouldRestore...` 메서드 사용
+
+### 4) 하위호환 동작
+
+- Rule Set이 비어 있으면 기존 bool 플래그(`RestoreHealth`, `RestoreStageSession`)를 폴백으로 사용합니다.
+- 새 도메인(체크포인트/적/기믹/아이템/보스)은 Rule Set 미설정 시 기본값(true)을 사용합니다.
+
+---
+
+## 체크포인트 레이어 연동 절차 (StageEntryPoint 재사용)
+
+스테이지 진입점 기반 스폰을 유지하면서 체크포인트 복원을 적용하려면 아래 순서로 연결합니다.
+
+1. `CheckpointDefinition`, `CheckpointCatalog` 에셋을 생성합니다.
+   - `checkpointId`, `sceneName`, `entryPointId`, `worldPosition`, `priority`, `tags`를 설정합니다.
+2. `StageSession`은 `LastCheckpointId/SceneName/WorldPosition`과 `UseCheckpointForNextSpawn`를 저장/복원합니다.
+3. 플레이어 오브젝트에 `PlayerCheckpointSaveParticipant`를 추가합니다.
+   - 저장: 체크포인트 ID/좌표/씬
+   - 복원: Recovery 채널에서 `RecoveryPolicyRuleHelper.ShouldRestoreCheckpoint` 통과 시 세션 반영
+4. `StageSpawnResolver`에 `CheckpointCatalog`를 연결합니다.
+   - 스폰 우선순위: Recovery 체크포인트 -> StageSession EntryPoint -> Fallback EntryPoint
+5. `CheckpointDefinition.entryPointId`는 기존 `StageEntryPoint` ID를 그대로 참조해 재사용합니다.
+
+---
+
+## Enemy 상태 복원/리셋 RuleSet 연동 절차
+
+`EnemyResetRuleSet`은 `enemyRuntimeId` 또는 `archetypeId` 기준으로 규칙을 오버라이드할 수 있습니다.
+
+### 1) EnemyResetRuleSet 설정
+
+기본 규칙(Default)과 Override 규칙에서 다음 옵션을 설정합니다.
+
+- `resetOnRecovery`
+- `respawnIfDead`
+- `restoreHpPercent`
+- `restorePositionMode` (`Spawn`, `LastKnown`, `CheckpointArea`)
+
+### 2) Enemy 식별자 구성
+
+- `EnemyBrain`의 `enemyRuntimeId`를 사용해 개체 단위 규칙을 지정합니다.
+- `EnemyArchetypeData.ArchetypeId`를 사용해 아키타입 단위 규칙을 지정합니다.
+
+### 3) Participant 연결
+
+- Enemy 오브젝트에 `EnemyRuntimeStateSaveParticipant`를 부착합니다.
+- 저장 항목: 생사/체력 정규화/위치/로코모션/타겟 보유 여부
+- 복원 시 규칙 해석: `RecoveryPolicyRuleHelper.ResolveEnemyResetRule(...)`
+
+### 4) 대량 Enemy 저장 성능 필터
+
+`EnemyResetRuleSet`의 Save 필터 옵션으로 저장 대상을 제한할 수 있습니다.
+
+- 활성 Enemy만 저장
+- 태그 기준 저장
+- 플레이어 거리 기준 저장
+
+---
+
+## 기믹 상태 저장 모듈 표준화 절차
+
+### 1) 기믹 상태 제공 인터페이스 구현
+
+기믹 컴포넌트는 `IGimmickStateProvider`를 구현합니다.
+
+- `string GimmickId`
+- `string CaptureStateJson()`
+- `void RestoreStateJson(string json)`
+
+예시로 `ShieldGimmickModule`은 위 인터페이스를 구현해 보호막 강제 파괴 상태를 저장/복원합니다.
+
+### 2) GimmickStateSaveParticipant 연결
+
+씬(또는 SaveSystem 루트)에 `GimmickStateSaveParticipant`를 부착합니다.
+
+- 저장 시: 씬의 `IGimmickStateProvider` 구현체를 자동 수집
+- 복원 시: `GimmickRestoreRuleSet`의 ID 필터/시점 규칙을 적용
+
+### 3) 복원 시점 제어
+
+`GimmickRestoreRuleSet`에서 기믹별로 복원 시점을 지정할 수 있습니다.
+
+- `AfterSceneLoad`: 씬 로드 직후 적용
+- `AfterPlayerSpawn`: 플레이어 스폰 완료 이후 적용
+
+시점별 적용 호출 경로:
+
+- `SaveCoordinator.HandleAfterSceneLoad` -> `AfterSceneLoad` 지연 복원 적용
+- `StageSpawnResolver` / `RecoveryService` -> `AfterPlayerSpawn` 지연 복원 적용
+
+---
+
+## 아이템 복원 RuleSet + 월드 픽업 상태 분리 절차
+
+### 1) ItemRestoreRuleSet 구성
+
+`ItemRestoreRuleSet`은 `itemType + itemId(pickupId)` 키를 기준으로 규칙을 해석합니다.
+
+- `restoreCollectedState`
+- `respawnAfterRecovery`
+- `quantityRestoreMode`
+
+### 2) 월드 픽업 메타 구성
+
+월드 드랍/픽업 오브젝트에 `WorldPickupState`를 부착해 아래 메타를 부여합니다.
+
+- `pickupId` (안정 ID)
+- `itemType`
+- `defaultQuantity`
+
+### 3) PickupStateSaveParticipant 연결
+
+`PickupStateSaveParticipant`를 씬(또는 SaveSystem 루트)에 부착합니다.
+
+- 저장: 픽업별 획득 여부/수량
+- 복원: `ItemRestoreRuleSet` 규칙으로 획득 상태/리스폰/수량 모드 적용
+
+### 4) Inventory와 분리 저장 원칙
+
+인벤토리 시스템이 있는 경우 저장 책임을 분리합니다.
+
+- `PickupStateSaveParticipant`: 월드 상태(픽업 오브젝트)
+- `InventorySaveParticipant`(별도 구현): 플레이어 소지 상태
+
+### 5) pickupId 충돌 검사(에디터)
+
+에디터 메뉴를 통해 중복 `pickupId`를 검사할 수 있습니다.
+
+- `Tools/SaveSystem/Validate PickupId Duplicates`
+
+---
+
+## 보스전 복귀 RuleSet 데이터화 절차
+
+### 1) BossRestartRuleSet 구성
+
+`bossEncounterId` 키 기준으로 아래 옵션을 설정합니다.
+
+- `restartMode` (`FullReset`, `PhaseCheckpoint`, `KeepDefeated`)
+- `hpRestoreMode`
+- `arenaReset`
+
+### 2) 런타임 상태 발행 컴포넌트 연결
+
+보스 오브젝트에 `BossEncounterRuntime`을 추가해 진입/이탈/처치/페이즈 체크포인트를 단일 진입점으로 관리합니다.
+
+### 3) BossEncounterStateSaveParticipant 연결
+
+`BossEncounterStateSaveParticipant`를 보스 오브젝트에 추가합니다.
+
+- 저장: 현재 페이즈 인덱스, HP 정규화, 처치 여부, 전투 시작 여부
+- 복원: `BossRestartRuleSet` 규칙을 기준으로 `BossPhaseController`, `BossPatternController`, 체력 상태에 반영
+
+### 4) BossPhaseController 외부 주입 API
+
+`BossPhaseController.SetPhaseIndexForRecovery(int)`를 사용해 복원 시 페이즈 인덱스를 외부에서 주입합니다.
+
+### 5) Recovery 후 아레나 초기화 타이밍
+
+`RecoveryService.TryRecoverNow()` 성공 직후 `BossEncounterStateSaveParticipant.ApplyDeferredArenaResetInScene()`를 호출해 아레나 초기화 타이밍을 고정합니다.
+
+
+참고: 체크포인트 테스트 씬 구성 상세 가이드는 `Assets/_Workspace/ParkJaeBok/Scripts/StageFlow/Checkpoint_Test_Scene_Setup_Guide.md` 문서를 확인하세요.

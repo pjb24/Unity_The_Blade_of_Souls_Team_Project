@@ -43,6 +43,8 @@ public class EnemyBrain : MonoBehaviour
     [SerializeField] private HealthComponent _healthComponent; // 사망 상태 감지를 위한 체력 컴포넌트 참조입니다.
     [Tooltip("순찰 경로 기반 목적지 계산을 제공하는 RouteProvider 컴포넌트 참조입니다.")]
     [SerializeField] private EnemyPatrolRouteProvider _patrolRouteProvider; // 순찰 경로 기반 목적지 계산에 사용할 RouteProvider 컴포넌트 참조입니다.
+    [Tooltip("저장/복원에서 Enemy 개체를 안정적으로 식별할 런타임 ID입니다.")]
+    [SerializeField] private string _enemyRuntimeId; // 저장/복원 시스템에서 Enemy 개체를 식별할 고유 런타임 ID입니다.
 
     [Header("Advanced Extensions")]
     [Tooltip("IEnemyDecisionPolicy 구현체를 담는 전술 정책 컴포넌트 참조입니다.")]
@@ -134,10 +136,38 @@ public class EnemyBrain : MonoBehaviour
     private float _nextPatrolRecoverTime; // 순찰 정체 복구 재시도 허용 시각입니다.
 
     /// <summary>
+    /// 저장/복원에서 사용할 Enemy 런타임 식별자를 반환합니다.
+    /// </summary>
+    public string EnemyRuntimeId => _enemyRuntimeId;
+
+    /// <summary>
+    /// Enemy 아키타입 식별자를 반환합니다.
+    /// </summary>
+    public string ArchetypeId => _archetype != null ? _archetype.ArchetypeId : string.Empty;
+
+    /// <summary>
+    /// Enemy 스폰 기준 좌표를 반환합니다.
+    /// </summary>
+    public Vector2 SpawnPosition => _spawnPosition;
+
+    /// <summary>
+    /// 현재 Enemy가 타겟을 보유 중인지 반환합니다.
+    /// </summary>
+    public bool HasTarget => _target != null;
+
+    /// <summary>
+    /// 현재 Enemy 로코모션 타입을 반환합니다.
+    /// </summary>
+    public E_EnemyLocomotionType CurrentLocomotionType => _movementState == E_EnemyMovementState.Floating || _movementState == E_EnemyMovementState.SwitchingToFloating
+        ? E_EnemyLocomotionType.Floating
+        : E_EnemyLocomotionType.Grounded;
+
+    /// <summary>
     /// 초기 참조를 보정하고 스폰 기준 좌표를 기록합니다.
     /// </summary>
     private void Awake()
     {
+        EnsureEnemyRuntimeId();
         TryResolveReferences();
         ResolveExtensionModules();
 
@@ -145,6 +175,14 @@ public class EnemyBrain : MonoBehaviour
         _patrolDestination = _spawnPosition;
 
         ApplyArchetypeToLocomotionModules();
+    }
+
+    /// <summary>
+    /// 인스펙터 값 변경 시 런타임 ID 누락을 보정합니다.
+    /// </summary>
+    private void OnValidate()
+    {
+        EnsureEnemyRuntimeId();
     }
 
     /// <summary>
@@ -1164,12 +1202,152 @@ public class EnemyBrain : MonoBehaviour
     }
 
     /// <summary>
+    /// 복구 규칙 기반으로 Enemy 상태를 초기화합니다.
+    /// </summary>
+    public void ResetToSpawnState(EnemyResetRuleSet.RestorePositionMode restorePositionMode, Vector3 lastKnownPosition, bool respawnIfDead, float restoreHpPercent)
+    {
+        TryResolveReferences();
+
+        Vector3 restoredPosition = ResolveRestorePosition(restorePositionMode, lastKnownPosition); // 복구 초기화에 사용할 위치 좌표입니다.
+        transform.position = restoredPosition;
+
+        ApplyHealthAfterRecoveryRule(respawnIfDead, restoreHpPercent);
+        _target = null;
+        _didRequestDeadAction = false;
+        _state = E_EnemyState.Spawn;
+        _movementTransitionReason = "ResetToSpawnState";
+        _floatingAltitudeCommand = _spawnPosition.y + GetFloatingAltitude();
+        _movementStateEnteredTime = Time.time;
+        _movementStateUntilTime = 0f;
+        _movementState = GetDefaultLocomotionType() == E_EnemyLocomotionType.Floating ? E_EnemyMovementState.Floating : E_EnemyMovementState.Grounded;
+        RequestActionSafe(GetSpawnAction());
+    }
+
+    /// <summary>
+    /// 저장된 Enemy 상태 스냅샷을 복원합니다.
+    /// </summary>
+    public void ApplyRecoveredState(Vector3 restoredPosition, bool isDead, float restoredHealthPercent, E_EnemyLocomotionType locomotionType, bool hasTarget)
+    {
+        TryResolveReferences();
+
+        transform.position = restoredPosition;
+        ApplyHealthSnapshot(isDead, restoredHealthPercent);
+        _target = hasTarget ? _target : null;
+
+        if (isDead)
+        {
+            _state = E_EnemyState.Dead;
+            _didRequestDeadAction = RequestActionSafe(GetDeadAction());
+        }
+        else
+        {
+            _state = E_EnemyState.Idle;
+            _didRequestDeadAction = false;
+            RequestActionSafe(GetIdleAction());
+        }
+
+        _movementTransitionReason = "ApplyRecoveredState";
+        _movementStateEnteredTime = Time.time;
+        _movementStateUntilTime = 0f;
+        ApplyRecoveredLocomotion(locomotionType);
+    }
+
+    /// <summary>
     /// 현재 프레임 문맥 스냅샷을 구성해 반환합니다.
     /// </summary>
     private EnemyBrainContext BuildContext()
     {
         float distance = _target != null ? Vector2.Distance(transform.position, _target.position) : float.PositiveInfinity; // 문맥 전달에 사용할 현재 타겟 거리 값입니다.
         return new EnemyBrainContext(transform, _target, distance, _spawnPosition, _archetype);
+    }
+
+    /// <summary>
+    /// 복원 위치 모드와 저장 좌표를 기반으로 최종 복원 위치를 계산합니다.
+    /// </summary>
+    private Vector3 ResolveRestorePosition(EnemyResetRuleSet.RestorePositionMode restorePositionMode, Vector3 lastKnownPosition)
+    {
+        if (restorePositionMode == EnemyResetRuleSet.RestorePositionMode.LastKnown)
+        {
+            return lastKnownPosition;
+        }
+
+        if (restorePositionMode == EnemyResetRuleSet.RestorePositionMode.CheckpointArea && StageSession.Instance != null)
+        {
+            return StageSession.Instance.LastCheckpointWorldPosition;
+        }
+
+        return _spawnPosition;
+    }
+
+    /// <summary>
+    /// 복구 규칙 기준 체력 정책을 적용합니다.
+    /// </summary>
+    private void ApplyHealthAfterRecoveryRule(bool respawnIfDead, float restoreHpPercent)
+    {
+        if (_healthComponent == null)
+        {
+            return;
+        }
+
+        float clampedPercent = Mathf.Clamp01(restoreHpPercent); // 복구 규칙에서 전달된 체력 비율의 안전 값입니다.
+        float maxHealth = Mathf.Max(1f, _healthComponent.GetMaxHealth()); // 복구 시 체력 계산에 사용할 최대 체력 값입니다.
+        float restoredHealth = Mathf.Max(1f, maxHealth * clampedPercent); // 복구 규칙 기반 최종 체력 값입니다.
+
+        if (_healthComponent.IsDead)
+        {
+            if (respawnIfDead)
+            {
+                _healthComponent.Revive(restoredHealth);
+            }
+            else
+            {
+                _healthComponent.SetCurrentHealth(0f);
+            }
+
+            return;
+        }
+
+        _healthComponent.SetCurrentHealth(restoredHealth);
+    }
+
+    /// <summary>
+    /// 저장된 체력 스냅샷을 기준으로 체력 상태를 복원합니다.
+    /// </summary>
+    private void ApplyHealthSnapshot(bool isDead, float restoredHealthPercent)
+    {
+        if (_healthComponent == null)
+        {
+            return;
+        }
+
+        float maxHealth = Mathf.Max(1f, _healthComponent.GetMaxHealth()); // 스냅샷 비율을 실제 체력 값으로 환산할 최대 체력 값입니다.
+        float healthValue = Mathf.Clamp01(restoredHealthPercent) * maxHealth; // 스냅샷 비율을 환산한 체력 값입니다.
+
+        if (isDead)
+        {
+            _healthComponent.SetCurrentHealth(0f);
+            return;
+        }
+
+        if (_healthComponent.IsDead)
+        {
+            _healthComponent.Revive(Mathf.Max(1f, healthValue));
+            return;
+        }
+
+        _healthComponent.SetCurrentHealth(Mathf.Max(1f, healthValue));
+    }
+
+    /// <summary>
+    /// 저장된 로코모션 타입을 기준으로 이동 상태를 복원합니다.
+    /// </summary>
+    private void ApplyRecoveredLocomotion(E_EnemyLocomotionType locomotionType)
+    {
+        _movementState = locomotionType == E_EnemyLocomotionType.Floating
+            ? E_EnemyMovementState.Floating
+            : E_EnemyMovementState.Grounded;
+
+        _floatingAltitudeCommand = transform.position.y + GetFloatingAltitude();
     }
 
     /// <summary>
@@ -1202,6 +1380,40 @@ public class EnemyBrain : MonoBehaviour
     private bool IsDead()
     {
         return _healthComponent != null && _healthComponent.IsDead;
+    }
+
+    /// <summary>
+    /// Enemy 런타임 식별자 누락 시 계층 경로 기반 기본값으로 보정합니다.
+    /// </summary>
+    private void EnsureEnemyRuntimeId()
+    {
+        if (!string.IsNullOrWhiteSpace(_enemyRuntimeId))
+        {
+            return;
+        }
+
+        _enemyRuntimeId = $"{gameObject.scene.name}:{GetHierarchyPath(transform)}";
+    }
+
+    /// <summary>
+    /// Transform 계층 경로 문자열을 생성합니다.
+    /// </summary>
+    private static string GetHierarchyPath(Transform sourceTransform)
+    {
+        if (sourceTransform == null)
+        {
+            return string.Empty;
+        }
+
+        string path = sourceTransform.name; // 계층 경로 문자열 누적에 사용할 초기 노드 이름입니다.
+        Transform current = sourceTransform.parent; // 부모 방향으로 경로를 확장할 현재 Transform 참조입니다.
+        while (current != null)
+        {
+            path = $"{current.name}/{path}";
+            current = current.parent;
+        }
+
+        return path;
     }
 
     /// <summary>
