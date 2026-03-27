@@ -237,6 +237,32 @@ public class SaveCoordinator : MonoBehaviour
     }
 
     /// <summary>
+    /// 지정 채널의 스냅샷 파일 존재 여부를 조회합니다.
+    /// </summary>
+    public bool HasChannelSnapshot(E_SaveChannelType channelType)
+    {
+        if (_backend == null)
+        {
+            Debug.LogWarning($"[SaveCoordinator] Backend가 없어 스냅샷 조회를 건너뜁니다. channel={channelType}", this);
+            return false;
+        }
+
+        if (TryGetPolicy(channelType, out SaveChannelPolicy policy) == false || policy == null)
+        {
+            Debug.LogWarning($"[SaveCoordinator] 채널 정책이 없어 스냅샷 조회를 건너뜁니다. channel={channelType}", this);
+            return false;
+        }
+
+        bool hasSnapshot = _backend.TryRead(policy.FileName, out string snapshotJson);
+        if (hasSnapshot == false)
+        {
+            return false;
+        }
+
+        return string.IsNullOrWhiteSpace(snapshotJson) == false;
+    }
+
+    /// <summary>
     /// 복구 정책을 반영해 Recovery 채널을 복원합니다.
     /// </summary>
     public bool TryRecoverAfterDeath()
