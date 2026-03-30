@@ -5,99 +5,56 @@ using UnityEngine;
 /// </summary>
 public class StageReturnToTownPresenter : MonoBehaviour
 {
-    [Tooltip("Town 스테이지를 조회할 StageCatalog 에셋입니다.")]
-    [SerializeField] private StageCatalog _stageCatalog; // Town StageDefinition 조회에 사용할 카탈로그입니다.
-
-    [Tooltip("현재 스테이지 ID를 강제로 지정할 값입니다. 비워두면 StageSession.SelectedStageId를 사용합니다.")]
-    [SerializeField] private string _currentStageIdOverride; // 현재 스테이지를 수동 지정해야 할 때 사용하는 오버라이드 ID입니다.
-
-    [Tooltip("현재 스테이지 정의의 TownReturnPointId를 Town 진입 엔트리 포인트로 사용할지 여부입니다.")]
-    [SerializeField] private bool _useCurrentStageTownReturnPoint = true; // 현재 스테이지의 복귀 포인트를 Town 진입점으로 사용할지 여부입니다.
-
-    [Tooltip("현재 스테이지에서 Town 복귀 포인트를 해석하지 못했을 때 사용할 기본 Town 엔트리 포인트 ID입니다.")]
-    [SerializeField] private string _fallbackTownEntryPointId = "Town_Default"; // Town 복귀 엔트리 포인트를 찾지 못했을 때 적용할 폴백 ID입니다.
-
     [Tooltip("복귀 처리 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseLog = true; // Town 복귀 요청 처리 로그 출력 여부입니다.
+
+    [Tooltip("Town 복귀 명령을 전달할 GameFlowController 참조입니다. 비어 있으면 GameFlowController.Instance를 사용합니다.")]
+    [SerializeField] private GameFlowController _gameFlowController; // Town 복귀 요청을 GameFlow 명령으로 위임할 컨트롤러 참조입니다.
 
     /// <summary>
     /// Town 스테이지 복귀를 시도합니다.
     /// </summary>
     public void ReturnToTown()
     {
-        if (_stageCatalog == null)
+        GameFlowController gameFlowController = ResolveGameFlowController(); // Town 복귀 명령을 전달할 GameFlowController 참조입니다.
+        if (gameFlowController != null)
         {
-            Debug.LogWarning("[StageReturnToTownPresenter] StageCatalog가 비어 있습니다.", this);
+            bool startedFromFlow = gameFlowController.RequestReturnToTown();
+            if (!startedFromFlow)
+            {
+                Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageFlowRequestFailed, "[StageReturnToTownPresenter] GameFlowController 기반 Town 복귀 시작에 실패했습니다."), this);
+            }
+            else if (_verboseLog)
+            {
+                Debug.Log("[StageReturnToTownPresenter] ReturnToTown requested via GameFlowController.", this);
+            }
+
             return;
         }
 
-        if (_stageCatalog.TryGetTownStage(out StageDefinition townStage) == false || townStage == null)
-        {
-            Debug.LogWarning("[StageReturnToTownPresenter] Town 스테이지를 찾지 못했습니다. StageCatalog 설정을 확인하세요.", this);
-            return;
-        }
-
-        StageSession session = StageSession.Instance; // Town 복귀 문맥을 기록할 StageSession 인스턴스입니다.
-        string entryPointId = ResolveTownEntryPointId(session); // Town 씬 진입 시 사용할 엔트리 포인트 ID입니다.
-        session.SetNextStage(townStage, entryPointId);
-
-        bool started = SceneTransitionService.Instance.TryLoadScene(townStage.SceneName);
-        if (!started)
-        {
-            Debug.LogWarning("[StageReturnToTownPresenter] Town 씬 전환 시작에 실패했습니다.", this);
-            return;
-        }
-
-        if (_verboseLog)
-        {
-            Debug.Log($"[StageReturnToTownPresenter] ReturnToTown started. townStageId={townStage.StageId}, scene={townStage.SceneName}, entry={entryPointId}", this);
-        }
+        EmitGameFlowRequiredTelemetry("GameFlowControllerMissing");
+        Debug.LogError("[StageReturnToTownPresenter] GameFlowController가 필수라 Town 복귀 요청을 중단합니다.", this);
     }
 
     /// <summary>
-    /// Town 씬 진입 시 사용할 엔트리 포인트 ID를 해석합니다.
+    /// 직렬화 참조 또는 싱글톤에서 GameFlowController를 해석합니다.
     /// </summary>
-    private string ResolveTownEntryPointId(StageSession session)
+    private GameFlowController ResolveGameFlowController()
     {
-        if (_useCurrentStageTownReturnPoint == false)
+        if (_gameFlowController != null)
         {
-            return _fallbackTownEntryPointId;
+            return _gameFlowController;
         }
 
-        string currentStageId = ResolveCurrentStageId(session);
-        if (string.IsNullOrWhiteSpace(currentStageId))
-        {
-            return _fallbackTownEntryPointId;
-        }
-
-        if (_stageCatalog.TryGetById(currentStageId, out StageDefinition currentStage) == false || currentStage == null)
-        {
-            return _fallbackTownEntryPointId;
-        }
-
-        if (string.IsNullOrWhiteSpace(currentStage.TownReturnPointId))
-        {
-            return _fallbackTownEntryPointId;
-        }
-
-        return currentStage.TownReturnPointId;
+        return GameFlowController.Instance;
     }
 
     /// <summary>
-    /// 현재 스테이지 ID를 오버라이드 값 또는 세션 값 기준으로 반환합니다.
+    /// GameFlow 필수 경로 위반 시 강한 경고와 텔레메트리 로그를 출력합니다.
     /// </summary>
-    private string ResolveCurrentStageId(StageSession session)
+    private void EmitGameFlowRequiredTelemetry(string reason)
     {
-        if (string.IsNullOrWhiteSpace(_currentStageIdOverride) == false)
-        {
-            return _currentStageIdOverride;
-        }
-
-        if (session == null)
-        {
-            return string.Empty;
-        }
-
-        return session.SelectedStageId;
+        Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageGameFlowRequired, $"[StageReturnToTownPresenter][GAMEFLOW_REQUIRED] reason={reason}"), this);
+        Debug.Log($"[Telemetry][GameFlowRequired] feature=StageReturnToTownPresenter, reason={reason}", this);
     }
 }

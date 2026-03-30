@@ -17,6 +17,9 @@ public class TownStageSelectorPresenter : MonoBehaviour
     [Tooltip("전환 전에 선택 이벤트와 상태 정보를 로그로 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseLog = true; // 디버깅을 위해 선택 정보를 로그에 기록할지 여부입니다.
 
+    [Tooltip("스테이지 진입 명령을 전달할 GameFlowController 참조입니다. 비어 있으면 GameFlowController.Instance를 사용합니다.")]
+    [SerializeField] private GameFlowController _gameFlowController; // 스테이지 진입을 GameFlow 명령으로 위임할 컨트롤러 참조입니다.
+
     /// <summary>
     /// 카탈로그 인덱스를 기반으로 스테이지 진입을 시도합니다.
     /// </summary>
@@ -24,13 +27,13 @@ public class TownStageSelectorPresenter : MonoBehaviour
     {
         if (_stageCatalog == null)
         {
-            Debug.LogWarning("[TownStageSelectorPresenter] StageCatalog가 비어 있습니다.", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, "[TownStageSelectorPresenter] StageCatalog가 비어 있습니다."), this);
             return;
         }
 
         if (_stageCatalog.TryGetByIndex(stageIndex, out StageDefinition stageDefinition) == false)
         {
-            Debug.LogWarning($"[TownStageSelectorPresenter] 유효하지 않은 stageIndex입니다. index={stageIndex}", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, $"[TownStageSelectorPresenter] 유효하지 않은 stageIndex입니다. index={stageIndex}"), this);
             return;
         }
 
@@ -44,13 +47,13 @@ public class TownStageSelectorPresenter : MonoBehaviour
     {
         if (_stageCatalog == null)
         {
-            Debug.LogWarning("[TownStageSelectorPresenter] StageCatalog가 비어 있습니다.", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, "[TownStageSelectorPresenter] StageCatalog가 비어 있습니다."), this);
             return;
         }
 
         if (_stageCatalog.TryGetById(stageId, out StageDefinition stageDefinition) == false)
         {
-            Debug.LogWarning($"[TownStageSelectorPresenter] 유효하지 않은 stageId입니다. stageId={stageId}", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, $"[TownStageSelectorPresenter] 유효하지 않은 stageId입니다. stageId={stageId}"), this);
             return;
         }
 
@@ -83,7 +86,7 @@ public class TownStageSelectorPresenter : MonoBehaviour
     {
         if (stageDefinition == null)
         {
-            Debug.LogWarning("[TownStageSelectorPresenter] stageDefinition이 null입니다.", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, "[TownStageSelectorPresenter] stageDefinition이 null입니다."), this);
             return;
         }
 
@@ -92,7 +95,7 @@ public class TownStageSelectorPresenter : MonoBehaviour
 
         if (_useAvailabilityValidation && availability.IsEnterable == false)
         {
-            Debug.LogWarning($"[TownStageSelectorPresenter] 입장 불가 상태입니다. id={stageDefinition.StageId}, reason={availability.Reason}", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, $"[TownStageSelectorPresenter] 입장 불가 상태입니다. id={stageDefinition.StageId}, reason={availability.Reason}"), this);
             return;
         }
 
@@ -106,11 +109,20 @@ public class TownStageSelectorPresenter : MonoBehaviour
             Debug.Log($"[TownStageSelectorPresenter] Stage Selected: id={stageDefinition.StageId}, scene={stageDefinition.SceneName}, multiplayer={availability.IsMultiplayerAvailable}", this);
         }
 
-        bool started = SceneTransitionService.Instance.TryLoadStage(stageDefinition);
-        if (started == false)
+        GameFlowController gameFlowController = ResolveGameFlowController(); // 스테이지 진입 명령을 전달할 GameFlowController 참조입니다.
+        if (gameFlowController != null)
         {
-            Debug.LogWarning("[TownStageSelectorPresenter] 씬 전환 시작에 실패했습니다.", this);
+            bool startedFromFlow = gameFlowController.RequestEnterStage(stageDefinition);
+            if (!startedFromFlow)
+            {
+                Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageFlowRequestFailed, "[TownStageSelectorPresenter] GameFlowController 기반 스테이지 진입 시작에 실패했습니다."), this);
+            }
+
+            return;
         }
+
+        EmitGameFlowRequiredTelemetry("GameFlowControllerMissing", stageDefinition);
+        Debug.LogError("[TownStageSelectorPresenter] GameFlowController가 필수라 스테이지 진입 요청을 중단합니다.", this);
     }
 
     /// <summary>
@@ -124,5 +136,29 @@ public class TownStageSelectorPresenter : MonoBehaviour
         {
             Debug.Log($"[TownStageSelectorPresenter] Stage clear reported. id={stageId}", this);
         }
+    }
+
+    /// <summary>
+    /// 직렬화 참조 또는 싱글톤에서 GameFlowController를 해석합니다.
+    /// </summary>
+    private GameFlowController ResolveGameFlowController()
+    {
+        if (_gameFlowController != null)
+        {
+            return _gameFlowController;
+        }
+
+        return GameFlowController.Instance;
+    }
+
+    /// <summary>
+    /// GameFlow 필수 경로 위반 시 강한 경고와 텔레메트리 로그를 출력합니다.
+    /// </summary>
+    private void EmitGameFlowRequiredTelemetry(string reason, StageDefinition stageDefinition)
+    {
+        string stageId = stageDefinition != null ? stageDefinition.StageId : string.Empty; // 텔레메트리 로그에 포함할 대상 스테이지 ID입니다.
+        string sceneName = stageDefinition != null ? stageDefinition.SceneName : string.Empty; // 텔레메트리 로그에 포함할 대상 씬 이름입니다.
+        Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageGameFlowRequired, $"[TownStageSelectorPresenter][GAMEFLOW_REQUIRED] reason={reason}, stageId={stageId}, scene={sceneName}"), this);
+        Debug.Log($"[Telemetry][GameFlowRequired] feature=TownStageSelectorPresenter, reason={reason}, stageId={stageId}, scene={sceneName}", this);
     }
 }

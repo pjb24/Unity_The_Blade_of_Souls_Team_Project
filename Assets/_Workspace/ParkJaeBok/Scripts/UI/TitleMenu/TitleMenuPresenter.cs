@@ -10,11 +10,14 @@ public class TitleMenuPresenter : MonoBehaviour
     [SerializeField] private TitleMenuView _view; // 버튼 이벤트 수신과 상태 표시를 담당하는 View 참조입니다.
 
     [Header("Dependencies")]
-    [Tooltip("씬 전환 실행에 사용할 SceneTransitionService 참조입니다. 비어 있으면 SceneTransitionService.Instance를 사용합니다.")]
-    [SerializeField] private SceneTransitionService _sceneTransitionService; // 씬 전환 요청 실행에 사용할 서비스 참조입니다.
+    [Tooltip("씬 전환 상태 조회에 사용할 SceneTransitionService 참조입니다. 비어 있으면 SceneTransitionService.Instance를 사용합니다.")]
+    [SerializeField] private SceneTransitionService _sceneTransitionService; // 씬 전환 중복 입력 가드에 사용할 서비스 참조입니다.
 
     [Tooltip("저장/로드 실행에 사용할 SaveCoordinator 참조입니다. 비어 있으면 SaveCoordinator.Instance를 사용합니다.")]
     [SerializeField] private SaveCoordinator _saveCoordinator; // Continue 동작에서 채널 복원에 사용할 서비스 참조입니다.
+
+    [Tooltip("상위 게임 흐름 명령을 전달할 GameFlowController 참조입니다. 비어 있으면 GameFlowController.Instance를 사용합니다.")]
+    [SerializeField] private GameFlowController _gameFlowController; // 타이틀 액션을 GameFlow 명령 API로 라우팅할 컨트롤러 참조입니다.
 
     [Tooltip("타이틀 메뉴 세이브 조회 서비스입니다.")]
     [SerializeField] private MonoBehaviour _saveQueryComponent; // ITitleSaveQueryService를 구현한 컴포넌트 참조입니다.
@@ -27,7 +30,10 @@ public class TitleMenuPresenter : MonoBehaviour
 
     [Header("New Game")]
     [Tooltip("New Game 시작 시 진입할 씬 이름입니다.")]
-    [SerializeField] private string _newGameSceneName; // New Game 액션에서 로드할 시작 씬 이름입니다.
+    [SerializeField] private string _newGameSceneName; // New Game 액션에서 전달할 시작 씬 이름입니다.
+
+    [Tooltip("New Game 씬 로드 완료 후 도달할 GameFlow 상태입니다.")]
+    [SerializeField] private GameFlowState _newGameLoadedState = GameFlowState.Town; // New Game 로드 완료 후 상태 머신 목표 상태입니다.
 
     [Header("Actions")]
     [Tooltip("New Game 버튼에 연결할 액션 컴포넌트입니다.")]
@@ -238,6 +244,19 @@ public class TitleMenuPresenter : MonoBehaviour
     }
 
     /// <summary>
+    /// 직렬화 참조 또는 싱글톤에서 GameFlowController를 해석합니다.
+    /// </summary>
+    private GameFlowController ResolveGameFlowController()
+    {
+        if (_gameFlowController != null)
+        {
+            return _gameFlowController;
+        }
+
+        return GameFlowController.Instance;
+    }
+
+    /// <summary>
     /// 현재 Presenter 상태를 기반으로 액션 문맥 객체를 생성합니다.
     /// </summary>
     private TitleMenuActionContext BuildContext(SceneTransitionService transitionService)
@@ -248,7 +267,9 @@ public class TitleMenuPresenter : MonoBehaviour
             _saveQueryService,
             _dialogService,
             _stageCatalog,
-            _newGameSceneName);
+            ResolveGameFlowController(),
+            _newGameSceneName,
+            _newGameLoadedState);
     }
 
     /// <summary>

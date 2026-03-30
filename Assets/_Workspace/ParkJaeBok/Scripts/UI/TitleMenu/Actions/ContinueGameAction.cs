@@ -10,7 +10,7 @@ public class ContinueGameAction : MonoBehaviour, ITitleMenuAction
     /// </summary>
     public bool CanExecute(TitleMenuActionContext context)
     {
-        return context != null && context.SceneTransitionService != null && context.SaveCoordinator != null;
+        return context != null;
     }
 
     /// <summary>
@@ -20,65 +20,33 @@ public class ContinueGameAction : MonoBehaviour, ITitleMenuAction
     {
         if (CanExecute(context) == false)
         {
-            Debug.LogWarning("[ContinueGameAction] 필수 의존성이 없어 Continue를 실행할 수 없습니다.", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionDependencyMissing, "[ContinueGameAction] 필수 의존성이 없어 Continue를 실행할 수 없습니다."), this);
             return false;
         }
 
-        bool loadedPersistent = context.SaveCoordinator.LoadChannel(E_SaveChannelType.Persistent, E_SaveTriggerType.Manual, "Title.Continue.Persistent");
-        bool loadedSession = context.SaveCoordinator.LoadChannel(E_SaveChannelType.Session, E_SaveTriggerType.Manual, "Title.Continue.Session");
-        if (loadedPersistent == false && loadedSession == false)
+        GameFlowController gameFlowController = context.GameFlowController; // Continue 명령 라우팅에 사용할 GameFlowController 참조입니다.
+        if (gameFlowController != null)
         {
-            Debug.LogWarning("[ContinueGameAction] 복원 가능한 저장 데이터가 없어 Continue를 취소합니다.", this);
-            return false;
+            bool continued = gameFlowController.RequestContinue();
+            if (!continued)
+            {
+                Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionFlowRequestFailed, "[ContinueGameAction] GameFlowController 기반 Continue 실행에 실패했습니다."), this);
+            }
+
+            return continued;
         }
 
-        if (TryResolveContinueSceneName(context, out string sceneName) == false)
-        {
-            Debug.LogWarning("[ContinueGameAction] 마지막 진입 씬을 해석하지 못했습니다. Load Game으로 폴백하세요.", this);
-            return false;
-        }
-
-        bool started = context.SceneTransitionService.TryLoadScene(sceneName);
-        if (started == false)
-        {
-            Debug.LogWarning($"[ContinueGameAction] Continue 씬 전환 시작 실패 scene={sceneName}", this);
-        }
-
-        return started;
+        EmitGameFlowRequiredTelemetry("GameFlowControllerMissing");
+        Debug.LogError("[ContinueGameAction] GameFlowController가 필수라 Continue 요청을 중단합니다.", this);
+        return false;
     }
 
     /// <summary>
-    /// StageSession/StageCatalog를 이용해 Continue 대상 씬 이름을 계산합니다.
+    /// GameFlow 필수 경로 위반 시 강한 경고와 텔레메트리 로그를 출력합니다.
     /// </summary>
-    private bool TryResolveContinueSceneName(TitleMenuActionContext context, out string sceneName)
+    private void EmitGameFlowRequiredTelemetry(string reason)
     {
-        sceneName = string.Empty;
-
-        StageSession session = StageSession.Instance; // Continue 대상 씬 계산에 사용할 세션 인스턴스입니다.
-        if (session.UseCheckpointForNextSpawn && string.IsNullOrWhiteSpace(session.LastCheckpointSceneName) == false)
-        {
-            sceneName = session.LastCheckpointSceneName;
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(session.SelectedStageId))
-        {
-            return false;
-        }
-
-        if (context.StageCatalog == null)
-        {
-            Debug.LogWarning("[ContinueGameAction] StageCatalog가 없어 stageId->sceneName 해석에 실패했습니다.", this);
-            return false;
-        }
-
-        if (context.StageCatalog.TryGetById(session.SelectedStageId, out StageDefinition stageDefinition) == false || stageDefinition == null)
-        {
-            Debug.LogWarning($"[ContinueGameAction] 카탈로그에서 stageId를 찾지 못했습니다. stageId={session.SelectedStageId}", this);
-            return false;
-        }
-
-        sceneName = stageDefinition.SceneName;
-        return string.IsNullOrWhiteSpace(sceneName) == false;
+        Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionGameFlowRequired, $"[ContinueGameAction][GAMEFLOW_REQUIRED] reason={reason}"), this);
+        Debug.Log($"[Telemetry][GameFlowRequired] feature=ContinueGameAction, reason={reason}", this);
     }
 }

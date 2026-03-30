@@ -507,122 +507,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 177458013}
   m_CullTransparentMesh: 1
---- !u!1001 &188474012
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 4612746055970905576, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_Name
-      value: --- SaveSystem ---
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5731235033646339261, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
---- !u!114 &188474013 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1062464341028435986, guid: f8dedc47a89eb0a4183680797ef31e6b, type: 3}
-  m_PrefabInstance: {fileID: 188474012}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1025aaafb63027e4ca1c667bd95e0211, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SaveCoordinator
---- !u!1 &203165907
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 203165909}
-  - component: {fileID: 203165908}
-  m_Layer: 0
-  m_Name: SceneSystems
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &203165908
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 203165907}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: db2579f0b51567a4b95020fff4a3d19d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionService
-  _dontDestroyOnLoad: 1
-  _fadeOutDuration: 0.2
-  _fadeInDuration: 0.2
-  _blockInputWhileTransition: 1
---- !u!4 &203165909
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 203165907}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &266689098
 GameObject:
   m_ObjectHideFlags: 0
@@ -879,7 +763,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b9a1692305ca8540af6d81658ffff60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TitleSaveQueryService
-  _saveCoordinator: {fileID: 188474013}
+  _saveCoordinator: {fileID: 0}
 --- !u!114 &275485857
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -912,12 +796,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TitleMenuPresenter
   _view: {fileID: 275485857}
-  _sceneTransitionService: {fileID: 203165908}
-  _saveCoordinator: {fileID: 188474013}
+  _sceneTransitionService: {fileID: 0}
+  _saveCoordinator: {fileID: 0}
+  _gameFlowController: {fileID: 0}
   _saveQueryComponent: {fileID: 275485856}
   _dialogComponent: {fileID: 275485855}
   _stageCatalog: {fileID: 11400000, guid: 328aa13009815514ca2bd5a53c34c92f, type: 2}
   _newGameSceneName: Town_Test
+  _newGameLoadedState: 2
   _newGameActionComponent: {fileID: 275485854}
   _continueActionComponent: {fileID: 275485853}
   _loadGameActionComponent: {fileID: 275485852}
@@ -3420,7 +3306,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -57.599976, y: 27}
+  m_AnchoredPosition: {x: -57.600098, y: 27}
   m_SizeDelta: {x: 499.2, y: 54}
   m_Pivot: {x: 1, y: 0}
 --- !u!1 &1468241703
@@ -5062,7 +4948,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 57.599976, y: 27}
+  m_AnchoredPosition: {x: 57.600098, y: 27}
   m_SizeDelta: {x: 614.4, y: 54}
   m_Pivot: {x: 0, y: 0}
 --- !u!1 &2118712913
@@ -5122,7 +5008,5 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1576865559}
-  - {fileID: 203165909}
-  - {fileID: 188474012}
   - {fileID: 2062662490}
   - {fileID: 1254505528}

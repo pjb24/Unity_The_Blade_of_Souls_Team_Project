@@ -35,6 +35,13 @@ public class StageSpawnResolver : MonoBehaviour
     [Tooltip("재시도 간 대기 시간(초)입니다.")]
     [SerializeField] private float _resolveRetryInterval = 0.1f; // 스폰 해석 재시도 간 대기 시간입니다.
 
+    [Header("Debug Status")]
+    [Tooltip("디버그용: 최근 스폰 해석 성공 여부입니다.")]
+    [SerializeField] private bool _lastResolveSucceeded; // 최근 스폰 해석 시도의 성공 여부입니다.
+
+    [Tooltip("디버그용: 최근 스폰 해석 실패 사유입니다.")]
+    [SerializeField] private string _lastResolveFailureReason; // 최근 스폰 해석 실패 원인 문자열입니다.
+
     private SceneTransitionService _sceneTransitionService; // 이벤트 구독/해제에 사용할 전환 서비스 참조입니다.
 
     /// <summary>
@@ -75,7 +82,13 @@ public class StageSpawnResolver : MonoBehaviour
     /// </summary>
     public bool TryResolveSpawnNow()
     {
-        return TryResolveSpawnAndMovePlayer();
+        bool resolved = TryResolveSpawnAndMovePlayer();
+        if (!resolved)
+        {
+            Debug.LogWarning("[StageSpawnResolver] TryResolveSpawnNow 호출에서 스폰 해석에 실패했습니다.", this);
+        }
+
+        return resolved;
     }
 
     /// <summary>
@@ -106,22 +119,26 @@ public class StageSpawnResolver : MonoBehaviour
     {
         if (TryResolvePlayerTransform(out Transform playerTransform) == false)
         {
+            UpdateResolveStatus(false, "Player transform not found");
             return false;
         }
 
         if (!StageSession.TryGetExistingInstance(out StageSession session))
         {
+            UpdateResolveStatus(false, "StageSession not found");
             return false;
         }
 
         StageEntryPoint[] points = FindObjectsByType<StageEntryPoint>(FindObjectsSortMode.None); // 씬에서 사용 가능한 모든 엔트리 포인트 목록입니다.
         if (points == null || points.Length == 0)
         {
+            UpdateResolveStatus(false, "StageEntryPoint not found");
             return false;
         }
 
         if (!TryResolveSpawnPosition(session, points, out Vector3 resolvedSpawnPosition, out bool consumeCheckpointRequest))
         {
+            UpdateResolveStatus(false, "Spawn position resolve failed");
             return false;
         }
 
@@ -133,6 +150,7 @@ public class StageSpawnResolver : MonoBehaviour
 
         session.ConsumeEntryPoint();
         GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterPlayerSpawn);
+        UpdateResolveStatus(true, string.Empty);
         return true;
     }
 
@@ -447,5 +465,14 @@ public class StageSpawnResolver : MonoBehaviour
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 최근 스폰 해석 결과를 디버그 상태 필드에 반영합니다.
+    /// </summary>
+    private void UpdateResolveStatus(bool succeeded, string failureReason)
+    {
+        _lastResolveSucceeded = succeeded;
+        _lastResolveFailureReason = failureReason;
     }
 }

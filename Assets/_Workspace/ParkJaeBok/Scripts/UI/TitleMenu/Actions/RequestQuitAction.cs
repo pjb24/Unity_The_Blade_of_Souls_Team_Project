@@ -20,6 +20,7 @@ public class RequestQuitAction : MonoBehaviour, ITitleMenuAction
     {
         if (context == null)
         {
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionDependencyMissing, "[RequestQuitAction] context가 null이라 Quit을 수행할 수 없습니다."), this);
             return false;
         }
 
@@ -32,12 +33,28 @@ public class RequestQuitAction : MonoBehaviour, ITitleMenuAction
             }
         }
 
-#if UNITY_EDITOR
-        Debug.LogWarning("[RequestQuitAction] UNITY_EDITOR 환경에서는 Application.Quit이 동작하지 않습니다.", this);
-        return true;
-#else
-        Application.Quit();
-        return true;
-#endif
+        if (context.GameFlowController != null)
+        {
+            bool exited = context.GameFlowController.RequestExit(false);
+            if (!exited)
+            {
+                Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionFlowRequestFailed, "[RequestQuitAction] GameFlowController 기반 Quit 요청에 실패했습니다."), this);
+            }
+
+            return exited;
+        }
+
+        EmitGameFlowRequiredTelemetry("GameFlowControllerMissing");
+        Debug.LogError("[RequestQuitAction] GameFlowController가 필수라 Quit 요청을 중단합니다.", this);
+        return false;
+    }
+
+    /// <summary>
+    /// GameFlow 필수 경로 위반 시 강한 경고와 텔레메트리 로그를 출력합니다.
+    /// </summary>
+    private void EmitGameFlowRequiredTelemetry(string reason)
+    {
+        Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionGameFlowRequired, $"[RequestQuitAction][GAMEFLOW_REQUIRED] reason={reason}"), this);
+        Debug.Log($"[Telemetry][GameFlowRequired] feature=RequestQuitAction, reason={reason}", this);
     }
 }

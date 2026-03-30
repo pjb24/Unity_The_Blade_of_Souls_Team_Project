@@ -33,6 +33,22 @@ public class SaveCoordinator : MonoBehaviour
     [Tooltip("씬 전환 후 초기 복원을 자동 시도할지 여부입니다.")]
     [SerializeField] private bool _autoLoadOnStart = true; // 시작 시 자동 로드 실행 여부입니다.
 
+    [Header("Runtime Save Status")]
+    [Tooltip("디버그용: 마지막 SaveChannel 호출 성공 여부입니다.")]
+    [SerializeField] private bool _lastSaveSucceeded; // 마지막 저장 시도의 성공 여부입니다.
+
+    [Tooltip("디버그용: 마지막 SaveChannel 호출 채널 타입입니다.")]
+    [SerializeField] private E_SaveChannelType _lastSaveChannelType; // 마지막 저장 시도에 사용된 채널 타입입니다.
+
+    [Tooltip("디버그용: 마지막 SaveChannel 호출 트리거 타입입니다.")]
+    [SerializeField] private E_SaveTriggerType _lastSaveTriggerType; // 마지막 저장 시도에 사용된 트리거 타입입니다.
+
+    [Tooltip("디버그용: 마지막 SaveChannel 호출 트리거 컨텍스트입니다.")]
+    [SerializeField] private string _lastSaveTriggerContext; // 마지막 저장 시도에 사용된 트리거 컨텍스트 문자열입니다.
+
+    [Tooltip("디버그용: 마지막 저장 실패 사유 문자열입니다.")]
+    [SerializeField] private string _lastSaveFailureReason; // 마지막 저장 실패 원인 문자열입니다.
+
     private readonly Dictionary<E_SaveChannelType, SaveChannelPolicy> _policyByChannel = new Dictionary<E_SaveChannelType, SaveChannelPolicy>(); // 채널 타입별 정책 빠른 조회 맵입니다.
     private readonly List<ISaveParticipant> _participants = new List<ISaveParticipant>(); // 현재 등록된 participant 목록입니다.
 
@@ -43,6 +59,35 @@ public class SaveCoordinator : MonoBehaviour
     public static SaveCoordinator Instance { get; private set; }
 
     public RecoveryPolicy RecoveryPolicy => _recoveryPolicy;
+
+    /// <summary>
+    /// 저장 시도 결과를 외부 런타임에 전달하기 위한 상태 데이터입니다.
+    /// </summary>
+    public readonly struct SaveOperationStatus
+    {
+        public readonly bool Succeeded; // 저장 호출 성공 여부입니다.
+        public readonly E_SaveChannelType ChannelType; // 저장에 사용된 채널 타입입니다.
+        public readonly E_SaveTriggerType TriggerType; // 저장에 사용된 트리거 타입입니다.
+        public readonly string TriggerContext; // 저장에 사용된 트리거 컨텍스트 문자열입니다.
+        public readonly string FailureReason; // 실패 시 원인 문자열입니다.
+
+        /// <summary>
+        /// 전달된 값으로 SaveOperationStatus를 생성합니다.
+        /// </summary>
+        public SaveOperationStatus(bool succeeded, E_SaveChannelType channelType, E_SaveTriggerType triggerType, string triggerContext, string failureReason)
+        {
+            Succeeded = succeeded;
+            ChannelType = channelType;
+            TriggerType = triggerType;
+            TriggerContext = triggerContext;
+            FailureReason = failureReason;
+        }
+    }
+
+    /// <summary>
+    /// 저장 시도 완료 시 결과를 전달하는 이벤트입니다.
+    /// </summary>
+    public event Action<SaveOperationStatus> OnSaveOperationCompleted;
 
     /// <summary>
     /// 의존성을 검증하고 서비스 싱글톤을 초기화합니다.
@@ -137,12 +182,14 @@ public class SaveCoordinator : MonoBehaviour
     {
         if (_backend == null)
         {
+            PublishSaveStatus(false, channelType, triggerType, triggerContext, "Backend is null");
             return false;
         }
 
         if (TryGetPolicy(channelType, out SaveChannelPolicy policy) == false)
         {
             Debug.LogWarning($"[SaveCoordinator] 채널 정책이 없어 저장을 건너뜁니다. channel={channelType}", this);
+            PublishSaveStatus(false, channelType, triggerType, triggerContext, "Policy not found");
             return false;
         }
 
@@ -188,9 +235,25 @@ public class SaveCoordinator : MonoBehaviour
         if (!result)
         {
             Debug.LogWarning($"[SaveCoordinator] 채널 저장 실패 channel={channelType}", this);
+            PublishSaveStatus(false, channelType, triggerType, triggerContext, "Backend write failed");
+            return false;
         }
 
+        PublishSaveStatus(true, channelType, triggerType, triggerContext, string.Empty);
         return result;
+    }
+
+    /// <summary>
+    /// 마지막 저장 시도 상태를 조회합니다.
+    /// </summary>
+    public SaveOperationStatus GetLastSaveOperationStatus()
+    {
+        return new SaveOperationStatus(
+            _lastSaveSucceeded,
+            _lastSaveChannelType,
+            _lastSaveTriggerType,
+            _lastSaveTriggerContext,
+            _lastSaveFailureReason);
     }
 
     /// <summary>
@@ -378,6 +441,25 @@ public class SaveCoordinator : MonoBehaviour
 
         StopCoroutine(_periodicSaveCoroutine);
         _periodicSaveCoroutine = null;
+    }
+
+    /// <summary>
+    /// 저장 결과를 디버그 필드와 이벤트에 반영합니다.
+    /// </summary>
+    private void PublishSaveStatus(bool succeeded, E_SaveChannelType channelType, E_SaveTriggerType triggerType, string triggerContext, string failureReason)
+    {
+        _lastSaveSucceeded = succeeded;
+        _lastSaveChannelType = channelType;
+        _lastSaveTriggerType = triggerType;
+        _lastSaveTriggerContext = triggerContext;
+        _lastSaveFailureReason = failureReason;
+
+        OnSaveOperationCompleted?.Invoke(new SaveOperationStatus(
+            succeeded,
+            channelType,
+            triggerType,
+            triggerContext,
+            failureReason));
     }
 
     /// <summary>

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -11,7 +10,7 @@ public class StartNewGameAction : MonoBehaviour, ITitleMenuAction
     /// </summary>
     public bool CanExecute(TitleMenuActionContext context)
     {
-        return context != null && context.SceneTransitionService != null && context.HasValidNewGameScene();
+        return context != null && context.HasValidNewGameScene();
     }
 
     /// <summary>
@@ -21,7 +20,7 @@ public class StartNewGameAction : MonoBehaviour, ITitleMenuAction
     {
         if (CanExecute(context) == false)
         {
-            Debug.LogWarning("[StartNewGameAction] 필수 의존성이 없어 New Game을 실행할 수 없습니다.", this);
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionDependencyMissing, "[StartNewGameAction] 필수 의존성이 없어 New Game을 실행할 수 없습니다."), this);
             return false;
         }
 
@@ -30,7 +29,7 @@ public class StartNewGameAction : MonoBehaviour, ITitleMenuAction
         {
             if (context.DialogService == null)
             {
-                Debug.LogWarning("[StartNewGameAction] 덮어쓰기 확인 서비스가 없어 New Game을 취소합니다.", this);
+                Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionDependencyMissing, "[StartNewGameAction] 덮어쓰기 확인 서비스가 없어 New Game을 취소합니다."), this);
                 return false;
             }
 
@@ -41,26 +40,29 @@ public class StartNewGameAction : MonoBehaviour, ITitleMenuAction
             }
         }
 
-        ResetRuntimeProgress();
-
-        bool started = context.SceneTransitionService.TryLoadScene(context.NewGameSceneName);
-        if (started == false)
+        GameFlowController gameFlowController = context.GameFlowController; // New Game 명령 라우팅에 사용할 GameFlowController 참조입니다.
+        if (gameFlowController != null)
         {
-            Debug.LogWarning($"[StartNewGameAction] New Game 씬 전환 시작 실패 scene={context.NewGameSceneName}", this);
+            bool startedFromFlow = gameFlowController.RequestStartNewGame(context.NewGameSceneName, context.NewGameLoadedState);
+            if (!startedFromFlow)
+            {
+                Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionFlowRequestFailed, $"[StartNewGameAction] GameFlowController 기반 New Game 시작에 실패했습니다. scene={context.NewGameSceneName}"), this);
+            }
+
+            return startedFromFlow;
         }
 
-        return started;
+        EmitGameFlowRequiredTelemetry("GameFlowControllerMissing", context.NewGameSceneName);
+        Debug.LogError("[StartNewGameAction] GameFlowController가 필수라 New Game 요청을 중단합니다.", this);
+        return false;
     }
 
     /// <summary>
-    /// 새 게임 시작 전 런타임 진행 데이터를 초기화합니다.
+    /// GameFlow 필수 경로 위반 시 강한 경고와 텔레메트리 로그를 출력합니다.
     /// </summary>
-    private void ResetRuntimeProgress()
+    private void EmitGameFlowRequiredTelemetry(string reason, string sceneName)
     {
-        StageSession.Instance.ApplySnapshot(new StageSession.SnapshotData());
-        StageProgressRuntime.Instance.ApplySnapshot(new StageProgressRuntime.SnapshotData
-        {
-            Records = new List<StageProgressRecord>()
-        });
+        Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyActionGameFlowRequired, $"[StartNewGameAction][GAMEFLOW_REQUIRED] reason={reason}, scene={sceneName}"), this);
+        Debug.Log($"[Telemetry][GameFlowRequired] feature=StartNewGameAction, reason={reason}, scene={sceneName}", this);
     }
 }

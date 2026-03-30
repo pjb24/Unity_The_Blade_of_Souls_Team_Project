@@ -21,6 +21,10 @@ public class RecoveryService : MonoBehaviour
     [Tooltip("Inspector 테스트에서 Recovery 로드 시 사용할 TriggerContext 문자열입니다.")]
     [SerializeField] private string _inspectorRecoveryLoadTriggerContext = "Inspector.LoadRecovery"; // Inspector Recovery 로드 테스트에서 사용할 트리거 컨텍스트 문자열입니다.
 
+    [Header("GameFlow Integration")]
+    [Tooltip("복구 실패 시 폴백 명령을 전달할 GameFlowController 참조입니다. 비어 있으면 GameFlowController.Instance를 사용합니다.")]
+    [SerializeField] private GameFlowController _gameFlowController; // 복구 실패를 상위 GameFlow로 보고할 때 사용하는 컨트롤러 참조입니다.
+
     /// <summary>
     /// 활성화 시 설정에 따라 Recovery 채널 로드를 시도합니다.
     /// </summary>
@@ -149,6 +153,8 @@ public class RecoveryService : MonoBehaviour
         bool recovered = TryLoadChannel(E_SaveChannelType.Recovery, triggerType, triggerContext); // Recovery 채널 로드 실행 결과입니다.
         if (!recovered)
         {
+            GameFlowLogger.Recovery($"Recovery channel load failed. trigger={triggerType}, context={triggerContext}", this, true);
+            ReportRecoveryFailureToGameFlow($"Recovery channel load failed. trigger={triggerType}, context={triggerContext}");
             return false;
         }
 
@@ -159,9 +165,43 @@ public class RecoveryService : MonoBehaviour
 
         if (!spawnResolved)
         {
+            Debug.LogWarning("[RecoveryService] Recovery는 성공했지만 스폰 복원에 실패했습니다. Town 폴백을 요청합니다.", this);
+            GameFlowLogger.Recovery("Recovery load succeeded but spawn resolve failed. Requesting Town fallback.", this, true);
             GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterPlayerSpawn);
+            ReportRecoveryFailureToGameFlow("Spawn resolve failed after recovery load");
+            return false;
         }
 
+        GameFlowLogger.Recovery("Recovery load and spawn resolve completed.", this, true);
+        Debug.Log("[RecoveryService] Recovery 및 스폰 복원이 일관되게 완료되었습니다.", this);
         return true;
+    }
+
+    /// <summary>
+    /// 복구 실패를 GameFlowController에 전달해 정책 기반 폴백을 요청합니다.
+    /// </summary>
+    private void ReportRecoveryFailureToGameFlow(string reason)
+    {
+        GameFlowController controller = ResolveGameFlowController(); // 복구 실패 보고를 전달할 GameFlowController 참조입니다.
+        if (controller == null)
+        {
+            Debug.LogWarning($"[RecoveryService] GameFlowController가 없어 복구 실패 보고를 수행할 수 없습니다. reason={reason}", this);
+            return;
+        }
+
+        controller.NotifyDeathRecoveryFailed(reason);
+    }
+
+    /// <summary>
+    /// 직렬화 참조 또는 싱글톤에서 GameFlowController를 해석합니다.
+    /// </summary>
+    private GameFlowController ResolveGameFlowController()
+    {
+        if (_gameFlowController != null)
+        {
+            return _gameFlowController;
+        }
+
+        return GameFlowController.Instance;
     }
 }

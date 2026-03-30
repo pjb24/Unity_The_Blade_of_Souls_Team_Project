@@ -1,0 +1,181 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &517370791919577952
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1159163400707258473}
+  - component: {fileID: 6349070038292939143}
+  - component: {fileID: 4599951219679633824}
+  - component: {fileID: 8820946515419213869}
+  - component: {fileID: 6911285384685930252}
+  - component: {fileID: 4588995805741180383}
+  - component: {fileID: 4397434496589944427}
+  - component: {fileID: 16871069682181859}
+  m_Layer: 0
+  m_Name: Bootstrap Systems Root
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1159163400707258473
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6349070038292939143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57e900d018fa3a04cacad621dd8e3be9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameFlowController
+  _stageCatalog: {fileID: 11400000, guid: 328aa13009815514ca2bd5a53c34c92f, type: 2}
+  _sceneTransitionService: {fileID: 4599951219679633824}
+  _saveCoordinator: {fileID: 8820946515419213869}
+  _stageSession: {fileID: 4397434496589944427}
+  _stageProgressRuntime: {fileID: 16871069682181859}
+  _errorRecoveryPolicy: {fileID: 11400000, guid: 99aafd10e7c2cfc42ad98c1411ceb3f1, type: 2}
+  _titleSceneName: TitleMenu_Test
+  _defaultNewGameSceneName: Town_Test
+  _defaultNewGameLoadedState: 2
+  _dontDestroyOnLoad: 1
+  _autoInitializeOnAwake: 1
+  _verboseLog: 1
+  _hasSaveFailureDirty: 0
+  _lastSaveFailureReason: 
+  _warningSummaryCapacity: 20
+  _stateTransitionHistoryCapacity: 30
+  _sceneLoadFailureRetryCount: 0
+  _flowEpochId: 0
+  _activeSceneLoadEpochId: 0
+  _activeSceneLoadSceneName: 
+--- !u!114 &4599951219679633824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db2579f0b51567a4b95020fff4a3d19d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionService
+  _dontDestroyOnLoad: 1
+  _fadeOutDuration: 0.2
+  _fadeInDuration: 0.2
+  _blockInputWhileTransition: 1
+--- !u!114 &8820946515419213869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1025aaafb63027e4ca1c667bd95e0211, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveCoordinator
+  _backendComponent: {fileID: 6911285384685930252}
+  _channelPolicies:
+  - {fileID: 11400000, guid: 3385849dc8efb364ead3c28c0afce128, type: 2}
+  - {fileID: 11400000, guid: a0fb07ed79a01754ea9928fa866edaf6, type: 2}
+  - {fileID: 11400000, guid: ae0afca5f1f51784b9eb13e8055bb422, type: 2}
+  _forceClosePolicy: {fileID: 11400000, guid: 06b999e934430a340bdb6c1cce76e177, type: 2}
+  _recoveryPolicy: {fileID: 11400000, guid: 772488118b955b941866bf0d814080d5, type: 2}
+  _autoRegisterParticipants: 1
+  _refreshParticipantsAfterSceneLoad: 1
+  _autoLoadOnStart: 1
+  _lastSaveSucceeded: 0
+  _lastSaveChannelType: 0
+  _lastSaveTriggerType: 0
+  _lastSaveTriggerContext: 
+  _lastSaveFailureReason: 
+--- !u!114 &6911285384685930252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e42df5fe028de7e4d9a0aaea6aeb0a0d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JsonFileSaveBackend
+  _saveFolderName: SaveData
+--- !u!114 &4588995805741180383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42d09913b196673448d1a07ac9bcd389, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RecoveryService
+  _loadRecoveryOnEnable: 0
+  _logUiTestResult: 1
+  _inspectorPersistentLoadTriggerContext: Inspector.LoadPersistent
+  _inspectorSessionLoadTriggerContext: Inspector.LoadSession
+  _inspectorRecoveryLoadTriggerContext: Inspector.LoadRecovery
+  _gameFlowController: {fileID: 6349070038292939143}
+--- !u!114 &4397434496589944427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbc2ab9f9c0e2dc4d9e53ad1318df38f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StageSession
+  _dontDestroyOnLoad: 1
+  _selectedStageId: 
+  _targetStageEntryPointId: 
+  _targetTownReturnPointId: 
+  _requestedBgmContextType: 0
+  _lastCheckpointId: 
+  _lastCheckpointSceneName: 
+  _lastCheckpointWorldPosition: {x: 0, y: 0, z: 0}
+  _useCheckpointForNextSpawn: 0
+--- !u!114 &16871069682181859
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b6eb13ee15f91b4cacde13ce9a2f441, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StageProgressRuntime
+  _dontDestroyOnLoad: 1
+  _records: []

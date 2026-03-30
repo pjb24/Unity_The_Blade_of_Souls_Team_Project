@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Workspace/ParkJaeBok/Scenes/BootstrapTest.unity
+    guid: 8aad6333763d3514fb425157462474fa
+  - enabled: 1
+    path: Assets/_Workspace/ParkJaeBok/Scenes/TitleMenu_Test.unity
+    guid: a523875629a88714eb124af4b8d0f711
+  - enabled: 1
     path: Assets/_Workspace/ParkJaeBok/Scenes/Town_Test.unity
     guid: 83fb8ece2867be94ab6c569b5b6553e7
   - enabled: 1
