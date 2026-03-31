@@ -14,6 +14,21 @@ public interface ITitleSaveQueryService
     bool HasLoadableData();
 
     /// <summary>
+    /// 지정한 저장 슬롯에 실제 진행 데이터가 존재하는지 반환합니다.
+    /// </summary>
+    bool HasUsedProgressInSlot(int slotIndex);
+
+    /// <summary>
+    /// 지정 슬롯의 진행 요약 정보를 반환합니다.
+    /// </summary>
+    bool TryGetSlotProgressSummary(int slotIndex, out SaveSlotProgressSummary summary);
+
+    /// <summary>
+    /// 마지막으로 사용한 저장 슬롯 번호를 반환합니다.
+    /// </summary>
+    bool TryGetLastUsedSlotIndex(out int slotIndex);
+
+    /// <summary>
     /// New Game 덮어쓰기 경고에 사용할 기존 진행 데이터 존재 여부를 반환합니다.
     /// </summary>
     bool HasExistingProgress();

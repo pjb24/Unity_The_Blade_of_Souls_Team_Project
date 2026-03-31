@@ -55,15 +55,21 @@ public class TitleMenuView : MonoBehaviour
     /// </summary>
     public void SetAvailability(bool canContinue, bool canLoad)
     {
-        if (_continueButton != null)
+        ApplyButtonAvailability(_continueButton, canContinue);
+        ApplyButtonAvailability(_loadGameButton, canLoad);
+    }
+
+    /// <summary>
+    /// 버튼의 표시 활성 상태와 상호작용 가능 상태를 동기화합니다.
+    /// </summary>
+    private void ApplyButtonAvailability(Button button, bool isAvailable)
+    {
+        if (button == null)
         {
-            _continueButton.interactable = canContinue;
+            return;
         }
 
-        if (_loadGameButton != null)
-        {
-            _loadGameButton.interactable = canLoad;
-        }
+        button.interactable = isAvailable;
     }
 
     /// <summary>
@@ -82,7 +88,7 @@ public class TitleMenuView : MonoBehaviour
     /// </summary>
     public void SetDefaultSelection()
     {
-        GameObject target = _defaultSelected != null ? _defaultSelected.gameObject : (_newGameButton != null ? _newGameButton.gameObject : null); // 기본 선택 대상 오브젝트입니다.
+        GameObject target = ResolveDefaultSelectionTarget(); // 현재 메뉴 상태에서 선택 가능한 기본 포커스 대상 오브젝트입니다.
         if (target == null)
         {
             Debug.LogWarning("[TitleMenuView] 기본 선택 대상을 찾지 못했습니다.", this);
@@ -97,6 +103,34 @@ public class TitleMenuView : MonoBehaviour
 
         EventSystem.current.SetSelectedGameObject(null);
         EventSystem.current.SetSelectedGameObject(target);
+    }
+
+    /// <summary>
+    /// 현재 활성 상태를 고려해 기본 선택 대상 오브젝트를 해석합니다.
+    /// </summary>
+    private GameObject ResolveDefaultSelectionTarget()
+    {
+        if (_defaultSelected != null && _defaultSelected.gameObject.activeInHierarchy)
+        {
+            return _defaultSelected.gameObject;
+        }
+
+        if (_newGameButton != null && _newGameButton.gameObject.activeInHierarchy)
+        {
+            return _newGameButton.gameObject;
+        }
+
+        if (_optionButton != null && _optionButton.gameObject.activeInHierarchy)
+        {
+            return _optionButton.gameObject;
+        }
+
+        if (_quitButton != null && _quitButton.gameObject.activeInHierarchy)
+        {
+            return _quitButton.gameObject;
+        }
+
+        return null;
     }
 
     /// <summary>

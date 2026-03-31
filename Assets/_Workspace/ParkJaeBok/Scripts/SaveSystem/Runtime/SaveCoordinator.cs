@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 /// <summary>
@@ -33,6 +34,17 @@ public class SaveCoordinator : MonoBehaviour
     [Tooltip("씬 전환 후 초기 복원을 자동 시도할지 여부입니다.")]
     [SerializeField] private bool _autoLoadOnStart = true; // 시작 시 자동 로드 실행 여부입니다.
 
+    [Header("Save Slots")]
+    [Tooltip("저장 슬롯 기능 사용 여부입니다. 활성화 시 채널 파일명이 슬롯별로 분기됩니다.")]
+    [SerializeField] private bool _useSaveSlots = true; // 슬롯 저장 파일 분기 기능 사용 여부입니다.
+
+    [Tooltip("최초 실행 또는 슬롯 메타 부재 시 사용할 기본 슬롯 번호입니다.")]
+    [Min(1)]
+    [SerializeField] private int _defaultSaveSlotIndex = 1; // 초기 활성 슬롯으로 사용할 기본 슬롯 번호입니다.
+
+    [Tooltip("마지막 사용 슬롯 정보를 저장할 메타 파일명입니다.")]
+    [SerializeField] private string _slotProfileFileName = "save_slot_profile.json"; // 마지막 사용 슬롯 메타를 기록할 파일 이름입니다.
+
     [Header("Runtime Save Status")]
     [Tooltip("디버그용: 마지막 SaveChannel 호출 성공 여부입니다.")]
     [SerializeField] private bool _lastSaveSucceeded; // 마지막 저장 시도의 성공 여부입니다.
@@ -55,10 +67,18 @@ public class SaveCoordinator : MonoBehaviour
     private ISaveBackend _backend; // 저장/로드를 담당하는 백엔드 인터페이스 참조입니다.
     private Coroutine _periodicSaveCoroutine; // 주기 저장 루프 코루틴 핸들입니다.
     private SceneTransitionService _sceneTransitionService; // 씬 전환 이벤트 구독/해제를 위한 서비스 참조입니다.
+    private int _activeSaveSlotIndex = 1; // 현재 저장/로드에 사용할 활성 슬롯 번호입니다.
 
     public static SaveCoordinator Instance { get; private set; }
 
     public RecoveryPolicy RecoveryPolicy => _recoveryPolicy;
+    public int ActiveSaveSlotIndex => _activeSaveSlotIndex;
+
+    [Serializable]
+    private class SaveSlotProfileData
+    {
+        public int LastUsedSlotIndex = 1; // Continue 기본 대상으로 사용할 마지막 사용 슬롯 번호입니다.
+    }
 
     /// <summary>
     /// 저장 시도 결과를 외부 런타임에 전달하기 위한 상태 데이터입니다.
@@ -111,6 +131,7 @@ public class SaveCoordinator : MonoBehaviour
         }
 
         BuildPolicyMap();
+        RestoreLastUsedSlotOrDefault();
 
         if (_autoRegisterParticipants)
         {
@@ -231,7 +252,12 @@ public class SaveCoordinator : MonoBehaviour
         }
 
         string snapshotJson = JsonUtility.ToJson(snapshot, true);
-        bool result = _backend.TryWrite(policy.FileName, snapshotJson, policy.UseAtomicReplace, policy.BackupCount);
+        string resolvedFileName = ResolveChannelFileName(policy.FileName, _activeSaveSlotIndex); // 현재 활성 슬롯 규칙이 반영된 최종 저장 파일명입니다.
+        bool result = _backend.TryWrite(resolvedFileName, snapshotJson, policy.UseAtomicReplace, policy.BackupCount);
+        if (result)
+        {
+            SaveLastUsedSlotProfile();
+        }
         if (!result)
         {
             Debug.LogWarning($"[SaveCoordinator] 채널 저장 실패 channel={channelType}", this);
@@ -271,9 +297,13 @@ public class SaveCoordinator : MonoBehaviour
             return false;
         }
 
-        if (_backend.TryRead(policy.FileName, out string snapshotJson) == false)
+        string resolvedFileName = ResolveChannelFileName(policy.FileName, _activeSaveSlotIndex); // 현재 활성 슬롯 규칙이 반영된 최종 로드 파일명입니다.
+        if (_backend.TryRead(resolvedFileName, out string snapshotJson) == false)
         {
-            return false;
+            if (_useSaveSlots == false || _activeSaveSlotIndex != 1 || _backend.TryRead(policy.FileName, out snapshotJson) == false)
+            {
+                return false;
+            }
         }
 
         SaveSnapshot snapshot = JsonUtility.FromJson<SaveSnapshot>(snapshotJson);
@@ -296,6 +326,7 @@ public class SaveCoordinator : MonoBehaviour
             participant.RestoreFromJson(record.PayloadJson, context);
         }
 
+        SaveLastUsedSlotProfile();
         return true;
     }
 
@@ -316,13 +347,273 @@ public class SaveCoordinator : MonoBehaviour
             return false;
         }
 
-        bool hasSnapshot = _backend.TryRead(policy.FileName, out string snapshotJson);
+        string resolvedFileName = ResolveChannelFileName(policy.FileName, _activeSaveSlotIndex); // 현재 활성 슬롯 규칙이 반영된 스냅샷 조회 파일명입니다.
+        bool hasSnapshot = _backend.TryRead(resolvedFileName, out string snapshotJson);
         if (hasSnapshot == false)
+        {
+            if (_useSaveSlots == false || _activeSaveSlotIndex != 1 || _backend.TryRead(policy.FileName, out snapshotJson) == false)
+            {
+                return false;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(snapshotJson))
         {
             return false;
         }
 
-        return string.IsNullOrWhiteSpace(snapshotJson) == false;
+        SaveSnapshot snapshot = JsonUtility.FromJson<SaveSnapshot>(snapshotJson); // 유효한 세이브 레코드 존재 여부를 검증할 스냅샷 객체입니다.
+        if (snapshot == null || snapshot.Records == null || snapshot.Records.Count <= 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < snapshot.Records.Count; i++)
+        {
+            SaveParticipantRecord record = snapshot.Records[i]; // 저장 데이터 유효성 판정에 사용할 participant 레코드입니다.
+            if (record == null)
+            {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(record.ParticipantId) == false && string.IsNullOrWhiteSpace(record.PayloadJson) == false)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 현재 저장/로드에 사용할 활성 슬롯을 지정하고 필요 시 마지막 사용 슬롯 메타를 갱신합니다.
+    /// </summary>
+    public void SetActiveSaveSlot(int slotIndex, bool persistAsLastUsed = true)
+    {
+        _activeSaveSlotIndex = Mathf.Max(1, slotIndex);
+
+        if (persistAsLastUsed)
+        {
+            SaveLastUsedSlotProfile();
+        }
+    }
+
+    /// <summary>
+    /// 마지막 사용 슬롯 번호를 조회합니다.
+    /// </summary>
+    public bool TryGetLastUsedSlotIndex(out int slotIndex)
+    {
+        slotIndex = Mathf.Max(1, _activeSaveSlotIndex);
+        if (_useSaveSlots == false)
+        {
+            return false;
+        }
+
+        if (_backend == null || string.IsNullOrWhiteSpace(_slotProfileFileName))
+        {
+            return false;
+        }
+
+        if (_backend.TryRead(_slotProfileFileName, out string profileJson) == false || string.IsNullOrWhiteSpace(profileJson))
+        {
+            return false;
+        }
+
+        SaveSlotProfileData profile = JsonUtility.FromJson<SaveSlotProfileData>(profileJson); // 마지막 사용 슬롯 메타를 담는 역직렬화 결과입니다.
+        if (profile == null || profile.LastUsedSlotIndex <= 0)
+        {
+            return false;
+        }
+
+        slotIndex = Mathf.Max(1, profile.LastUsedSlotIndex);
+        return true;
+    }
+
+    /// <summary>
+    /// 지정 슬롯에 실제 진행 데이터가 있는지 확인합니다.
+    /// </summary>
+    public bool HasUsedProgressInSlot(int slotIndex)
+    {
+        return TryGetSlotProgressSummary(slotIndex, out SaveSlotProgressSummary summary) && summary.HasUsedData;
+    }
+
+    /// <summary>
+    /// 지정 슬롯의 진행 요약 정보를 반환합니다.
+    /// </summary>
+    public bool TryGetSlotProgressSummary(int slotIndex, out SaveSlotProgressSummary summary)
+    {
+        summary = new SaveSlotProgressSummary
+        {
+            SlotIndex = Mathf.Max(1, slotIndex),
+            HasUsedData = false,
+            SelectedStageId = string.Empty,
+            TotalClearCount = 0,
+            LastSavedUnixTimeUtc = 0
+        };
+
+        if (_backend == null)
+        {
+            return false;
+        }
+
+        if (TryGetPolicy(E_SaveChannelType.Persistent, out SaveChannelPolicy persistentPolicy) == false || persistentPolicy == null)
+        {
+            return false;
+        }
+
+        string persistentFileName = ResolveChannelFileName(persistentPolicy.FileName, summary.SlotIndex); // 슬롯 분기 규칙이 반영된 Persistent 파일명입니다.
+        if (_backend.TryRead(persistentFileName, out string persistentJson) == false || string.IsNullOrWhiteSpace(persistentJson))
+        {
+            if (_useSaveSlots == false || summary.SlotIndex != 1 || _backend.TryRead(persistentPolicy.FileName, out persistentJson) == false || string.IsNullOrWhiteSpace(persistentJson))
+            {
+                return false;
+            }
+        }
+
+        SaveSnapshot snapshot = JsonUtility.FromJson<SaveSnapshot>(persistentJson); // 슬롯 요약 산출에 사용할 Persistent 스냅샷입니다.
+        if (snapshot == null || snapshot.Records == null || snapshot.Records.Count <= 0)
+        {
+            return false;
+        }
+
+        summary.LastSavedUnixTimeUtc = snapshot.SavedUnixTimeUtc;
+        summary.SelectedStageId = ExtractSelectedStageId(snapshot);
+        summary.TotalClearCount = ExtractTotalClearCount(snapshot);
+        summary.HasUsedData = string.IsNullOrWhiteSpace(summary.SelectedStageId) == false || summary.TotalClearCount > 0;
+        return true;
+    }
+
+    /// <summary>
+    /// 슬롯 메타 또는 기본 설정값으로 활성 슬롯을 초기화합니다.
+    /// </summary>
+    private void RestoreLastUsedSlotOrDefault()
+    {
+        _activeSaveSlotIndex = Mathf.Max(1, _defaultSaveSlotIndex);
+        if (_useSaveSlots == false)
+        {
+            return;
+        }
+
+        if (TryGetLastUsedSlotIndex(out int lastUsedSlotIndex))
+        {
+            _activeSaveSlotIndex = Mathf.Max(1, lastUsedSlotIndex);
+        }
+    }
+
+    /// <summary>
+    /// 현재 활성 슬롯을 마지막 사용 슬롯 메타 파일에 기록합니다.
+    /// </summary>
+    private void SaveLastUsedSlotProfile()
+    {
+        if (_useSaveSlots == false || _backend == null || string.IsNullOrWhiteSpace(_slotProfileFileName))
+        {
+            return;
+        }
+
+        SaveSlotProfileData profile = new SaveSlotProfileData
+        {
+            LastUsedSlotIndex = Mathf.Max(1, _activeSaveSlotIndex)
+        };
+
+        string profileJson = JsonUtility.ToJson(profile, true); // 마지막 사용 슬롯 메타를 파일에 기록할 JSON 문자열입니다.
+        _backend.TryWrite(_slotProfileFileName, profileJson, true, 1);
+    }
+
+    /// <summary>
+    /// 채널 기본 파일명에 슬롯 번호 접미사를 반영한 최종 파일명을 계산합니다.
+    /// </summary>
+    private string ResolveChannelFileName(string baseFileName, int slotIndex)
+    {
+        if (_useSaveSlots == false)
+        {
+            return baseFileName;
+        }
+
+        int safeSlotIndex = Mathf.Max(1, slotIndex); // 파일명 접미사 생성에 사용할 보정된 슬롯 번호입니다.
+        string extension = Path.GetExtension(baseFileName);
+        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(baseFileName);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return $"{fileNameWithoutExtension}_slot{safeSlotIndex}";
+        }
+
+        return $"{fileNameWithoutExtension}_slot{safeSlotIndex}{extension}";
+    }
+
+    /// <summary>
+    /// 스냅샷에서 마지막 진행 스테이지 ID를 추출합니다.
+    /// </summary>
+    private string ExtractSelectedStageId(SaveSnapshot snapshot)
+    {
+        const string stageSessionParticipantId = "core.stage_session";
+        for (int i = 0; i < snapshot.Records.Count; i++)
+        {
+            SaveParticipantRecord record = snapshot.Records[i]; // stage_session participant 탐색에 사용할 레코드입니다.
+            if (record == null || string.Equals(record.ParticipantId, stageSessionParticipantId, StringComparison.Ordinal) == false)
+            {
+                continue;
+            }
+
+            StageSessionPayloadProxy payload = JsonUtility.FromJson<StageSessionPayloadProxy>(record.PayloadJson); // SelectedStageId 추출용 임시 payload 객체입니다.
+            if (payload == null)
+            {
+                continue;
+            }
+
+            return payload.SelectedStageId ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// 스냅샷에서 누적 스테이지 클리어 횟수를 추출합니다.
+    /// </summary>
+    private int ExtractTotalClearCount(SaveSnapshot snapshot)
+    {
+        const string stageProgressParticipantId = "core.stage_progress";
+        for (int i = 0; i < snapshot.Records.Count; i++)
+        {
+            SaveParticipantRecord record = snapshot.Records[i]; // stage_progress participant 탐색에 사용할 레코드입니다.
+            if (record == null || string.Equals(record.ParticipantId, stageProgressParticipantId, StringComparison.Ordinal) == false)
+            {
+                continue;
+            }
+
+            StageProgressPayloadProxy payload = JsonUtility.FromJson<StageProgressPayloadProxy>(record.PayloadJson); // 누적 클리어 횟수 계산에 사용할 임시 payload 객체입니다.
+            if (payload == null || payload.Records == null)
+            {
+                continue;
+            }
+
+            int totalClearCount = 0;
+            for (int recordIndex = 0; recordIndex < payload.Records.Count; recordIndex++)
+            {
+                StageProgressRecord progressRecord = payload.Records[recordIndex]; // 합산 중인 stage_progress 레코드입니다.
+                if (progressRecord == null)
+                {
+                    continue;
+                }
+
+                totalClearCount += Mathf.Max(0, progressRecord.ClearCount);
+            }
+
+            return totalClearCount;
+        }
+
+        return 0;
+    }
+
+    [Serializable]
+    private class StageSessionPayloadProxy
+    {
+        public string SelectedStageId; // stage_session participant payload에서 추출할 스테이지 ID입니다.
+    }
+
+    [Serializable]
+    private class StageProgressPayloadProxy
+    {
+        public List<StageProgressRecord> Records = new List<StageProgressRecord>(); // stage_progress participant payload에서 추출할 진행 레코드 목록입니다.
     }
 
     /// <summary>

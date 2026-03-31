@@ -867,6 +867,8 @@ MonoBehaviour:
   _useParentTransformWhenTargetRegistryMember: 1
   _maxResolveRetryCount: 10
   _resolveRetryInterval: 0.1
+  _lastResolveSucceeded: 0
+  _lastResolveFailureReason: 
 --- !u!1 &1449140529
 GameObject:
   m_ObjectHideFlags: 0
@@ -990,11 +992,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48c12c4b6bb7139448a3ce681a247510, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageReturnToTownPresenter
-  _stageCatalog: {fileID: 11400000, guid: 328aa13009815514ca2bd5a53c34c92f, type: 2}
-  _currentStageIdOverride: 
-  _useCurrentStageTownReturnPoint: 1
-  _fallbackTownEntryPointId: Town_Default
   _verboseLog: 1
+  _gameFlowController: {fileID: 0}
 --- !u!1001 &1795778028
 PrefabInstance:
   m_ObjectHideFlags: 0
