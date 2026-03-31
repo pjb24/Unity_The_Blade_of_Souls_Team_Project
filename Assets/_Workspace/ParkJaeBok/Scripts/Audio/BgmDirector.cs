@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -35,6 +36,8 @@ public class BgmDirector : MonoBehaviour
     private float _lastSwitchTime = -999f; // 마지막 BGM 전환 시각
 
     private bool _isInitialized = false; // 룰 캐시 초기화 완료 여부
+    private Coroutine _deferredEvaluateCoroutine; // 최소 전환 간격에 걸렸을 때 재평가를 지연 실행하는 코루틴 핸들입니다.
+    private float _deferredEvaluateTargetTime = -1f; // 현재 예약된 지연 재평가 목표 시각입니다.
 
     private readonly struct ContextRequestKey : IEquatable<ContextRequestKey>
     {
@@ -94,6 +97,22 @@ public class BgmDirector : MonoBehaviour
         }
 
         BuildRuleCache();
+    }
+
+    /// <summary>
+    /// 비활성화 시 지연 재평가 코루틴을 정리합니다.
+    /// </summary>
+    private void OnDisable()
+    {
+        StopDeferredEvaluation();
+    }
+
+    /// <summary>
+    /// 파괴 시 지연 재평가 코루틴을 정리합니다.
+    /// </summary>
+    private void OnDestroy()
+    {
+        StopDeferredEvaluation();
     }
 
     /// <summary>
@@ -223,6 +242,7 @@ public class BgmDirector : MonoBehaviour
         {
             if (now - _lastSwitchTime < _globalMinSwitchInterval)
             {
+                ScheduleDeferredEvaluation(now);
                 return;
             }
         }
@@ -264,6 +284,65 @@ public class BgmDirector : MonoBehaviour
         _currentPriority = targetPriority;
         _currentHoldUntilTime = now + bestRule.MinHoldDuration;
         _lastSwitchTime = now;
+    }
+
+    /// <summary>
+    /// 최소 전환 간격으로 인해 즉시 평가하지 못한 경우, 간격 종료 시점에 재평가를 예약합니다.
+    /// </summary>
+    private void ScheduleDeferredEvaluation(float now)
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        float remainingInterval = _globalMinSwitchInterval - (now - _lastSwitchTime); // 현재 시점에서 남은 최소 전환 대기 시간입니다.
+        float delaySeconds = Mathf.Max(0f, remainingInterval); // 음수 방지를 적용한 지연 시간입니다.
+        float targetTime = now + delaySeconds; // 예약된 재평가 목표 시각입니다.
+
+        if (_deferredEvaluateCoroutine != null)
+        {
+            bool hasSoonerOrSameSchedule = targetTime >= _deferredEvaluateTargetTime; // 기존 예약이 더 빠르거나 동일한지 여부입니다.
+            if (hasSoonerOrSameSchedule)
+            {
+                return;
+            }
+
+            StopCoroutine(_deferredEvaluateCoroutine);
+            _deferredEvaluateCoroutine = null;
+        }
+
+        _deferredEvaluateTargetTime = targetTime;
+        _deferredEvaluateCoroutine = StartCoroutine(DeferredEvaluateCoroutine(delaySeconds));
+    }
+
+    /// <summary>
+    /// 지정 시간만큼 대기한 뒤 최소 간격 제한을 우회해 즉시 재평가를 수행합니다.
+    /// </summary>
+    private IEnumerator DeferredEvaluateCoroutine(float delaySeconds)
+    {
+        if (delaySeconds > 0f)
+        {
+            yield return new WaitForSecondsRealtime(delaySeconds);
+        }
+
+        _deferredEvaluateCoroutine = null;
+        _deferredEvaluateTargetTime = -1f;
+        EvaluateAndApplyBestContext(true);
+    }
+
+    /// <summary>
+    /// 예약된 지연 재평가 코루틴을 안전하게 중지하고 상태를 초기화합니다.
+    /// </summary>
+    private void StopDeferredEvaluation()
+    {
+        if (_deferredEvaluateCoroutine != null)
+        {
+            StopCoroutine(_deferredEvaluateCoroutine);
+            _deferredEvaluateCoroutine = null;
+        }
+
+        _deferredEvaluateTargetTime = -1f;
     }
 
     /// <summary>

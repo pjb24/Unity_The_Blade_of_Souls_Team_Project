@@ -22,4 +22,4 @@ MonoBehaviour:
   _isInitiallyUnlocked: 1
   _unlockConditions: []
   _allowMultiplayer: 0
-  _bgmContextType: 100
+  _bgmContextType: 103
