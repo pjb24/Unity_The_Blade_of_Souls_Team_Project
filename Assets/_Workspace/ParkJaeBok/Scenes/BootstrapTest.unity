@@ -321,6 +321,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.data[1]._soundId
+      value: 1002
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.data[1]._contextType
+      value: 103
+      objectReference: {fileID: 0}
     - target: {fileID: 1658755828754675302, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
       propertyPath: m_Name
       value: --- AudioManager ---

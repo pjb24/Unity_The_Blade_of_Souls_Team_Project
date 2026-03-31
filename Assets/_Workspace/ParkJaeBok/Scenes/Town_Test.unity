@@ -756,54 +756,6 @@ MonoBehaviour:
   _healthComponent: {fileID: 736244576}
   _respectRecoveryPolicy: 1
   _autoSnapshotOnDeath: 1
---- !u!1 &829404870
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 829404872}
-  - component: {fileID: 829404871}
-  m_Layer: 0
-  m_Name: Town_TransitionService
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &829404871
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 829404870}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: db2579f0b51567a4b95020fff4a3d19d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionService
-  _dontDestroyOnLoad: 1
-  _fadeOutDuration: 0.2
-  _fadeInDuration: 0.2
-  _blockInputWhileTransition: 1
---- !u!4 &829404872
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 829404870}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &906605841
 GameObject:
   m_ObjectHideFlags: 0
@@ -1163,7 +1115,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1023034798}
-  - component: {fileID: 1023034797}
   - component: {fileID: 1023034800}
   - component: {fileID: 1023034799}
   m_Layer: 0
@@ -1173,27 +1124,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1023034797
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1023034796}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbc2ab9f9c0e2dc4d9e53ad1318df38f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageSession
-  _dontDestroyOnLoad: 1
-  _selectedStageId: 
-  _targetStageEntryPointId: 
-  _targetTownReturnPointId: 
-  _requestedBgmContextType: 0
-  _lastCheckpointId: 
-  _lastCheckpointSceneName: 
-  _lastCheckpointWorldPosition: {x: 0, y: 0, z: 0}
-  _useCheckpointForNextSpawn: 0
 --- !u!4 &1023034798
 Transform:
   m_ObjectHideFlags: 0
@@ -1237,52 +1167,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StageSessionSaveParticipant
   _participantId: core.stage_session
   _respectRecoveryPolicy: 1
---- !u!1 &1045302620
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1045302622}
-  - component: {fileID: 1045302621}
-  m_Layer: 0
-  m_Name: Town_StageProgressRuntime
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1045302621
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1045302620}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b6eb13ee15f91b4cacde13ce9a2f441, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageProgressRuntime
-  _dontDestroyOnLoad: 1
-  _records: []
---- !u!4 &1045302622
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1045302620}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1046330834
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1350,7 +1234,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1335490361}
   - component: {fileID: 1335490363}
-  - component: {fileID: 1335490362}
+  - component: {fileID: 1335490364}
   m_Layer: 0
   m_Name: Town_SystemRoot
   m_TagString: Untagged
@@ -1373,22 +1257,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1335490362
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1335490360}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd359de2ad7b01547be94760709370ee, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageBgmContextApplier
-  _applyOnEnable: 1
-  _consumeContextAfterApply: 1
-  _popAppliedContextOnDisable: 1
-  _bgmDirector: {fileID: 0}
 --- !u!114 &1335490363
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1411,6 +1279,24 @@ MonoBehaviour:
   _resolveRetryInterval: 0.1
   _lastResolveSucceeded: 0
   _lastResolveFailureReason: 
+--- !u!114 &1335490364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1335490360}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 813b912a0479321458e8a6fea7e0f158, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BgmContextBridge
+  _bgmDirector: {fileID: 0}
+  _contextType: 103
+  _pushOnEnable: 1
+  _popOnDisable: 1
+  _retryInterval: 0.1
+  _maxRetryCount: 30
 --- !u!1 &1389619116
 GameObject:
   m_ObjectHideFlags: 0
@@ -2003,6 +1889,37 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 599981884f3695d4c89a2ef62a20fa40, type: 3}
+--- !u!1 &1820532674
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1820532675}
+  m_Layer: 0
+  m_Name: --- Visual Interpolator ---
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1820532675
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1820532674}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1976113774
 GameObject:
   m_ObjectHideFlags: 0
@@ -2501,7 +2418,6 @@ SceneRoots:
   - {fileID: 1795778028}
   - {fileID: 1335490361}
   - {fileID: 1023034798}
-  - {fileID: 829404872}
-  - {fileID: 1045302622}
   - {fileID: 1693991926}
   - {fileID: 1990937599}
+  - {fileID: 1820532675}
