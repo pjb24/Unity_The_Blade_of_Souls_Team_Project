@@ -1,0 +1,95 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3151cf012ba0fb47803d45b7b34d7af, type: 3}
+  m_Name: OptionDefaultProfile_Default
+  m_EditorClassIdentifier: Assembly-CSharp::OptionDefaultProfile
+  _schemaVersion: 1
+  _defaultDisplay:
+    ScreenMode: 1
+    Resolution:
+      Width: 1920
+      Height: 1080
+      RefreshRate: 60
+    VSync: 0
+    FrameLimit: 0
+    GammaBrightness: 50
+    GraphicsPreset: 0
+    GraphicsDetailMode: 0
+    TextureQualityLevel: 0
+    ShadowQualityLevel: 0
+    PostProcessingQualityLevel: 0
+  _defaultAudio:
+    MasterVolume: 100
+    BgmVolume: 100
+    SfxVolume: 100
+  _defaultInput:
+    InputHoldBehavior: 0
+    KeyBindings: []
+  _defaultAccessibility:
+    SubtitleEnabled: 0
+    SubtitleSize: 0
+    SubtitleSpeed: 50
+    UiScale: 100
+    CameraShake: 100
+    ScreenShake: 100
+    ShakeReduction: 0
+    FlashReduction: 0
+    ColorBlindMode: 0
+    HighContrastMode: 0
+  _defaultGameplay:
+    Difficulty: 0
+    AutoSaveNotification: 0
+  _gammaBrightnessSetting:
+    DefaultValue: 50
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _masterVolumeSetting:
+    DefaultValue: 100
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _bgmVolumeSetting:
+    DefaultValue: 100
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _sfxVolumeSetting:
+    DefaultValue: 100
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _subtitleSpeedSetting:
+    DefaultValue: 50
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _uiScaleSetting:
+    DefaultValue: 100
+    MinValue: 0
+    MaxValue: 200
+    Step: 1
+  _cameraShakeSetting:
+    DefaultValue: 100
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _screenShakeSetting:
+    DefaultValue: 100
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
+  _shakeReductionSetting:
+    DefaultValue: 0
+    MinValue: 0
+    MaxValue: 100
+    Step: 1
