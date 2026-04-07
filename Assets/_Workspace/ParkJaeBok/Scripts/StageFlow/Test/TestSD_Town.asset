@@ -21,5 +21,5 @@ MonoBehaviour:
   _isEntryEnabled: 1
   _isInitiallyUnlocked: 1
   _unlockConditions: []
-  _allowMultiplayer: 0
+  _allowMultiplayer: 1
   _bgmContextType: 103

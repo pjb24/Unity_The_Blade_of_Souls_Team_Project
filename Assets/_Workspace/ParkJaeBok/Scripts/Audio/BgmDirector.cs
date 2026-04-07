@@ -38,6 +38,8 @@ public class BgmDirector : MonoBehaviour
     private bool _isInitialized = false; // 룰 캐시 초기화 완료 여부
     private Coroutine _deferredEvaluateCoroutine; // 최소 전환 간격에 걸렸을 때 재평가를 지연 실행하는 코루틴 핸들입니다.
     private float _deferredEvaluateTargetTime = -1f; // 현재 예약된 지연 재평가 목표 시각입니다.
+    private Coroutine _frameCoalescedEvaluateCoroutine; // 같은 프레임의 다중 Push/Pop 요청을 1회 평가로 합치기 위한 코루틴 핸들입니다.
+    private bool _frameCoalescedForceBypassInterval; // 프레임 합치기 대기 중 최소 전환 간격 우회가 필요한지 여부입니다.
 
     private readonly struct ContextRequestKey : IEquatable<ContextRequestKey>
     {
@@ -105,6 +107,7 @@ public class BgmDirector : MonoBehaviour
     private void OnDisable()
     {
         StopDeferredEvaluation();
+        StopFrameCoalescedEvaluation();
     }
 
     /// <summary>
@@ -113,6 +116,7 @@ public class BgmDirector : MonoBehaviour
     private void OnDestroy()
     {
         StopDeferredEvaluation();
+        StopFrameCoalescedEvaluation();
     }
 
     /// <summary>
@@ -170,7 +174,7 @@ public class BgmDirector : MonoBehaviour
         ContextRequestKey requestKey = new ContextRequestKey(contextType, requesterKey); // 활성 요청을 저장할 딕셔너리 키
         _activeContextRequestTimes[requestKey] = Time.unscaledTime;
 
-        EvaluateAndApplyBestContext(false);
+        RequestEvaluate(false);
     }
 
     /// <summary>
@@ -191,7 +195,7 @@ public class BgmDirector : MonoBehaviour
             return;
         }
 
-        EvaluateAndApplyBestContext(false);
+        RequestEvaluate(false);
     }
 
     /// <summary>
@@ -223,8 +227,44 @@ public class BgmDirector : MonoBehaviour
 
         if (keysToRemove.Count > 0)
         {
-            EvaluateAndApplyBestContext(false);
+            RequestEvaluate(false);
         }
+    }
+
+    /// <summary>
+    /// 같은 프레임에 들어온 다중 컨텍스트 변경 요청을 1회 평가로 합쳐 실행합니다.
+    /// </summary>
+    private void RequestEvaluate(bool forceBypassInterval)
+    {
+        _frameCoalescedForceBypassInterval |= forceBypassInterval;
+
+        if (isActiveAndEnabled == false)
+        {
+            bool shouldBypassInterval = _frameCoalescedForceBypassInterval; // 비활성 상태 즉시 평가에 사용할 간격 우회 플래그입니다.
+            _frameCoalescedForceBypassInterval = false;
+            EvaluateAndApplyBestContext(shouldBypassInterval);
+            return;
+        }
+
+        if (_frameCoalescedEvaluateCoroutine != null)
+        {
+            return;
+        }
+
+        _frameCoalescedEvaluateCoroutine = StartCoroutine(CoEvaluateAtEndOfFrame());
+    }
+
+    /// <summary>
+    /// 프레임 종료 직전에 누적된 컨텍스트 변경을 한 번만 평가합니다.
+    /// </summary>
+    private IEnumerator CoEvaluateAtEndOfFrame()
+    {
+        yield return null;
+
+        _frameCoalescedEvaluateCoroutine = null;
+        bool shouldBypassInterval = _frameCoalescedForceBypassInterval; // 이번 배치 평가에서 사용할 간격 우회 플래그입니다.
+        _frameCoalescedForceBypassInterval = false;
+        EvaluateAndApplyBestContext(shouldBypassInterval);
     }
 
     /// <summary>
@@ -257,8 +297,16 @@ public class BgmDirector : MonoBehaviour
         int targetPriority = bestRule.Priority; // 선택된 컨텍스트 우선순위
 
         bool isSameTrack = _currentBgmId == targetBgmId; // 현재 트랙과 목표 트랙이 동일한지 여부
+        bool isTargetTrackPlaying = audioManager.IsBgmPlaying(targetBgmId); // AudioManager 기준으로 목표 트랙이 실제 재생 중인지 여부
         if (isSameTrack)
         {
+            if (isTargetTrackPlaying == false)
+            {
+                Debug.LogWarning($"[BgmDirector] 동일 트랙 컨텍스트이지만 실제 재생이 중단되어 재생을 복구합니다. bgm={targetBgmId}", this);
+                audioManager.PlayBgm(targetBgmId);
+                _lastSwitchTime = now;
+            }
+
             _currentContext = bestRule.ContextType;
             _currentPriority = targetPriority;
             _currentHoldUntilTime = Mathf.Max(_currentHoldUntilTime, now + bestRule.MinHoldDuration);
@@ -346,6 +394,20 @@ public class BgmDirector : MonoBehaviour
     }
 
     /// <summary>
+    /// 예약된 프레임 합치기 재평가 코루틴을 중지하고 상태를 초기화합니다.
+    /// </summary>
+    private void StopFrameCoalescedEvaluation()
+    {
+        if (_frameCoalescedEvaluateCoroutine != null)
+        {
+            StopCoroutine(_frameCoalescedEvaluateCoroutine);
+            _frameCoalescedEvaluateCoroutine = null;
+        }
+
+        _frameCoalescedForceBypassInterval = false;
+    }
+
+    /// <summary>
     /// 현재 활성 컨텍스트 중 가장 우선순위가 높은 규칙을 찾는다.
     /// </summary>
     private bool TryGetBestActiveRule(out BgmContextRule bestRule)
@@ -407,6 +469,13 @@ public class BgmDirector : MonoBehaviour
 
         if (_currentBgmId == _fallbackBgmId)
         {
+            if (audioManager.IsBgmPlaying(_fallbackBgmId) == false)
+            {
+                Debug.LogWarning($"[BgmDirector] 폴백 BGM이 선택 상태지만 재생이 중단되어 재생을 복구합니다. bgm={_fallbackBgmId}", this);
+                audioManager.PlayBgm(_fallbackBgmId);
+                _lastSwitchTime = now;
+            }
+
             _currentContext = E_BgmContextType.None;
             _currentPriority = int.MinValue;
             return;

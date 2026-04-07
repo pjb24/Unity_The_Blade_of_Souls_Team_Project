@@ -646,6 +646,25 @@ public class AudioManager : MonoBehaviour
     public float GetSfxVolume() => _sfxVolume;
 
     /// <summary>
+    /// 지정한 SoundId의 BGM이 현재 재생 중인지 확인한다.
+    /// </summary>
+    public bool IsBgmPlaying(E_SoundId soundId)
+    {
+        if (soundId == E_SoundId.None)
+        {
+            return false;
+        }
+
+        AudioSource activeSource = _bgmSources[_activeBgmIndex]; // 현재 메인 BGM 채널로 사용 중인 AudioSource입니다.
+        if (activeSource == null)
+        {
+            return false;
+        }
+
+        return _currentBgmId == soundId && activeSource.isPlaying;
+    }
+
+    /// <summary>
     /// PlayerPrefs에서 볼륨을 불러오고 범위를 검증한다.
     /// </summary>
     private void LoadVolumes()
