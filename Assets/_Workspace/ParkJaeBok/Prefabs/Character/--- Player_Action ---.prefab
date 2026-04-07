@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6523384298162873578}
   - component: {fileID: 7944331432045131538}
   - component: {fileID: 7014546302037240364}
+  - component: {fileID: 8397185906079373947}
   m_Layer: 0
   m_Name: --- Player_Action ---
   m_TagString: Untagged
@@ -87,6 +88,7 @@ MonoBehaviour:
   _autoStartDefaultAction: 1
   _defaultActionType: 1
   _actionRuleProfile: {fileID: 11400000, guid: 8293c9662c365364abaac593afeb75ca, type: 2}
+  _interruptPolicyProfile: {fileID: 0}
   _ignoreMarkerEndActions: 03000000040000000500000006000000070000000800000009000000
 --- !u!114 &7944331432045131538
 MonoBehaviour:
@@ -175,3 +177,20 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &8397185906079373947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8950158379528443017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9235cf2dae6cd2c438e7d126866132a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionHitBridge
+  _hitReceiver: {fileID: 0}
+  _actionController: {fileID: 0}
+  _hitBridgeProfile: {fileID: 0}
+  _retryInterval: 0.1
+  _maxRetryCount: 30
