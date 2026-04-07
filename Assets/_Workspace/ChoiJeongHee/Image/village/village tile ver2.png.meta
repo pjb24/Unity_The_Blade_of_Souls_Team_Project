@@ -1,0 +1,988 @@
+fileFormatVersion: 2
+guid: bcf026c2655cb6d478c55862ea4de6ee
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -4611376385941706439
+    second: village tile ver2_0
+  - first:
+      213: 5498874048662982349
+    second: village tile ver2_1
+  - first:
+      213: 8027036925143458605
+    second: village tile ver2_2
+  - first:
+      213: -5820194072666202530
+    second: village tile ver2_3
+  - first:
+      213: -2810551518779503348
+    second: village tile ver2_4
+  - first:
+      213: -2683010930139718396
+    second: village tile ver2_5
+  - first:
+      213: -3455400325849364471
+    second: village tile ver2_6
+  - first:
+      213: -7503029364447749586
+    second: village tile ver2_7
+  - first:
+      213: 3055266440568258759
+    second: village tile ver2_8
+  - first:
+      213: 6159465182015142933
+    second: village tile ver2_9
+  - first:
+      213: 6390760267749764927
+    second: village tile ver2_10
+  - first:
+      213: -4832879820223864709
+    second: village tile ver2_11
+  - first:
+      213: -612141491901299822
+    second: village tile ver2_12
+  - first:
+      213: -3831142420823155832
+    second: village tile ver2_13
+  - first:
+      213: -3374427389478840843
+    second: village tile ver2_14
+  - first:
+      213: -8245429774494823006
+    second: village tile ver2_15
+  - first:
+      213: 4967012779148942079
+    second: village tile ver2_16
+  - first:
+      213: -7847247671932674139
+    second: village tile ver2_17
+  - first:
+      213: -1875749696377843761
+    second: village tile ver2_18
+  - first:
+      213: 6395720802093123960
+    second: village tile ver2_19
+  - first:
+      213: 4078421911533955473
+    second: village tile ver2_20
+  - first:
+      213: -821095777810891411
+    second: village tile ver2_21
+  - first:
+      213: -3943582678712480176
+    second: village tile ver2_22
+  - first:
+      213: -8409039012630031820
+    second: village tile ver2_23
+  - first:
+      213: -3486380848219721321
+    second: village tile ver2_24
+  - first:
+      213: -7808679620854324705
+    second: village tile ver2_25
+  - first:
+      213: -6586988974064610643
+    second: village tile ver2_26
+  - first:
+      213: 8425888387465968412
+    second: village tile ver2_27
+  - first:
+      213: -577473682295505862
+    second: village tile ver2_28
+  - first:
+      213: 1017511454259380099
+    second: village tile ver2_29
+  - first:
+      213: -7934203189102371080
+    second: village tile ver2_30
+  - first:
+      213: -5610219285167319484
+    second: village tile ver2_31
+  - first:
+      213: 5960428909950215739
+    second: village tile ver2_32
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 138
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: village tile ver2_0
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 612
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 939e15eeb991100c0800000000000000
+      internalID: -4611376385941706439
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_1
+      rect:
+        serializedVersion: 2
+        x: 179
+        y: 614
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dcecb2f10dcef4c40800000000000000
+      internalID: 5498874048662982349
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_2
+      rect:
+        serializedVersion: 2
+        x: 330
+        y: 615
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d23ae1aed83c56f60800000000000000
+      internalID: 8027036925143458605
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_3
+      rect:
+        serializedVersion: 2
+        x: 480
+        y: 615
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e5e95eed3548a3fa0800000000000000
+      internalID: -5820194072666202530
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_4
+      rect:
+        serializedVersion: 2
+        x: 744
+        y: 613
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c0d863cd84aeef8d0800000000000000
+      internalID: -2810551518779503348
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_5
+      rect:
+        serializedVersion: 2
+        x: 892
+        y: 613
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 40d188436c704cad0800000000000000
+      internalID: -2683010930139718396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_6
+      rect:
+        serializedVersion: 2
+        x: 1039
+        y: 613
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 908cafc06b3fb00d0800000000000000
+      internalID: -3455400325849364471
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_7
+      rect:
+        serializedVersion: 2
+        x: 1305
+        y: 613
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e2a54c8bb82efd790800000000000000
+      internalID: -7503029364447749586
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_8
+      rect:
+        serializedVersion: 2
+        x: 1453
+        y: 612
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c04e34e3ac766a20800000000000000
+      internalID: 3055266440568258759
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_9
+      rect:
+        serializedVersion: 2
+        x: 1603
+        y: 614
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 51c3664e2f0da7550800000000000000
+      internalID: 6159465182015142933
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_10
+      rect:
+        serializedVersion: 2
+        x: 1754
+        y: 613
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f3fa7e39a9a80b850800000000000000
+      internalID: 6390760267749764927
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_11
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 461
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b702761c8692eecb0800000000000000
+      internalID: -4832879820223864709
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_12
+      rect:
+        serializedVersion: 2
+        x: 179
+        y: 461
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 29302fe6e8c3187f0800000000000000
+      internalID: -612141491901299822
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_13
+      rect:
+        serializedVersion: 2
+        x: 329
+        y: 460
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 88bd7ea344c05dac0800000000000000
+      internalID: -3831142420823155832
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_14
+      rect:
+        serializedVersion: 2
+        x: 480
+        y: 460
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f5d3c1fa20ab21d0800000000000000
+      internalID: -3374427389478840843
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_15
+      rect:
+        serializedVersion: 2
+        x: 744
+        y: 461
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ad8ec66e49529d80800000000000000
+      internalID: -8245429774494823006
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_16
+      rect:
+        serializedVersion: 2
+        x: 891
+        y: 463
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ffa9ff76ecf5ee440800000000000000
+      internalID: 4967012779148942079
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_17
+      rect:
+        serializedVersion: 2
+        x: 1039
+        y: 463
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5af11f1a1d9f81390800000000000000
+      internalID: -7847247671932674139
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_18
+      rect:
+        serializedVersion: 2
+        x: 1306
+        y: 461
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fcf0adbd69ff7f5e0800000000000000
+      internalID: -1875749696377843761
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_19
+      rect:
+        serializedVersion: 2
+        x: 1452
+        y: 462
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 879465bfe2a22c850800000000000000
+      internalID: 6395720802093123960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_20
+      rect:
+        serializedVersion: 2
+        x: 1602
+        y: 462
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 199a621ce17799830800000000000000
+      internalID: 4078421911533955473
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_21
+      rect:
+        serializedVersion: 2
+        x: 1756
+        y: 463
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d6d320d8db1ea94f0800000000000000
+      internalID: -821095777810891411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_22
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 306
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 05e85fc92749549c0800000000000000
+      internalID: -3943582678712480176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_23
+      rect:
+        serializedVersion: 2
+        x: 179
+        y: 307
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 43219cd22971d4b80800000000000000
+      internalID: -8409039012630031820
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_24
+      rect:
+        serializedVersion: 2
+        x: 330
+        y: 307
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 79173261713ed9fc0800000000000000
+      internalID: -3486380848219721321
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_25
+      rect:
+        serializedVersion: 2
+        x: 479
+        y: 306
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f12652ac14ff1a390800000000000000
+      internalID: -7808679620854324705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_26
+      rect:
+        serializedVersion: 2
+        x: 745
+        y: 307
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da2d67d6d605694a0800000000000000
+      internalID: -6586988974064610643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_27
+      rect:
+        serializedVersion: 2
+        x: 892
+        y: 306
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c1b7ffb98d4cee470800000000000000
+      internalID: 8425888387465968412
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_28
+      rect:
+        serializedVersion: 2
+        x: 1039
+        y: 307
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3cb3abdeb66cf7f0800000000000000
+      internalID: -577473682295505862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_29
+      rect:
+        serializedVersion: 2
+        x: 1303
+        y: 304
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 38f7502d64dee1e00800000000000000
+      internalID: 1017511454259380099
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_30
+      rect:
+        serializedVersion: 2
+        x: 1454
+        y: 306
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8fe18c99c3c04e190800000000000000
+      internalID: -7934203189102371080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_31
+      rect:
+        serializedVersion: 2
+        x: 1602
+        y: 308
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4465e8bc84f7422b0800000000000000
+      internalID: -5610219285167319484
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: village tile ver2_32
+      rect:
+        serializedVersion: 2
+        x: 1756
+        y: 307
+        width: 138
+        height: 138
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b362d8e8382b7b250800000000000000
+      internalID: 5960428909950215739
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: b98b1c153ad1f4b4dba38f685691f12d
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      village tile ver2_0: -4611376385941706439
+      village tile ver2_1: 5498874048662982349
+      village tile ver2_10: 6390760267749764927
+      village tile ver2_11: -4832879820223864709
+      village tile ver2_12: -612141491901299822
+      village tile ver2_13: -3831142420823155832
+      village tile ver2_14: -3374427389478840843
+      village tile ver2_15: -8245429774494823006
+      village tile ver2_16: 4967012779148942079
+      village tile ver2_17: -7847247671932674139
+      village tile ver2_18: -1875749696377843761
+      village tile ver2_19: 6395720802093123960
+      village tile ver2_2: 8027036925143458605
+      village tile ver2_20: 4078421911533955473
+      village tile ver2_21: -821095777810891411
+      village tile ver2_22: -3943582678712480176
+      village tile ver2_23: -8409039012630031820
+      village tile ver2_24: -3486380848219721321
+      village tile ver2_25: -7808679620854324705
+      village tile ver2_26: -6586988974064610643
+      village tile ver2_27: 8425888387465968412
+      village tile ver2_28: -577473682295505862
+      village tile ver2_29: 1017511454259380099
+      village tile ver2_3: -5820194072666202530
+      village tile ver2_30: -7934203189102371080
+      village tile ver2_31: -5610219285167319484
+      village tile ver2_32: 5960428909950215739
+      village tile ver2_4: -2810551518779503348
+      village tile ver2_5: -2683010930139718396
+      village tile ver2_6: -3455400325849364471
+      village tile ver2_7: -7503029364447749586
+      village tile ver2_8: 3055266440568258759
+      village tile ver2_9: 6159465182015142933
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
