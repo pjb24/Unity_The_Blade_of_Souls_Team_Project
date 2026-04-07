@@ -419,6 +419,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 200127975308394223, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5759285413086130174}
+    - targetCorrespondingSourceObject: {fileID: 200127975308394223, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6462910399150616262}
   m_SourcePrefab: {fileID: 100100000, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
 --- !u!1 &2263106441829709440 stripped
 GameObject:
@@ -469,6 +472,40 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6462910399150616262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2263106441829709440}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2db0a9d8a74c714d9528f02b7386932, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OptionRowBindingAnchor
+  _bindingEntry:
+    _bindingKey: 0
+    _widgetType: 2
+    _enumValueText: {fileID: 0}
+    _enumPrevButton: {fileID: 0}
+    _enumNextButton: {fileID: 0}
+    _enumDisplayLabels: []
+    _numericFillImage: {fileID: 0}
+    _numericValueText: {fileID: 0}
+    _numericDecreaseButton: {fileID: 0}
+    _numericIncreaseButton: {fileID: 0}
+    _numericPointerInputArea: {fileID: 0}
+    _numericMinValue: 0
+    _numericMaxValue: 1
+    _numericStep: 0.1
+    _numericFillMaxWidth: 160
+    _actionWidget: {fileID: 0}
+    _isActive: 1
+    _descriptionTitle: 
+    _descriptionBody: 
+    _descriptionDefaultText: 
+    _descriptionHoverTarget: {fileID: 6559759128035932973}
 --- !u!114 &5011400503352196731 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6350856334047639060, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
@@ -480,6 +517,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+--- !u!224 &6559759128035932973 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 5090798412920697666, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
+  m_PrefabInstance: {fileID: 2138879990181628015}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &8191817935494534192 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7782777635639450719, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}

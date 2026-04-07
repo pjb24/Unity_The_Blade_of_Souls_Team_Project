@@ -820,10 +820,57 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7782777635639450719, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1608592267082228276}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 200127975308394223, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5589307553859525509}
   m_SourcePrefab: {fileID: 100100000, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
+--- !u!1 &3978210071902818011 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 200127975308394223, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
+  m_PrefabInstance: {fileID: 3887608884805365812}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5589307553859525509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3978210071902818011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2db0a9d8a74c714d9528f02b7386932, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OptionRowBindingAnchor
+  _bindingEntry:
+    _bindingKey: 0
+    _widgetType: 0
+    _enumValueText: {fileID: 2948346059644381483}
+    _enumPrevButton: {fileID: 3399803855854264583}
+    _enumNextButton: {fileID: 5819134902990236819}
+    _enumDisplayLabels: []
+    _numericFillImage: {fileID: 0}
+    _numericValueText: {fileID: 0}
+    _numericDecreaseButton: {fileID: 0}
+    _numericIncreaseButton: {fileID: 0}
+    _numericPointerInputArea: {fileID: 0}
+    _numericMinValue: 0
+    _numericMaxValue: 1
+    _numericStep: 0.1
+    _numericFillMaxWidth: 160
+    _actionWidget: {fileID: 0}
+    _isActive: 1
+    _descriptionTitle: 
+    _descriptionBody: 
+    _descriptionDefaultText: 
+    _descriptionHoverTarget: {fileID: 8310735062609642358}
 --- !u!224 &6481371081836670059 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 7782777635639450719, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
+  m_PrefabInstance: {fileID: 3887608884805365812}
+  m_PrefabAsset: {fileID: 0}
+--- !u!224 &8310735062609642358 stripped
+RectTransform:
+  m_CorrespondingSourceObject: {fileID: 5090798412920697666, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
   m_PrefabInstance: {fileID: 3887608884805365812}
   m_PrefabAsset: {fileID: 0}

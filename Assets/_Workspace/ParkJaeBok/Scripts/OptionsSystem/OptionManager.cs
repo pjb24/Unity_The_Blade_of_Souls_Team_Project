@@ -92,6 +92,21 @@ public class OptionManager : MonoBehaviour, ISaveParticipant
         return _runtimeState.GetSnapshot();
     }
 
+    /// <summary>
+    /// 기본 프로필 기준의 옵션 스냅샷을 생성해 반환합니다.
+    /// </summary>
+    public bool TryGetDefaultOptions(out OptionSaveData optionData)
+    {
+        optionData = new OptionSaveData();
+        if (_defaultProfile == null)
+        {
+            Debug.LogWarning("[OptionManager] OptionDefaultProfile이 없어 기본 옵션 스냅샷을 생성할 수 없습니다.", this);
+            return false;
+        }
+
+        optionData = _defaultProfile.CreateDefaultSaveData();
+        return true;
+    }
 
     /// <summary>
     /// UI/외부 시스템이 옵션 전체 스냅샷을 한 번에 교체할 때 호출합니다.

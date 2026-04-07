@@ -436,11 +436,6 @@ ControlArea
      │   ├── GaugeFill
      │   ├── ValueDisplayRoot
      │   │   ├── Txt_Value
-     │   │   └── Input_Value
-     │   │       ├── Text Area
-     │   │       │   ├── Text
-     │   │       │   └── Placeholder
-     │   │       └── Caret
      │   └── InputHitArea
      └── Btn_Right
          └── Img_Arrow
@@ -543,7 +538,7 @@ Pos Y: 0
 
 ### 역할
 
-- 배경 바 + Fill + 값 표시 + 직접 입력 UI 컨테이너
+- 배경 바 + Fill + 값 표시 + 포인터 입력 영역 컨테이너
 
 ### LayoutElement
 
@@ -616,7 +611,7 @@ Width: 코드로 값을 변경함
 
 ### 역할
 
-- 숫자 표시와 입력 필드를 겹쳐 두는 컨테이너
+- 숫자 표시 텍스트를 중앙 정렬로 배치하는 컨테이너
 
 ### RectTransform
 
@@ -668,187 +663,30 @@ Raycast Target: Off
 
 ---
 
-## 4.10 Input_Value
+## 4.10 InputHitArea
 
 ### 역할
 
-- 직접 입력용 숫자 입력 필드
-
-### RectTransform
-
-```text
-Parent: `ValueDisplayRoot`
-Anchor Min: (0.5, 0.5)
-Anchor Max: (0.5, 0.5)
-Pivot: (0.5, 0.5)
-
-Width: 96
-Height: 28
-Pos X: 0
-Pos Y: 0
-```
-
-### Image
-
-* 입력 박스 배경
-- Type: `Sliced`
-
-### TMP_InputField
-
-- Text Viewport: `Text Area`
-- Text Component: `Text`
-* Content Type:
-	- Int: `Integer Number`
-	- Float: `Decimal Number`
-- Line Type: `Single Line`
-- Placeholder: `Placeholder`
-
-* Character Validation: 필요 시 숫자 계열
-
-### 상태
-
-* 기본 비활성 또는 알파 0
-* 입력 상태에서만 표시
-
----
-
-## 4.11 Text Area
-
-### 역할
-
-- TMP_InputField 내부 텍스트 뷰포트
-
-### RectTransform
-
-```text
-Parent: `Input_Value`
-Anchor Min: (0, 0)
-Anchor Max: (1, 1)
-Pivot: (0.5, 0.5)
-
-Left: 6
-Right: 6
-Top: 2
-Bottom: 2
-```
-
-### RectMask2D
-
-* 텍스트가 삐져나오지 않게 잘라줌
-
----
-
-## 4.12 Text
-
-### 역할
-
-- 실제 입력 텍스트
-
-### RectTransform
-
-```text
-Parent: `Text Area`
-Anchor Min: (0, 0)
-Anchor Max: (1, 1)
-Pivot: (0.5, 0.5)
-
-Left: 0
-Right: 0
-Top: 0
-Bottom: 0
-```
-
-### TextMeshProUGUI
-
-```text
-Alignment: Middle Center
-Raycast Target: Off
-```
-
----
-
-## 4.13 Placeholder
-
-### 역할
-
-- 입력 전 플레이스홀더
-
-### RectTransform
-
-```text
-Parent: `Text Area`
-Anchor Min: (0, 0)
-Anchor Max: (1, 1)
-Pivot: (0.5, 0.5)
-
-Left: 0
-Right: 0
-Top: 0
-Bottom: 0
-```
-
-### TextMeshProUGUI
-
-```text
-Alignment: Middle Center
-Raycast Target: Off
-```
-
----
-
-## 4.14 Caret
-
-### 역할
-
-- 입력 caret 표시
-
-### 필요한 컴포넌트
-
-선택 1: TMP_InputField 기본 caret 사용  
-선택 2: 별도 오브젝트
-
-### 별도 오브젝트로 둘 경우
-
-#### RectTransform
-
-적절한 얇은 세로선 크기
-
-#### CanvasRenderer
-
-#### Image
-
-* Width 약 `1~2`
-
----
-
-## 4.15 InputHitArea
-
-### 역할
-
-- 중앙 숫자 클릭 판정 보조
+- 중앙 게이지 클릭/드래그 입력으로 값 변경
 
 ### RectTransform
 
 ```text
 Parent: `GaugeFrame`
-Anchor Min: (0.5, 0.5)
-Anchor Max: (0.5, 0.5)
+Anchor Min: (0, 0)
+Anchor Max: (1, 1)
 Pivot: (0.5, 0.5)
 
-Width: 120
-Height: 32
-Pos X: 0
-Pos Y: 0
+Left: 0
+Right: 0
+Top: 0
+Bottom: 0
 ```
 
 ### Image
 
 - Alpha: `0`
 - Raycast Target: `On`
-
-### Button
-
-- Transition: `None`
 
 ---
 
@@ -1010,17 +848,17 @@ Flexible Height: 0
 
 ---
 
-# 5. 타입별 책임 정리
+# 6. 타입별 책임 정리
 
 |타입|값 변경 방식|Button 위치|
 |---|---|---|
 |Enum|좌/우 버튼으로 값 순환|`Btn_Left`, `Btn_Right`|
-|Numeric|좌/우 버튼 + 중앙 입력/게이지|`Btn_Left`, `Btn_Right`, `InputHitArea`|
+|Numeric|좌/우 버튼 + 중앙 게이지 클릭/드래그|`Btn_Left`, `Btn_Right`|
 |Action|Row 전체 클릭으로 진입|`OptionRowRoot`|
 
 ---
 
-# 6. 오브젝트별 컴포넌트 요약표
+# 7. 오브젝트별 컴포넌트 요약표
 
 ## 공통
 
@@ -1063,12 +901,7 @@ Flexible Height: 0
 | GaugeFill               | RectTransform, Image                        |
 | ValueDisplayRoot        | RectTransform                               |
 | Txt_Value               | RectTransform, TextMeshProUGUI              |
-| Input_Value             | RectTransform, Image, TMP_InputField        |
-| Input_Value/Text Area   | RectTransform, RectMask2D                   |
-| Input_Value/Text        | RectTransform, TextMeshProUGUI              |
-| Input_Value/Placeholder | RectTransform, TextMeshProUGUI              |
-| Caret                   | RectTransform, CanvasRenderer, Image(선택)    |
-| InputHitArea            | RectTransform, Image, Button                |
+| InputHitArea            | RectTransform, Image                        |
 | Btn_Right               | RectTransform, LayoutElement, Image, Button |
 | Btn_Right/Img_Arrow     | RectTransform, Image                        |
 
@@ -1085,7 +918,7 @@ Flexible Height: 0
 
 ---
 
-# 7. 실무 권장 추가 항목
+# 8. 실무 권장 추가 항목
 
 ## 선택적으로 추가할 수 있는 컴포넌트
 
@@ -1095,7 +928,6 @@ Flexible Height: 0
 
 - `OptionRowRoot`
 - `DisabledOverlay`
-- `Input_Value`
 - `ControlRoot_Action`
 
 용도:
