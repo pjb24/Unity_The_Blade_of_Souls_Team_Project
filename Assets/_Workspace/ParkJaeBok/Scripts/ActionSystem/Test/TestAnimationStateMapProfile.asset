@@ -14,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AnimationStateMapProfile
   _stateMaps:
   - ActionType: 1
-    StateName: TestIdle
+    StateName: Run
     LayerIndex: 0
     IsOneShot: 0
   - ActionType: 2
-    StateName: TestMove
+    StateName: Run
     LayerIndex: 0
     IsOneShot: 0
   - ActionType: 3
