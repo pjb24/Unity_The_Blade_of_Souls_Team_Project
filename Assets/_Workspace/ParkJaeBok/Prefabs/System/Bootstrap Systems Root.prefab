@@ -59,6 +59,10 @@ MonoBehaviour:
   _titleSceneName: TitleMenu_Test
   _defaultNewGameSceneName: Town_Test
   _defaultNewGameLoadedState: 2
+  _singlePlayerStartSceneName: Town_Test
+  _multiplayerHostStartSceneName: Town_Test
+  _multiplayerClientStartSceneName: Town_Test
+  _multiplayerSharedTownSceneName: Town_Test
   _dontDestroyOnLoad: 1
   _autoInitializeOnAwake: 1
   _verboseLog: 1
@@ -70,6 +74,7 @@ MonoBehaviour:
   _flowEpochId: 0
   _activeSceneLoadEpochId: 0
   _activeSceneLoadSceneName: 
+  _currentMultiplayerSessionRole: 0
 --- !u!114 &4599951219679633824
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -108,11 +113,20 @@ MonoBehaviour:
   _autoRegisterParticipants: 1
   _refreshParticipantsAfterSceneLoad: 1
   _autoLoadOnStart: 1
+  _enablePipelineVerboseLog: 1
+  _useSaveSlots: 1
+  _defaultSaveSlotIndex: 1
+  _slotProfileFileName: save_slot_profile.json
   _lastSaveSucceeded: 0
   _lastSaveChannelType: 0
   _lastSaveTriggerType: 0
   _lastSaveTriggerContext: 
   _lastSaveFailureReason: 
+  _lastLoadSucceeded: 0
+  _lastLoadChannelType: 0
+  _lastLoadTriggerType: 0
+  _lastLoadTriggerContext: 
+  _lastLoadFailureReason: 
 --- !u!114 &6911285384685930252
 MonoBehaviour:
   m_ObjectHideFlags: 0

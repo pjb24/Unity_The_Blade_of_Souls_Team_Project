@@ -24,26 +24,20 @@ public class TitleLoadGameSlotListPresenter : MonoBehaviour
         public Text ProgressText; // 슬롯 진행도 문자열을 표시할 텍스트 컴포넌트 참조입니다.
     }
 
-    [Tooltip("슬롯 진행도 조회에 사용할 ITitleSaveQueryService 구현 컴포넌트입니다.")]
-    [SerializeField] private MonoBehaviour _saveQueryComponent; // 슬롯 진행도 조회를 수행할 서비스 컴포넌트 참조입니다.
-
     [Tooltip("선택된 슬롯을 SaveCoordinator에 반영할 대상입니다. 비어 있으면 SaveCoordinator.Instance를 사용합니다.")]
     [SerializeField] private SaveCoordinator _saveCoordinator; // 슬롯 선택 결과를 적용할 SaveCoordinator 참조입니다.
 
     [Tooltip("슬롯 UI 항목 목록입니다.")]
     [SerializeField] private SlotItemView[] _slotItems = Array.Empty<SlotItemView>(); // Load Game 슬롯별 버튼/텍스트 UI 묶음 목록입니다.
 
-    private ITitleSaveQueryService _saveQueryService; // 슬롯 진행 요약 조회에 사용할 런타임 서비스 참조입니다.
-
     /// <summary>
-    /// 인터페이스 참조를 해석하고 버튼 이벤트를 연결합니다.
+    /// 런타임 의존성을 보정하고 버튼 이벤트를 연결합니다.
     /// </summary>
     private void Awake()
     {
-        _saveQueryService = _saveQueryComponent as ITitleSaveQueryService;
-        if (_saveQueryComponent != null && _saveQueryService == null)
+        if (_saveCoordinator == null)
         {
-            Debug.LogWarning("[TitleLoadGameSlotListPresenter] saveQueryComponent가 ITitleSaveQueryService를 구현하지 않았습니다.", this);
+            _saveCoordinator = SaveCoordinator.Instance;
         }
 
         BindSlotButtonEvents();
@@ -72,7 +66,8 @@ public class TitleLoadGameSlotListPresenter : MonoBehaviour
 
             int safeSlotIndex = Mathf.Max(1, slotItem.SlotIndex); // 조회/선택 로직에 사용할 보정 슬롯 번호입니다.
             SaveSlotProgressSummary summary = default; // 슬롯 진행 텍스트 구성에 사용할 조회 결과 캐시입니다.
-            bool hasSummary = _saveQueryService != null && _saveQueryService.TryGetSlotProgressSummary(safeSlotIndex, out summary);
+            SaveCoordinator coordinator = ResolveCoordinator(); // 슬롯 요약을 조회할 SaveCoordinator 인스턴스 참조입니다.
+            bool hasSummary = coordinator != null && coordinator.TryGetSlotProgressSummary(safeSlotIndex, out summary);
             bool hasUsedData = hasSummary && summary.HasUsedData; // Empty/Used 표기에 사용할 슬롯 사용 여부입니다.
 
             if (slotItem.StateText != null)

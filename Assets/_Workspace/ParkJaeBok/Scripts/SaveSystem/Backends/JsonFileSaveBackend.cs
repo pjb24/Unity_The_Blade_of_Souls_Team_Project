@@ -88,6 +88,32 @@ public class JsonFileSaveBackend : MonoBehaviour, ISaveBackend
     }
 
     /// <summary>
+    /// 타깃 파일과 관련 임시/백업 파일을 삭제합니다.
+    /// </summary>
+    public bool TryDelete(string fileName)
+    {
+        try
+        {
+            string rootPath = GetSaveRootPath();
+            string targetPath = Path.Combine(rootPath, fileName);
+            DeleteIfExists(targetPath);
+            DeleteIfExists(targetPath + ".tmp");
+
+            for (int backupIndex = 1; backupIndex <= 10; backupIndex++)
+            {
+                DeleteIfExists(targetPath + $".bak{backupIndex}");
+            }
+
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"[JsonFileSaveBackend] 삭제 실패 file={fileName}, message={exception.Message}", this);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 타깃 파일의 롤링 백업을 순차적으로 갱신합니다.
     /// </summary>
     private void RotateBackups(string targetPath, int backupCount)
@@ -120,5 +146,16 @@ public class JsonFileSaveBackend : MonoBehaviour, ISaveBackend
         }
 
         File.Copy(targetPath, firstBackupPath);
+    }
+
+    /// <summary>
+    /// 파일이 존재할 때만 안전하게 삭제합니다.
+    /// </summary>
+    private static void DeleteIfExists(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
     }
 }
