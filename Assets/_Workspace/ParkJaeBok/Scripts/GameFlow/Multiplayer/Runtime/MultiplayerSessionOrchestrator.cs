@@ -157,15 +157,6 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
                 : FindAnyObjectByType<GameFlowController>();
         }
 
-        if (_sessionBackendBehaviour == null)
-        {
-            _sessionBackendBehaviour = GetComponent<InMemoryMultiplayerSessionBackend>();
-            if (_sessionBackendBehaviour == null)
-            {
-                _sessionBackendBehaviour = gameObject.AddComponent<InMemoryMultiplayerSessionBackend>();
-            }
-        }
-
         _sessionBackend = _sessionBackendBehaviour as IMultiplayerSessionBackend;
         _admissionGuardService = new SessionAdmissionGuardService(_maxPlayerCount);
         _reconnectPolicyService = new ReconnectPolicyService(_reconnectWindowSeconds);
@@ -431,11 +422,6 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
 
         if (_sessionBackend == null)
         {
-            if (_sessionBackendBehaviour == null)
-            {
-                _sessionBackendBehaviour = GetComponent<InMemoryMultiplayerSessionBackend>();
-            }
-
             _sessionBackend = _sessionBackendBehaviour as IMultiplayerSessionBackend;
         }
     }
