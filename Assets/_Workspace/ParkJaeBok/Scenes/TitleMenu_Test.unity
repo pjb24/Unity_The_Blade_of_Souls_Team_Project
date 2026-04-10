@@ -2072,7 +2072,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TitlePlayModePresenter
   _gameFlowController: {fileID: 0}
   _saveCoordinator: {fileID: 0}
-  _multiplayerSessionOrchestrator: {fileID: 1899934788}
+  _multiplayerSessionOrchestrator: {fileID: 0}
+  _autoResolveMultiplayerSessionOrchestratorOnUse: 1
   _selectedSlotIndex: 1
   _autoSelectLastUsedSlotForContinue: 1
   _clearSlotBeforeNewGame: 1
@@ -2088,6 +2089,7 @@ MonoBehaviour:
   _singleLoadGameButton: {fileID: 191500965}
   _hostClientId: Host_A
   _autoOpenJoinPopupOnClientSelected: 1
+  _autoCloseJoinPopupOnJoinSucceeded: 1
   _onSingleStartSucceeded:
     m_PersistentCalls:
       m_Calls: []
@@ -2843,6 +2845,7 @@ GameObject:
   - component: {fileID: 382466231}
   - component: {fileID: 382466230}
   - component: {fileID: 382466229}
+  - component: {fileID: 382466232}
   m_Layer: 5
   m_Name: Input_JoinCode
   m_TagString: Untagged
@@ -3009,6 +3012,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 382466227}
   m_CullTransparentMesh: 1
+--- !u!114 &382466232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 382466227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9a75cbcaf3675a47a7e50b4809074de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TitleJoinCodeInputFieldBinder
+  _multiplayerSessionOrchestrator: {fileID: 0}
+  _joinCodeInputField: {fileID: 382466229}
+  _releaseInputFieldOnDisable: 1
 --- !u!1 &390134925
 GameObject:
   m_ObjectHideFlags: 0
@@ -16750,89 +16768,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1855191117}
   m_CullTransparentMesh: 1
---- !u!1 &1899934786
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1899934789}
-  - component: {fileID: 1899934788}
-  - component: {fileID: 1899934790}
-  m_Layer: 0
-  m_Name: MultiplayerRuntimeRoot
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1899934788
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1899934786}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1079637cfb3d9e74faa318e0e2dadb23, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MultiplayerSessionOrchestrator
-  _gameFlowController: {fileID: 0}
-  _sessionBackendBehaviour: {fileID: 1899934790}
-  _maxPlayerCount: 2
-  _reconnectWindowSeconds: 60
-  _dontDestroyOnLoad: 1
-  _autoResolveDependenciesOnUse: 1
-  _activeJoinCode: 
-  _connectionState: 0
-  _lastFailureReason: 
-  _uiJoinCode: 
-  _uiJoinCodeInputField: {fileID: 382466229}
-  _uiClientId: Client_A
-  _localClientId: 
-  _isLocalClientReadyDeclared: 0
-  _onJoinCodeGenerated:
-    m_PersistentCalls:
-      m_Calls: []
-  _onSessionFailed:
-    m_PersistentCalls:
-      m_Calls: []
-  _onReturnToTitle:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!4 &1899934789
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1899934786}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1899934790
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1899934786}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1ca8376224cbe9f428ab08718207cd72, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LocalFileMultiplayerSessionBackend
-  _storageFileName: multiplayer_sessions_local.json
-  _mutexWaitMilliseconds: 2000
-  _verboseLogging: 0
 --- !u!1 &1923534873
 GameObject:
   m_ObjectHideFlags: 0
@@ -18303,8 +18238,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1899934788}
-        m_TargetAssemblyTypeName: MultiplayerSessionOrchestrator, Assembly-CSharp
+      - m_Target: {fileID: 317581820}
+        m_TargetAssemblyTypeName: TitlePlayModePresenter, Assembly-CSharp
         m_MethodName: OnClickJoinSessionFromTitle
         m_Mode: 1
         m_Arguments:
@@ -19417,4 +19352,3 @@ SceneRoots:
   - {fileID: 2062662490}
   - {fileID: 1254505528}
   - {fileID: 1595317317}
-  - {fileID: 1899934789}

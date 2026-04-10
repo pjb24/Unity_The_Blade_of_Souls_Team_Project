@@ -25,6 +25,9 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("멀티 세션 생성/참가 흐름을 위임할 MultiplayerSessionOrchestrator 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
     [SerializeField] private MultiplayerSessionOrchestrator _multiplayerSessionOrchestrator; // 멀티 Host/Client 세션 흐름을 처리할 오케스트레이터 참조입니다.
 
+    [Tooltip("멀티 관련 UI 액션 시 오케스트레이터 참조가 비어 있으면 DDOL 영역까지 자동 재탐색할지 여부입니다.")]
+    [SerializeField] private bool _autoResolveMultiplayerSessionOrchestratorOnUse = true; // 멀티 버튼 클릭 시 오케스트레이터 자동 재탐색 활성화 여부를 제어하는 플래그입니다.
+
     [Header("Slot Policy")]
     [Tooltip("Play 관련 버튼 클릭 시 공통으로 적용할 기본 슬롯 번호입니다.")]
     [Min(1)]
@@ -75,6 +78,9 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("Client 모드 선택 시 Join 팝업을 자동으로 열지 여부입니다.")]
     [SerializeField] private bool _autoOpenJoinPopupOnClientSelected = true; // Client 선택 직후 Join 팝업 자동 표시 여부를 제어하는 플래그입니다.
 
+    [Tooltip("Join 요청 성공 시 Join 팝업을 자동으로 닫을지 여부입니다.")]
+    [SerializeField] private bool _autoCloseJoinPopupOnJoinSucceeded = true; // Join 성공 후 Join 팝업 자동 닫기 수행 여부를 제어하는 플래그입니다.
+
     [Header("Events")]
     [Tooltip("싱글플레이 시작 요청 성공 시 호출할 UnityEvent입니다.")]
     [SerializeField] private UnityEvent _onSingleStartSucceeded; // 싱글플레이 시작 성공 시 UI 후처리에 사용하는 이벤트입니다.
@@ -120,9 +126,7 @@ public class TitlePlayModePresenter : MonoBehaviour
 
         if (_multiplayerSessionOrchestrator == null)
         {
-            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance != null
-                ? MultiplayerSessionOrchestrator.Instance
-                : FindAnyObjectByType<MultiplayerSessionOrchestrator>();
+            ResolveMultiplayerSessionOrchestrator();
         }
     }
 
@@ -450,6 +454,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     public void OnClickMultiplayerHost()
     {
+        ResolveMultiplayerSessionOrchestratorIfNeeded();
         ApplySelectedSlotBeforePlay();
         _lastSelectedMode = E_GamePlayMode.MultiplayerHost;
         bool started = _multiplayerSessionOrchestrator != null
@@ -463,6 +468,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     public void OnClickMultiplayerClient()
     {
+        ResolveMultiplayerSessionOrchestratorIfNeeded();
         ApplySelectedSlotBeforePlay();
         _lastSelectedMode = E_GamePlayMode.MultiplayerClient;
         bool started = _multiplayerSessionOrchestrator != null || _gameFlowController != null;
@@ -497,6 +503,24 @@ public class TitlePlayModePresenter : MonoBehaviour
     {
         CloseJoinPopup();
         OpenMultiplayModePanel();
+    }
+
+    /// <summary>
+    /// Join 팝업의 Join 버튼 OnClick에서 호출하는 래퍼 메서드입니다.
+    /// Bootstrap/DDOL 오케스트레이터의 Join 진입점을 실행합니다.
+    /// </summary>
+    public void OnClickJoinSessionFromTitle()
+    {
+        ResolveMultiplayerSessionOrchestratorIfNeeded();
+        _lastSelectedMode = E_GamePlayMode.MultiplayerClient;
+
+        bool started = _multiplayerSessionOrchestrator != null && _multiplayerSessionOrchestrator.OnClickJoinSessionFromTitleProxy();
+        HandleStartResult(started, _onMultiplayerClientStartSucceeded);
+
+        if (started && _autoCloseJoinPopupOnJoinSucceeded)
+        {
+            CloseJoinPopup();
+        }
     }
 
     /// <summary>
@@ -559,6 +583,66 @@ public class TitlePlayModePresenter : MonoBehaviour
         int safeSlotIndex = Mathf.Max(1, slotIndex); // SaveCoordinator에 반영할 보정 슬롯 번호입니다.
         _saveCoordinator.SetActiveSaveSlot(safeSlotIndex, true);
         _lastAppliedSlotIndex = safeSlotIndex;
+    }
+
+    /// <summary>
+    /// 멀티 UI 액션 시 오케스트레이터 참조가 비어 있으면 자동 재탐색을 수행합니다.
+    /// </summary>
+    private void ResolveMultiplayerSessionOrchestratorIfNeeded()
+    {
+        if (_multiplayerSessionOrchestrator != null || !_autoResolveMultiplayerSessionOrchestratorOnUse)
+        {
+            return;
+        }
+
+        ResolveMultiplayerSessionOrchestrator();
+    }
+
+    /// <summary>
+    /// MultiplayerSessionOrchestrator를 Instance, 활성 씬, DDOL 포함 전체 로드 오브젝트 순서로 탐색합니다.
+    /// </summary>
+    private void ResolveMultiplayerSessionOrchestrator()
+    {
+        if (_multiplayerSessionOrchestrator != null)
+        {
+            return;
+        }
+
+        if (MultiplayerSessionOrchestrator.Instance != null)
+        {
+            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance;
+            return;
+        }
+
+        MultiplayerSessionOrchestrator[] activeCandidates = FindObjectsByType<MultiplayerSessionOrchestrator>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 활성 씬에서 우선 탐색한 오케스트레이터 후보 목록입니다.
+        if (activeCandidates != null && activeCandidates.Length > 0)
+        {
+            _multiplayerSessionOrchestrator = activeCandidates[0];
+            return;
+        }
+
+        MultiplayerSessionOrchestrator[] allLoadedCandidates = Resources.FindObjectsOfTypeAll<MultiplayerSessionOrchestrator>(); // DDOL 씬을 포함해 전체 로드 오브젝트에서 탐색한 오케스트레이터 후보 목록입니다.
+        if (allLoadedCandidates == null || allLoadedCandidates.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < allLoadedCandidates.Length; i++)
+        {
+            MultiplayerSessionOrchestrator candidate = allLoadedCandidates[i]; // hideFlags를 검사해 유효한 오케스트레이터를 선택할 후보입니다.
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if ((candidate.hideFlags & HideFlags.HideAndDontSave) != 0)
+            {
+                continue;
+            }
+
+            _multiplayerSessionOrchestrator = candidate;
+            return;
+        }
     }
 
     /// <summary>

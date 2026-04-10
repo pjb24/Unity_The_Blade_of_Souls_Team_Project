@@ -19,7 +19,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     [Tooltip("플레이 모드 전환과 씬 전환 요청을 전달할 GameFlowController 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
     [SerializeField] private GameFlowController _gameFlowController; // 모드 시작/종료를 처리할 게임 흐름 컨트롤러 참조입니다.
 
-    [Tooltip("세션 생성/참가를 처리할 백엔드 어댑터입니다. 비어 있으면 동일 오브젝트의 InMemory 구현을 사용합니다.")]
+    [Tooltip("세션 생성/참가를 처리할 백엔드 어댑터입니다. 비어 있으면 런타임에서 IMultiplayerSessionBackend를 자동 탐색합니다.")]
     [SerializeField] private MonoBehaviour _sessionBackendBehaviour; // Inspector에서 IMultiplayerSessionBackend 구현체를 연결하기 위한 참조입니다.
 
     [Header("Policy")]
@@ -51,6 +51,12 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
 
     [Tooltip("Join 제출 직전에 최신 Join Code를 읽어올 TMP_InputField입니다.")]
     [SerializeField] private TMP_InputField _uiJoinCodeInputField; // Join 버튼 클릭 시점에 최신 코드를 읽어올 입력 필드 참조입니다.
+
+    [Tooltip("Join 요청 시 InputField 참조가 비어 있으면 활성 씬에서 자동 탐색을 시도할지 여부입니다.")]
+    [SerializeField] private bool _autoResolveJoinCodeInputFieldOnUse = true; // Join 요청 직전 InputField 자동 탐색 활성화 여부를 제어하는 플래그입니다.
+
+    [Tooltip("자동 탐색 시 우선적으로 매칭할 Join Code InputField 오브젝트 이름입니다. 비어 있으면 첫 번째 TMP_InputField를 사용합니다.")]
+    [SerializeField] private string _joinCodeInputFieldObjectName = "IF_JoinCode"; // 씬 자동 탐색에서 Join Code 입력 필드를 특정하기 위한 이름 힌트입니다.
 
     [Tooltip("UI 버튼 OnClick에서 사용할 Client 식별자입니다.")]
     [SerializeField] private string _uiClientId = "Client_A"; // Join 요청 시 사용할 로컬 Client 식별자 문자열입니다.
@@ -158,6 +164,10 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         }
 
         _sessionBackend = _sessionBackendBehaviour as IMultiplayerSessionBackend;
+        if (_sessionBackend == null)
+        {
+            _sessionBackend = FindAnyObjectByType<NetworkManagerMultiplayerSessionBackend>();
+        }
         _admissionGuardService = new SessionAdmissionGuardService(_maxPlayerCount);
         _reconnectPolicyService = new ReconnectPolicyService(_reconnectWindowSeconds);
         SceneManager.sceneLoaded += HandleSceneLoaded;
@@ -298,6 +308,34 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     }
 
     /// <summary>
+    /// UI Presenter에서 성공/실패를 판정할 수 있도록 Join 요청 결과를 bool로 반환합니다.
+    /// </summary>
+    public bool OnClickJoinSessionFromTitleProxy()
+    {
+        RefreshUiJoinCodeFromInputField();
+        return JoinSessionFromTitle(_uiJoinCode, _uiClientId);
+    }
+
+    /// <summary>
+    /// 외부 UI(Binder/Presenter)에서 Join Code 입력 필드를 런타임에 주입합니다.
+    /// </summary>
+    public void SetUiJoinCodeInputField(TMP_InputField inputField)
+    {
+        _uiJoinCodeInputField = inputField;
+    }
+
+    /// <summary>
+    /// 외부 UI가 비활성화될 때 현재 등록된 입력 필드를 안전하게 해제합니다.
+    /// </summary>
+    public void ReleaseUiJoinCodeInputField(TMP_InputField inputField)
+    {
+        if (_uiJoinCodeInputField == inputField)
+        {
+            _uiJoinCodeInputField = null;
+        }
+    }
+
+    /// <summary>
     /// Host가 Stage 시작을 확정할 때 중도 Join 금지 상태를 활성화합니다.
     /// </summary>
     public void NotifyHostStageStarted()
@@ -423,6 +461,10 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         if (_sessionBackend == null)
         {
             _sessionBackend = _sessionBackendBehaviour as IMultiplayerSessionBackend;
+            if (_sessionBackend == null)
+            {
+                _sessionBackend = FindAnyObjectByType<NetworkManagerMultiplayerSessionBackend>();
+            }
         }
     }
 
@@ -468,12 +510,50 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// </summary>
     private void RefreshUiJoinCodeFromInputField()
     {
+        ResolveUiJoinCodeInputFieldIfNeeded();
         if (_uiJoinCodeInputField == null)
         {
             return;
         }
 
         _uiJoinCode = NormalizeJoinCode(_uiJoinCodeInputField.text);
+    }
+
+    /// <summary>
+    /// Join Code 입력 필드가 누락된 경우 활성 씬에서 자동 탐색해 참조를 보정합니다.
+    /// </summary>
+    private void ResolveUiJoinCodeInputFieldIfNeeded()
+    {
+        if (_uiJoinCodeInputField != null || !_autoResolveJoinCodeInputFieldOnUse)
+        {
+            return;
+        }
+
+        TMP_InputField[] inputFields = FindObjectsByType<TMP_InputField>(FindObjectsInactive.Exclude, FindObjectsSortMode.None); // 활성 씬에서 탐색한 TMP_InputField 후보 목록입니다.
+        if (inputFields == null || inputFields.Length == 0)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_joinCodeInputFieldObjectName))
+        {
+            for (int i = 0; i < inputFields.Length; i++)
+            {
+                TMP_InputField candidate = inputFields[i]; // 이름 힌트 일치 여부를 검사할 입력 필드 후보입니다.
+                if (candidate == null)
+                {
+                    continue;
+                }
+
+                if (string.Equals(candidate.gameObject.name, _joinCodeInputFieldObjectName, StringComparison.Ordinal))
+                {
+                    _uiJoinCodeInputField = candidate;
+                    return;
+                }
+            }
+        }
+
+        _uiJoinCodeInputField = inputFields[0];
     }
 
     /// <summary>
