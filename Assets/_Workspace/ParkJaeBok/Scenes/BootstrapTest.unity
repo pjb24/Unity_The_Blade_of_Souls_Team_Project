@@ -594,6 +594,8 @@ MonoBehaviour:
   _lastFailureReason: 
   _uiJoinCode: 
   _uiJoinCodeInputField: {fileID: 0}
+  _autoResolveJoinCodeInputFieldOnUse: 1
+  _joinCodeInputFieldObjectName: IF_JoinCode
   _uiClientId: Client_A
   _localClientId: 
   _isLocalClientReadyDeclared: 0
@@ -622,6 +624,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkManagerMultiplayerSessionBackend
   _networkManager: {fileID: 1482065451}
+  _playerPrefab: {fileID: 6058810458548238607, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
+  _defaultNetworkPrefabs: []
+  _registerDefaultNetworkPrefabsAtRuntime: 0
+  _autoSpawnPlayerPrefabClientSide: 0
+  _ensureHostPlayerObjectAfterSceneLoad: 1
   _defaultJoinCode: LOCAL
   _verboseLogging: 0
 --- !u!1001 &854791248119616886

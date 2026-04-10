@@ -337,72 +337,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 99433838}
   m_CullTransparentMesh: 1
---- !u!1001 &736244574
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 163324485403239006, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: _attackInputRoutes.Array.data[0].InputAction
-      value: 
-      objectReference: {fileID: 1111176758}
-    - target: {fileID: 6058810458548238607, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_Name
-      value: --- PLAYER ---
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -7.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
---- !u!4 &736244575 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 6731959234957534330, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-  m_PrefabInstance: {fileID: 736244574}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &906605841
 GameObject:
   m_ObjectHideFlags: 0
@@ -575,7 +509,7 @@ MonoBehaviour:
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
-    TrackingTarget: {fileID: 736244575}
+    TrackingTarget: {fileID: 0}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
   Lens:
@@ -807,20 +741,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5dce8155ddb97364485eb462c3e5f9b6, type: 3}
---- !u!114 &1111176758
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc1515ab76e54f068e2f2207940fab32, type: 3}
-  m_Name: Player/Attack
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
-  m_Asset: {fileID: -944628639613478452, guid: 2c93d8b7d7348f342902a296f35fa9fc, type: 3}
-  m_ActionId: c2ecfd06-8c5a-4d8b-944c-df37a5808ad9
 --- !u!1 &1197505727
 GameObject:
   m_ObjectHideFlags: 0
@@ -1576,7 +1496,6 @@ SceneRoots:
   - {fileID: 2136491715}
   - {fileID: 912669812}
   - {fileID: 1046330834}
-  - {fileID: 736244574}
   - {fileID: 1795778028}
   - {fileID: 1335490361}
   - {fileID: 906605845}
