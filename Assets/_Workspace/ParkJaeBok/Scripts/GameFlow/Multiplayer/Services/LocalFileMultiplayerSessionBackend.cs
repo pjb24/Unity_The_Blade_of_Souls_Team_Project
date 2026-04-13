@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -41,10 +42,10 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
     /// <summary>
     /// Host 세션을 생성하고 Join Code를 발급합니다.
     /// </summary>
-    public bool TryCreateSession(string hostClientId, int maxPlayerCount, out string joinCode, out string reason)
+    public Task<SessionCreateResult> CreateSessionAsync(string hostClientId, int maxPlayerCount)
     {
-        joinCode = string.Empty;
-        reason = string.Empty;
+        string joinCode = string.Empty;
+        string reason = string.Empty;
         string createdJoinCode = string.Empty; // 생성 성공 시 호출자에게 전달할 Join Code 임시 버퍼입니다.
         string storageReason = string.Empty; // 저장소 접근 실패 사유를 보관할 임시 버퍼입니다.
 
@@ -74,13 +75,13 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             joinCode = createdJoinCode;
         }
 
-        return succeeded;
+        return Task.FromResult(new SessionCreateResult(succeeded, joinCode, reason));
     }
 
     /// <summary>
     /// Join Code 기반 참가를 시도합니다.
     /// </summary>
-    public bool TryJoinSession(string joinCode, string clientId, out string reason)
+    public Task<SessionOperationResult> JoinSessionAsync(string joinCode, string clientId)
     {
         string failureReason = string.Empty; // Join 검증 실패 사유를 담을 임시 버퍼입니다.
         string storageReason = string.Empty; // 저장소 접근 실패 사유를 담을 임시 버퍼입니다.
@@ -115,17 +116,17 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             out storageReason,
             true);
 
-        reason = string.IsNullOrWhiteSpace(failureReason) ? storageReason : failureReason;
-        return succeeded;
+        string reason = string.IsNullOrWhiteSpace(failureReason) ? storageReason : failureReason;
+        return Task.FromResult(new SessionOperationResult(succeeded, reason));
     }
 
     /// <summary>
     /// 세션의 Stage 진행 상태를 갱신합니다.
     /// </summary>
-    public void SetStageInProgress(string joinCode, bool isInProgress)
+    public Task<SessionOperationResult> SetStageInProgressAsync(string joinCode, bool isInProgress)
     {
         string reason = string.Empty;
-        AccessStore(
+        bool succeeded = AccessStore(
             store =>
             {
                 if (!TryFindSession(store, joinCode, out SessionRecord session))
@@ -138,12 +139,13 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             },
             out reason,
             true);
+        return Task.FromResult(new SessionOperationResult(succeeded, reason));
     }
 
     /// <summary>
     /// 세션의 현재 참가 인원 수를 조회합니다.
     /// </summary>
-    public bool TryGetPlayerCount(string joinCode, out int playerCount)
+    public Task<PlayerCountResult> GetPlayerCountAsync(string joinCode)
     {
         int resolvedPlayerCount = 0; // 조회 성공 시 반환할 세션 인원 수 임시 버퍼입니다.
         string reason = string.Empty; // 저장소 접근 실패 사유 임시 버퍼입니다.
@@ -162,14 +164,14 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             out reason,
             false);
 
-        playerCount = succeeded ? resolvedPlayerCount : 0;
-        return succeeded;
+        int playerCount = succeeded ? resolvedPlayerCount : 0;
+        return Task.FromResult(new PlayerCountResult(succeeded, playerCount, reason));
     }
 
     /// <summary>
     /// Client가 로드 완료/준비 완료 상태임을 세션에 기록합니다.
     /// </summary>
-    public bool TryMarkClientReady(string joinCode, string clientId, out string reason)
+    public Task<SessionOperationResult> MarkClientReadyAsync(string joinCode, string clientId)
     {
         string failureReason = string.Empty; // 준비 완료 보고 실패 사유를 담을 임시 버퍼입니다.
         string storageReason = string.Empty; // 저장소 접근 실패 사유를 담을 임시 버퍼입니다.
@@ -204,14 +206,14 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             out storageReason,
             true);
 
-        reason = string.IsNullOrWhiteSpace(failureReason) ? storageReason : failureReason;
-        return succeeded;
+        string reason = string.IsNullOrWhiteSpace(failureReason) ? storageReason : failureReason;
+        return Task.FromResult(new SessionOperationResult(succeeded, reason));
     }
 
     /// <summary>
     /// Host가 Stage 진입을 시작해도 되는 세션 준비 완료 상태인지 조회합니다.
     /// </summary>
-    public bool TryGetStageEntryReady(string joinCode, out bool isReady, out string reason)
+    public Task<StageEntryReadyResult> GetStageEntryReadyAsync(string joinCode)
     {
         bool resolvedIsReady = false; // 조회 성공 시 반환할 준비 완료 판정 결과 임시 버퍼입니다.
         string failureReason = string.Empty; // 도메인 판정 실패 사유 임시 버퍼입니다.
@@ -241,18 +243,18 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             out storageReason,
             false);
 
-        isReady = succeeded && resolvedIsReady;
-        reason = string.IsNullOrWhiteSpace(failureReason) ? storageReason : failureReason;
-        return succeeded;
+        bool isReady = succeeded && resolvedIsReady;
+        string reason = string.IsNullOrWhiteSpace(failureReason) ? storageReason : failureReason;
+        return Task.FromResult(new StageEntryReadyResult(succeeded, isReady, reason));
     }
 
     /// <summary>
     /// 세션을 종료합니다.
     /// </summary>
-    public void CloseSession(string joinCode)
+    public Task<SessionOperationResult> CloseSessionAsync(string joinCode)
     {
         string reason = string.Empty;
-        AccessStore(
+        bool succeeded = AccessStore(
             store =>
             {
                 int removedCount = store.Sessions.RemoveAll(session => string.Equals(session.JoinCode, joinCode, StringComparison.Ordinal)); // 종료할 세션 제거 수입니다.
@@ -260,6 +262,7 @@ public class LocalFileMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSes
             },
             out reason,
             true);
+        return Task.FromResult(new SessionOperationResult(succeeded, reason));
     }
 
     /// <summary>

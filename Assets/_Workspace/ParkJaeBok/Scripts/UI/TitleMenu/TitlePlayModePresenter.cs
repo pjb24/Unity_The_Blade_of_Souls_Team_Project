@@ -452,13 +452,13 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// <summary>
     /// 멀티플레이 Host 버튼 클릭 시 Host 시작 요청을 처리합니다.
     /// </summary>
-    public void OnClickMultiplayerHost()
+    public async void OnClickMultiplayerHost()
     {
         ResolveMultiplayerSessionOrchestratorIfNeeded();
         ApplySelectedSlotBeforePlay();
         _lastSelectedMode = E_GamePlayMode.MultiplayerHost;
         bool started = _multiplayerSessionOrchestrator != null
-            ? _multiplayerSessionOrchestrator.StartHostSessionFromTitle(_hostClientId)
+            ? await _multiplayerSessionOrchestrator.StartHostSessionFromTitleAsync(_hostClientId)
             : _gameFlowController != null && _gameFlowController.RequestStartMultiplayerHost();
         HandleStartResult(started, _onMultiplayerHostStartSucceeded);
     }
@@ -509,12 +509,12 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// Join 팝업의 Join 버튼 OnClick에서 호출하는 래퍼 메서드입니다.
     /// Bootstrap/DDOL 오케스트레이터의 Join 진입점을 실행합니다.
     /// </summary>
-    public void OnClickJoinSessionFromTitle()
+    public async void OnClickJoinSessionFromTitle()
     {
         ResolveMultiplayerSessionOrchestratorIfNeeded();
         _lastSelectedMode = E_GamePlayMode.MultiplayerClient;
 
-        bool started = _multiplayerSessionOrchestrator != null && _multiplayerSessionOrchestrator.OnClickJoinSessionFromTitleProxy();
+        bool started = _multiplayerSessionOrchestrator != null && await _multiplayerSessionOrchestrator.OnClickJoinSessionFromTitleProxyAsync();
         HandleStartResult(started, _onMultiplayerClientStartSucceeded);
 
         if (started && _autoCloseJoinPopupOnJoinSucceeded)

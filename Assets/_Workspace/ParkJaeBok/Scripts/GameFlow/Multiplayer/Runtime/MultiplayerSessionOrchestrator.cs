@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -123,8 +124,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
                 return false;
             }
 
-            bool hasReadyState = _sessionBackend.TryGetStageEntryReady(_activeJoinCode, out bool isReady, out _);
-            return hasReadyState && isReady;
+            return _currentPlayerCount >= _maxPlayerCount;
         }
     }
 
@@ -166,7 +166,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         _sessionBackend = _sessionBackendBehaviour as IMultiplayerSessionBackend;
         if (_sessionBackend == null)
         {
-            _sessionBackend = FindAnyObjectByType<NetworkManagerMultiplayerSessionBackend>();
+            _sessionBackend = FindSessionBackendInScene();
         }
         _admissionGuardService = new SessionAdmissionGuardService(_maxPlayerCount);
         _reconnectPolicyService = new ReconnectPolicyService(_reconnectWindowSeconds);
@@ -189,7 +189,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// <summary>
     /// 타이틀에서 Host 멀티 세션 생성을 요청합니다.
     /// </summary>
-    public bool StartHostSessionFromTitle(string hostClientId)
+    public async Task<bool> StartHostSessionFromTitleAsync(string hostClientId)
     {
         ResolveDependenciesIfNeeded();
 
@@ -203,11 +203,12 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
             return Fail("GameFlowControllerMissing");
         }
 
-        bool created = _sessionBackend.TryCreateSession(hostClientId, _maxPlayerCount, out _activeJoinCode, out string reason);
-        if (!created)
+        SessionCreateResult createdResult = await _sessionBackend.CreateSessionAsync(hostClientId, _maxPlayerCount);
+        if (!createdResult.IsSuccess)
         {
-            return Fail($"HostCreateFailed:{reason}");
+            return Fail($"HostCreateFailed:{createdResult.Reason}");
         }
+        _activeJoinCode = createdResult.JoinCode;
 
         _currentPlayerCount = 1;
         _isStageInProgress = false;
@@ -232,7 +233,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// <summary>
     /// 타이틀에서 Join Code 기반 Client 참가를 요청합니다.
     /// </summary>
-    public bool JoinSessionFromTitle(string joinCode, string clientId)
+    public async Task<bool> JoinSessionFromTitleAsync(string joinCode, string clientId)
     {
         ResolveDependenciesIfNeeded();
 
@@ -257,10 +258,10 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
             return Fail($"AdmissionDenied:{policyReason}");
         }
 
-        bool joined = _sessionBackend.TryJoinSession(normalizedJoinCode, clientId, out string backendReason);
-        if (!joined)
+        SessionOperationResult joinedResult = await _sessionBackend.JoinSessionAsync(normalizedJoinCode, clientId);
+        if (!joinedResult.IsSuccess)
         {
-            return Fail($"JoinFailed:{backendReason}");
+            return Fail($"JoinFailed:{joinedResult.Reason}");
         }
 
         _activeJoinCode = normalizedJoinCode;
@@ -294,26 +295,26 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
             return;
         }
 
-        TryDeclareLocalClientReady();
+        _ = TryDeclareLocalClientReadyAsync();
     }
 
     /// <summary>
     /// UI 버튼 OnClick에서 인자 없이 호출할 수 있는 Join 요청 엔트리 포인트입니다.
     /// 제출 직전에 입력 필드 값을 다시 읽어 최신 Join Code로 참가를 시도합니다.
     /// </summary>
-    public void OnClickJoinSessionFromTitle()
+    public async void OnClickJoinSessionFromTitle()
     {
         RefreshUiJoinCodeFromInputField();
-        JoinSessionFromTitle(_uiJoinCode, _uiClientId);
+        await JoinSessionFromTitleAsync(_uiJoinCode, _uiClientId);
     }
 
     /// <summary>
     /// UI Presenter에서 성공/실패를 판정할 수 있도록 Join 요청 결과를 bool로 반환합니다.
     /// </summary>
-    public bool OnClickJoinSessionFromTitleProxy()
+    public async Task<bool> OnClickJoinSessionFromTitleProxyAsync()
     {
         RefreshUiJoinCodeFromInputField();
-        return JoinSessionFromTitle(_uiJoinCode, _uiClientId);
+        return await JoinSessionFromTitleAsync(_uiJoinCode, _uiClientId);
     }
 
     /// <summary>
@@ -338,24 +339,32 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// <summary>
     /// Host가 Stage 시작을 확정할 때 중도 Join 금지 상태를 활성화합니다.
     /// </summary>
-    public void NotifyHostStageStarted()
+    public async void NotifyHostStageStarted()
     {
         _isStageInProgress = true;
         if (!string.IsNullOrWhiteSpace(_activeJoinCode) && _sessionBackend != null)
         {
-            _sessionBackend.SetStageInProgress(_activeJoinCode, true);
+            SessionOperationResult result = await _sessionBackend.SetStageInProgressAsync(_activeJoinCode, true);
+            if (!result.IsSuccess)
+            {
+                Debug.LogWarning($"[MultiplayerSessionOrchestrator] SetStageInProgressAsync failed. reason={result.Reason}", this);
+            }
         }
     }
 
     /// <summary>
     /// Host가 Stage 종료를 확정할 때 중도 Join 금지 상태를 해제합니다.
     /// </summary>
-    public void NotifyHostStageEnded()
+    public async void NotifyHostStageEnded()
     {
         _isStageInProgress = false;
         if (!string.IsNullOrWhiteSpace(_activeJoinCode) && _sessionBackend != null)
         {
-            _sessionBackend.SetStageInProgress(_activeJoinCode, false);
+            SessionOperationResult result = await _sessionBackend.SetStageInProgressAsync(_activeJoinCode, false);
+            if (!result.IsSuccess)
+            {
+                Debug.LogWarning($"[MultiplayerSessionOrchestrator] SetStageInProgressAsync failed. reason={result.Reason}", this);
+            }
         }
     }
 
@@ -370,7 +379,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// <summary>
     /// Client 재접속을 시도하고 정책 실패 시 타이틀 복귀를 수행합니다.
     /// </summary>
-    public bool TryReconnectClient(string joinCode, string clientId)
+    public async Task<bool> TryReconnectClientAsync(string joinCode, string clientId)
     {
         if (!_reconnectPolicyService.TryConsumeReconnectToken(DateTime.UtcNow, out string reason))
         {
@@ -379,11 +388,17 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
             return false;
         }
 
-        string joinReason = "SessionBackendMissing"; // 재접속 실패 로그에 남길 Join 단계 사유 문자열입니다.
-        bool joined = _sessionBackend != null && _sessionBackend.TryJoinSession(joinCode, clientId, out joinReason);
-        if (!joined)
+        if (_sessionBackend == null)
         {
-            Fail($"ReconnectJoinFailed:{joinReason}");
+            Fail("ReconnectJoinFailed:SessionBackendMissing");
+            ReturnToTitle();
+            return false;
+        }
+
+        SessionOperationResult joinResult = await _sessionBackend.JoinSessionAsync(joinCode, clientId);
+        if (!joinResult.IsSuccess)
+        {
+            Fail($"ReconnectJoinFailed:{joinResult.Reason}");
             ReturnToTitle();
             return false;
         }
@@ -396,11 +411,15 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// <summary>
     /// Host 종료 시 세션을 닫고 타이틀 복귀를 수행합니다.
     /// </summary>
-    public void ShutdownSessionByHost()
+    public async void ShutdownSessionByHost()
     {
         if (_sessionBackend != null && !string.IsNullOrWhiteSpace(_activeJoinCode))
         {
-            _sessionBackend.CloseSession(_activeJoinCode);
+            SessionOperationResult result = await _sessionBackend.CloseSessionAsync(_activeJoinCode);
+            if (!result.IsSuccess)
+            {
+                Debug.LogWarning($"[MultiplayerSessionOrchestrator] CloseSessionAsync warning. reason={result.Reason}", this);
+            }
         }
 
         _connectionState = E_MultiplayerConnectionState.Closed;
@@ -412,7 +431,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// <summary>
     /// 현재 활성 세션 Join Code를 기준으로 백엔드 인원 수를 재조회하고 캐시를 갱신합니다.
     /// </summary>
-    public bool RefreshPlayerCountFromActiveSession()
+    public async Task<bool> RefreshPlayerCountFromActiveSessionAsync()
     {
         ResolveDependenciesIfNeeded();
 
@@ -421,12 +440,13 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
             return false;
         }
 
-        if (_sessionBackend.TryGetPlayerCount(_activeJoinCode, out int playerCount) == false)
+        PlayerCountResult playerCountResult = await _sessionBackend.GetPlayerCountAsync(_activeJoinCode);
+        if (!playerCountResult.IsSuccess)
         {
             return false;
         }
 
-        _currentPlayerCount = Mathf.Max(0, playerCount);
+        _currentPlayerCount = Mathf.Max(0, playerCountResult.PlayerCount);
         _onPlayerCountUpdated?.Invoke(_currentPlayerCount);
         return true;
     }
@@ -460,18 +480,41 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
 
         if (_sessionBackend == null)
         {
-            _sessionBackend = _sessionBackendBehaviour as IMultiplayerSessionBackend;
-            if (_sessionBackend == null)
-            {
-                _sessionBackend = FindAnyObjectByType<NetworkManagerMultiplayerSessionBackend>();
-            }
+            _sessionBackend = FindSessionBackendInScene();
         }
+    }
+
+    /// <summary>
+    /// Inspector 연결 우선 규칙을 유지하면서 활성 씬/런타임에서 IMultiplayerSessionBackend 구현체를 일반화 탐색합니다.
+    /// </summary>
+    private IMultiplayerSessionBackend FindSessionBackendInScene()
+    {
+        IMultiplayerSessionBackend backendFromInspector = _sessionBackendBehaviour as IMultiplayerSessionBackend; // Inspector 슬롯에 직접 연결된 백엔드 구현체입니다.
+        if (backendFromInspector != null)
+        {
+            return backendFromInspector;
+        }
+
+        MonoBehaviour[] behaviourCandidates = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None); // IMultiplayerSessionBackend 구현 여부를 검사할 MonoBehaviour 후보 목록입니다.
+        for (int index = 0; index < behaviourCandidates.Length; index++)
+        {
+            MonoBehaviour candidate = behaviourCandidates[index]; // 현재 검사 중인 백엔드 후보 컴포넌트입니다.
+            if (candidate is not IMultiplayerSessionBackend backend)
+            {
+                continue;
+            }
+
+            _sessionBackendBehaviour = candidate;
+            return backend;
+        }
+
+        return null;
     }
 
     /// <summary>
     /// 로컬 Client의 시스템 로드 완료 상태를 세션 백엔드에 자동 보고합니다.
     /// </summary>
-    private void TryDeclareLocalClientReady()
+    private async Task TryDeclareLocalClientReadyAsync()
     {
         ResolveDependenciesIfNeeded();
 
@@ -486,10 +529,10 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
             return;
         }
 
-        bool declared = _sessionBackend.TryMarkClientReady(_activeJoinCode, localClientId, out string reason);
-        if (!declared)
+        SessionOperationResult declaredResult = await _sessionBackend.MarkClientReadyAsync(_activeJoinCode, localClientId);
+        if (!declaredResult.IsSuccess)
         {
-            _lastFailureReason = $"ClientReadyDeclareFailed:{reason}";
+            _lastFailureReason = $"ClientReadyDeclareFailed:{declaredResult.Reason}";
             return;
         }
 

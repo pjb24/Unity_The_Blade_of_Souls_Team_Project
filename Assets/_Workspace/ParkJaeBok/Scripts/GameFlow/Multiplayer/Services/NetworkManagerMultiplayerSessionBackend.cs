@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -68,14 +69,13 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     /// <summary>
     /// Host 세션을 생성하고 Join Code를 발급합니다.
     /// </summary>
-    public bool TryCreateSession(string hostClientId, int maxPlayerCount, out string joinCode, out string reason)
+    public Task<SessionCreateResult> CreateSessionAsync(string hostClientId, int maxPlayerCount)
     {
-        joinCode = string.Empty;
-        reason = string.Empty;
+        string joinCode = string.Empty;
 
-        if (!TryResolveNetworkManager(out NetworkManager networkManager, out reason))
+        if (!TryResolveNetworkManager(out NetworkManager networkManager, out string reason))
         {
-            return false;
+            return Task.FromResult(new SessionCreateResult(false, string.Empty, reason));
         }
 
         if (networkManager.IsListening)
@@ -89,8 +89,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         bool started = networkManager.StartHost();
         if (!started)
         {
-            reason = "StartHostFailed";
-            return false;
+            return Task.FromResult(new SessionCreateResult(false, string.Empty, "StartHostFailed"));
         }
 
         _cachedMaxPlayerCount = Mathf.Max(1, maxPlayerCount);
@@ -103,24 +102,23 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             Debug.Log($"[NetworkManagerMultiplayerSessionBackend] Host started. hostClientId={hostClientId}, joinCode={joinCode}", this);
         }
 
-        return true;
+        return Task.FromResult(new SessionCreateResult(true, joinCode, string.Empty));
     }
 
     /// <summary>
     /// Join Code 기반 참가를 시도합니다.
     /// </summary>
-    public bool TryJoinSession(string joinCode, string clientId, out string reason)
+    public Task<SessionOperationResult> JoinSessionAsync(string joinCode, string clientId)
     {
-        reason = string.Empty;
         if (_isStageInProgress)
         {
-            reason = "StageInProgress";
-            return false;
+            return Task.FromResult(new SessionOperationResult(false, "StageInProgress"));
         }
 
+        string reason = string.Empty;
         if (!TryResolveNetworkManager(out NetworkManager networkManager, out reason))
         {
-            return false;
+            return Task.FromResult(new SessionOperationResult(false, reason));
         }
 
         if (networkManager.IsListening)
@@ -134,8 +132,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         bool started = networkManager.StartClient();
         if (!started)
         {
-            reason = "StartClientFailed";
-            return false;
+            return Task.FromResult(new SessionOperationResult(false, "StartClientFailed"));
         }
 
         _activeJoinCode = string.IsNullOrWhiteSpace(joinCode)
@@ -147,77 +144,73 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             Debug.Log($"[NetworkManagerMultiplayerSessionBackend] Client started. clientId={clientId}, joinCode={_activeJoinCode}", this);
         }
 
-        return true;
+        return Task.FromResult(new SessionOperationResult(true, string.Empty));
     }
 
     /// <summary>
     /// 세션의 Stage 진행 상태를 갱신합니다.
     /// </summary>
-    public void SetStageInProgress(string joinCode, bool isInProgress)
+    public Task<SessionOperationResult> SetStageInProgressAsync(string joinCode, bool isInProgress)
     {
         _isStageInProgress = isInProgress;
+        return Task.FromResult(new SessionOperationResult(true, string.Empty));
     }
 
     /// <summary>
     /// 세션의 현재 참가 인원 수를 조회합니다.
     /// </summary>
-    public bool TryGetPlayerCount(string joinCode, out int playerCount)
+    public Task<PlayerCountResult> GetPlayerCountAsync(string joinCode)
     {
-        playerCount = 0;
         if (!TryResolveNetworkManager(out NetworkManager networkManager, out _))
         {
-            return false;
+            return Task.FromResult(new PlayerCountResult(false, 0, "NetworkManagerMissing"));
         }
 
         if (!networkManager.IsListening)
         {
-            return false;
+            return Task.FromResult(new PlayerCountResult(false, 0, "NetworkManagerNotListening"));
         }
 
-        playerCount = networkManager.ConnectedClientsList != null ? networkManager.ConnectedClientsList.Count : 0;
-        return true;
+        int playerCount = networkManager.ConnectedClientsList != null ? networkManager.ConnectedClientsList.Count : 0;
+        return Task.FromResult(new PlayerCountResult(true, playerCount, string.Empty));
     }
 
     /// <summary>
     /// Client가 로드 완료/준비 완료 상태임을 세션에 기록합니다.
     /// </summary>
-    public bool TryMarkClientReady(string joinCode, string clientId, out string reason)
+    public Task<SessionOperationResult> MarkClientReadyAsync(string joinCode, string clientId)
     {
-        reason = string.Empty;
-        return true;
+        return Task.FromResult(new SessionOperationResult(true, string.Empty));
     }
 
     /// <summary>
     /// Host가 Stage 진입을 시작해도 되는 세션 준비 완료 상태인지 조회합니다.
     /// </summary>
-    public bool TryGetStageEntryReady(string joinCode, out bool isReady, out string reason)
+    public async Task<StageEntryReadyResult> GetStageEntryReadyAsync(string joinCode)
     {
-        isReady = false;
-        reason = string.Empty;
-
-        if (!TryGetPlayerCount(joinCode, out int playerCount))
+        PlayerCountResult playerCountResult = await GetPlayerCountAsync(joinCode);
+        if (!playerCountResult.IsSuccess)
         {
-            reason = "PlayerCountUnavailable";
-            return false;
+            return new StageEntryReadyResult(false, false, "PlayerCountUnavailable");
         }
 
-        isReady = playerCount >= Mathf.Max(1, _cachedMaxPlayerCount);
+        bool isReady = playerCountResult.PlayerCount >= Mathf.Max(1, _cachedMaxPlayerCount);
         if (!isReady)
         {
-            reason = "PlayersNotFull";
+            return new StageEntryReadyResult(true, false, "PlayersNotFull");
         }
 
-        return true;
+        return new StageEntryReadyResult(true, true, string.Empty);
     }
 
     /// <summary>
     /// 세션을 종료합니다.
     /// </summary>
-    public void CloseSession(string joinCode)
+    public Task<SessionOperationResult> CloseSessionAsync(string joinCode)
     {
         if (!TryResolveNetworkManager(out NetworkManager networkManager, out _))
         {
-            return;
+            return Task.FromResult(new SessionOperationResult(false, "NetworkManagerMissing"));
         }
 
         if (networkManager.IsListening)
@@ -228,6 +221,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         UnregisterNetworkCallbacks(networkManager);
         _activeJoinCode = string.Empty;
         _isStageInProgress = false;
+        return Task.FromResult(new SessionOperationResult(true, string.Empty));
     }
 
     /// <summary>
@@ -347,6 +341,10 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     {
         if (networkManager == null || _playerPrefab == null)
         {
+            if (_playerPrefab == null)
+            {
+                Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] PlayerObject 보정 스폰을 건너뜁니다. Player Prefab이 비어 있습니다.", this);
+            }
             return;
         }
 
@@ -378,6 +376,10 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     {
         if (!_spawnSinglePlayerFallbackIfMissing || _playerPrefab == null)
         {
+            if (_spawnSinglePlayerFallbackIfMissing && _playerPrefab == null)
+            {
+                Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] 싱글플레이 폴백 스폰을 건너뜁니다. Player Prefab이 비어 있습니다.", this);
+            }
             return;
         }
 
