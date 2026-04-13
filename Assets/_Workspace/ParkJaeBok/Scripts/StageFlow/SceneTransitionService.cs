@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -24,7 +25,12 @@ public class SceneTransitionService : MonoBehaviour
     [Tooltip("씬 전환 중 입력을 차단할지 여부입니다.")]
     [SerializeField] private bool _blockInputWhileTransition = true; // 전환 중 PlayerInput 활성 상태를 제어할지 여부입니다.
 
+    [Tooltip("NGO NetworkManager가 활성인 경우 Host/Server에서 NetworkSceneManager.LoadScene을 우선 사용할지 여부입니다.")]
+    [SerializeField] private bool _preferNetworkSceneManagement = true; // 멀티플레이 세션에서 NGO 표준 네트워크 씬 전환을 우선 적용할지 제어하는 플래그입니다.
+
     private bool _isTransitioning; // 현재 씬 전환 코루틴이 진행 중인지 여부입니다.
+    private bool _isNetworkTransitionInProgress; // 현재 씬 전환이 NGO NetworkSceneManager 경로로 진행 중인지 여부입니다.
+    private string _pendingNetworkSceneName; // NGO 씬 전환 경로에서 완료 콜백과 매칭할 대상 씬 이름입니다.
 
     /// <summary>
     /// 씬 로드 직전에 호출되는 이벤트입니다.
@@ -87,6 +93,22 @@ public class SceneTransitionService : MonoBehaviour
     }
 
     /// <summary>
+    /// 씬 로드 완료 콜백을 등록해 NGO 씬 전환 완료 시점을 감지합니다.
+    /// </summary>
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += HandleUnitySceneLoaded;
+    }
+
+    /// <summary>
+    /// 오브젝트 비활성화 시 씬 로드 완료 콜백을 해제합니다.
+    /// </summary>
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleUnitySceneLoaded;
+    }
+
+    /// <summary>
     /// 씬 전환 진행 중인지 여부를 반환합니다.
     /// </summary>
     public bool IsTransitioning()
@@ -109,6 +131,11 @@ public class SceneTransitionService : MonoBehaviour
         {
             Debug.LogWarning("[SceneTransitionService] sceneName이 비어 있어 전환을 건너뜁니다.", this);
             return false;
+        }
+
+        if (TryLoadSceneWithNgoNetworkManager(sceneName))
+        {
+            return true;
         }
 
         StartCoroutine(LoadSceneRoutine(sceneName));
@@ -136,6 +163,8 @@ public class SceneTransitionService : MonoBehaviour
     private IEnumerator LoadSceneRoutine(string sceneName)
     {
         _isTransitioning = true;
+        _isNetworkTransitionInProgress = false;
+        _pendingNetworkSceneName = string.Empty;
 
         ToggleInput(false);
         OnBeforeSceneLoad?.Invoke(sceneName);
@@ -170,6 +199,78 @@ public class SceneTransitionService : MonoBehaviour
 
         ToggleInput(true);
         _isTransitioning = false;
+    }
+
+    /// <summary>
+    /// 멀티플레이 세션에서는 Host/Server 권한으로 NGO 네트워크 씬 전환을 시작합니다.
+    /// </summary>
+    private bool TryLoadSceneWithNgoNetworkManager(string sceneName)
+    {
+        if (!_preferNetworkSceneManagement)
+        {
+            return false;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO 네트워크 씬 전환 가능 여부를 판정할 싱글톤 NetworkManager 참조입니다.
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return false;
+        }
+
+        if (!networkManager.NetworkConfig.EnableSceneManagement)
+        {
+            Debug.LogError($"[SceneTransitionService] NetworkConfig.EnableSceneManagement가 꺼져 있어 네트워크 씬 전환을 시작할 수 없습니다. scene={sceneName}", this);
+            return false;
+        }
+
+        if (!networkManager.IsServer)
+        {
+            Debug.LogWarning($"[SceneTransitionService] Client는 게임 진행용 씬 전환을 직접 시작할 수 없습니다. host 결정을 대기합니다. scene={sceneName}", this);
+            return false;
+        }
+
+        if (networkManager.SceneManager == null)
+        {
+            Debug.LogError($"[SceneTransitionService] NetworkSceneManager가 null이라 네트워크 씬 전환을 시작할 수 없습니다. scene={sceneName}", this);
+            return false;
+        }
+
+        SceneEventProgressStatus status = networkManager.SceneManager.LoadScene(sceneName, LoadSceneMode.Single); // Host/Server 권한으로 모든 클라이언트를 포함한 씬 전환을 시작하는 NGO API 호출 결과입니다.
+        if (status != SceneEventProgressStatus.Started)
+        {
+            Debug.LogError($"[SceneTransitionService] NetworkSceneManager.LoadScene 시작 실패. scene={sceneName}, status={status}", this);
+            return false;
+        }
+
+        _isTransitioning = true;
+        _isNetworkTransitionInProgress = true;
+        _pendingNetworkSceneName = sceneName;
+        ToggleInput(false);
+        OnBeforeSceneLoad?.Invoke(sceneName);
+        return true;
+    }
+
+    /// <summary>
+    /// NGO 네트워크 씬 전환의 Unity 씬 로드 완료 시점에서 후처리 이벤트와 입력 복구를 수행합니다.
+    /// </summary>
+    private void HandleUnitySceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
+    {
+        if (!_isNetworkTransitionInProgress)
+        {
+            return;
+        }
+
+        string loadedSceneName = loadedScene.name; // 네트워크 씬 전환 완료 매칭에 사용할 실제 로드 씬 이름입니다.
+        if (!string.Equals(loadedSceneName, _pendingNetworkSceneName, StringComparison.Ordinal))
+        {
+            Debug.LogWarning($"[SceneTransitionService] NGO 씬 전환 완료 콜백 씬 이름이 예상과 다릅니다. expected={_pendingNetworkSceneName}, actual={loadedSceneName}", this);
+        }
+
+        OnAfterSceneLoad?.Invoke(loadedSceneName);
+        ToggleInput(true);
+        _isTransitioning = false;
+        _isNetworkTransitionInProgress = false;
+        _pendingNetworkSceneName = string.Empty;
     }
 
     /// <summary>
