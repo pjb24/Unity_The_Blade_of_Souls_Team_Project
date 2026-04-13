@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -105,7 +106,7 @@ public class TownStageSelectorPresenter : MonoBehaviour
     /// <summary>
     /// 전달된 StageDefinition 기준으로 상태 판정, 세션 저장, 씬 전환을 처리합니다.
     /// </summary>
-    public void SelectStage(StageDefinition stageDefinition)
+    public async void SelectStage(StageDefinition stageDefinition)
     {
         if (stageDefinition == null)
         {
@@ -121,6 +122,7 @@ public class TownStageSelectorPresenter : MonoBehaviour
             return;
         }
 
+        await TryRefreshHostPlayerCountAsync();
         if (IsBlockedUntilClientJoined())
         {
             int currentPlayerCount = _multiplayerSessionOrchestrator != null ? _multiplayerSessionOrchestrator.CurrentPlayerCount : 1; // 차단 로그에 노출할 현재 세션 인원 수입니다.
@@ -218,5 +220,25 @@ public class TownStageSelectorPresenter : MonoBehaviour
         }
 
         return _multiplayerSessionOrchestrator.IsHosting && !_multiplayerSessionOrchestrator.IsHostReadyForStageEntry;
+    }
+
+    /// <summary>
+    /// Host가 스테이지 선택을 시도할 때 백엔드 기준 최신 세션 인원 수를 비동기로 동기화합니다.
+    /// </summary>
+    private async Task TryRefreshHostPlayerCountAsync()
+    {
+        if (_multiplayerSessionOrchestrator == null)
+        {
+            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance != null
+                ? MultiplayerSessionOrchestrator.Instance
+                : FindAnyObjectByType<MultiplayerSessionOrchestrator>();
+        }
+
+        if (_multiplayerSessionOrchestrator == null || !_multiplayerSessionOrchestrator.IsHosting)
+        {
+            return;
+        }
+
+        await _multiplayerSessionOrchestrator.RefreshPlayerCountFromActiveSessionAsync();
     }
 }
