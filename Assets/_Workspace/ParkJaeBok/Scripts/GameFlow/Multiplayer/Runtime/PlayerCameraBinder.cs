@@ -21,6 +21,9 @@ public class PlayerCameraBinder : NetworkBehaviour
     [Tooltip("씬 전환 후에도 로컬 소유자 기준으로 카메라 타깃 재바인딩을 수행할지 여부입니다.")]
     [SerializeField] private bool _rebindOnSceneLoaded = true; // 씬 로드 이벤트마다 카메라 타깃 재바인딩을 수행할지 제어하는 플래그입니다.
 
+    [Tooltip("싱글플레이 모드에서 네트워크 스폰이 없는 경우에도 카메라 타깃 바인딩을 수행할지 여부입니다.")]
+    [SerializeField] private bool _bindInSinglePlayerWithoutNetworkSpawn = true; // 단일 플레이 흐름에서 카메라 바인딩 폴백을 활성화할지 제어하는 플래그입니다.
+
     [Tooltip("비어 있지 않으면 컴포넌트 타입 이름에 이 문자열이 포함된 Cinemachine 컴포넌트만 바인딩 대상으로 사용합니다.")]
     [SerializeField] private string _componentTypeNameFilter; // 카메라 컴포넌트 탐색 시 타입 이름 필터링에 사용할 문자열입니다.
 
@@ -28,7 +31,34 @@ public class PlayerCameraBinder : NetworkBehaviour
     [Tooltip("카메라 바인딩 상세 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseLogging; // 카메라 바인딩 성공/실패 상세 로그 출력 여부를 제어하는 플래그입니다.
 
+    [Tooltip("디버그용: 가장 최근 바인딩 시도에서 카메라 타깃 바인딩 성공 여부입니다.")]
+    [SerializeField] private bool _hasBoundCameraTarget; // 최근 바인딩 시도에서 최소 1개 Cinemachine 컴포넌트에 타깃 적용이 성공했는지 추적하는 디버그 값입니다.
+
     private bool _isSceneLoadedHookRegistered; // sceneLoaded 콜백 등록 상태를 추적하는 런타임 플래그입니다.
+    private GameFlowController _cachedGameFlowController; // 싱글플레이 모드 판별에 사용할 GameFlowController 캐시 참조입니다.
+
+    /// <summary>
+    /// 가장 최근 바인딩 시도에서 카메라 타깃 바인딩 성공 여부를 조회합니다.
+    /// </summary>
+    public bool HasBoundCameraTarget => _hasBoundCameraTarget;
+
+    /// <summary>
+    /// 네트워크 스폰 이전(singleplayer)에도 카메라 바인딩 폴백을 시도합니다.
+    /// </summary>
+    private void OnEnable()
+    {
+        if (!ShouldUseSinglePlayerFallbackBinding())
+        {
+            return;
+        }
+
+        BindCameraToOwnerTarget();
+
+        if (_rebindOnSceneLoaded)
+        {
+            RegisterSceneLoadedHook();
+        }
+    }
 
     /// <summary>
     /// 네트워크 스폰 이후 로컬 소유자일 때만 카메라 타깃 바인딩을 수행합니다.
@@ -61,7 +91,14 @@ public class PlayerCameraBinder : NetworkBehaviour
     /// </summary>
     private void HandleSceneLoaded(Scene _, LoadSceneMode __)
     {
-        if (!IsOwner)
+        if (IsSpawned)
+        {
+            if (!IsOwner)
+            {
+                return;
+            }
+        }
+        else if (!ShouldUseSinglePlayerFallbackBinding())
         {
             return;
         }
@@ -118,6 +155,8 @@ public class PlayerCameraBinder : NetworkBehaviour
         {
             Debug.Log($"[PlayerCameraBinder] Bound components={boundComponentCount}, owner={OwnerClientId}, target={target.name}", this);
         }
+
+        _hasBoundCameraTarget = boundComponentCount > 0;
     }
 
     /// <summary>
@@ -209,5 +248,44 @@ public class PlayerCameraBinder : NetworkBehaviour
 
         SceneManager.sceneLoaded -= HandleSceneLoaded;
         _isSceneLoadedHookRegistered = false;
+    }
+
+    /// <summary>
+    /// 네트워크 비활성(singleplayer) 환경에서 카메라 바인딩 폴백을 수행해도 되는지 판정합니다.
+    /// </summary>
+    private bool ShouldUseSinglePlayerFallbackBinding()
+    {
+        if (!_bindInSinglePlayerWithoutNetworkSpawn || IsSpawned)
+        {
+            return false;
+        }
+
+        if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsListening)
+        {
+            return false;
+        }
+
+        if (!TryResolveGameFlowController(out GameFlowController gameFlowController))
+        {
+            return false;
+        }
+
+        return gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer;
+    }
+
+    /// <summary>
+    /// 싱글플레이 모드 판별에 사용할 GameFlowController 참조를 해석합니다.
+    /// </summary>
+    private bool TryResolveGameFlowController(out GameFlowController gameFlowController)
+    {
+        if (_cachedGameFlowController == null)
+        {
+            _cachedGameFlowController = GameFlowController.Instance != null
+                ? GameFlowController.Instance
+                : FindAnyObjectByType<GameFlowController>();
+        }
+
+        gameFlowController = _cachedGameFlowController;
+        return gameFlowController != null;
     }
 }
