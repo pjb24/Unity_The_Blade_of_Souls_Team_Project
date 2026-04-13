@@ -132,9 +132,68 @@ public class GameFlowController : MonoBehaviour
     public E_MultiplayerSessionRole CurrentMultiplayerSessionRole => _currentMultiplayerSessionRole;
 
     /// <summary>
+    /// 지정 씬 이름이 플레이어 스폰을 허용하는 인게임 씬인지 판별합니다.
+    /// </summary>
+    public bool IsPlayerSpawnAllowedScene(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            return false;
+        }
+
+        if (MatchesSceneName(sceneName, _titleSceneName))
+        {
+            return false;
+        }
+
+        if (MatchesSceneName(sceneName, _defaultNewGameSceneName)
+            || MatchesSceneName(sceneName, _singlePlayerStartSceneName)
+            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName))
+            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName)))
+        {
+            return true;
+        }
+
+        if (_stageCatalog == null || _stageCatalog.Stages == null)
+        {
+            return false;
+        }
+
+        IReadOnlyList<StageDefinition> stages = _stageCatalog.Stages; // 인게임 스테이지 씬 이름 매칭에 사용할 StageCatalog 목록입니다.
+        for (int index = 0; index < stages.Count; index++)
+        {
+            StageDefinition stageDefinition = stages[index]; // 현재 인게임 씬 이름을 비교할 스테이지 정의입니다.
+            if (stageDefinition == null)
+            {
+                continue;
+            }
+
+            if (MatchesSceneName(sceneName, stageDefinition.SceneName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 싱글톤 접근용 GameFlowController 인스턴스입니다.
     /// </summary>
     public static GameFlowController Instance { get; private set; }
+
+    /// <summary>
+    /// 두 씬 이름 문자열이 동일한지 대소문자 무시 비교로 판별합니다.
+    /// </summary>
+    private bool MatchesSceneName(string lhs, string rhs)
+    {
+        if (string.IsNullOrWhiteSpace(lhs) || string.IsNullOrWhiteSpace(rhs))
+        {
+            return false;
+        }
+
+        return string.Equals(lhs.Trim(), rhs.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// 의존성을 보정하고 상태 머신을 구성합니다.

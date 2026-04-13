@@ -558,10 +558,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: UGSMultiplayerRuntimeRoot
       objectReference: {fileID: 0}
-    - target: {fileID: 2231013239778041329, guid: 341246ec36877b54386667b093c79f07, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 5718794888683731914, guid: 341246ec36877b54386667b093c79f07, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

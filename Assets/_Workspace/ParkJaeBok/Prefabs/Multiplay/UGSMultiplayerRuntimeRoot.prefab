@@ -98,3 +98,4 @@ MonoBehaviour:
   _defaultNetworkPrefabs: []
   _registerDefaultNetworkPrefabsAtRuntime: 0
   _autoSpawnPlayerPrefabClientSide: 0
+  _playerSpawnAllowedStates: 02000000030000000400000005000000

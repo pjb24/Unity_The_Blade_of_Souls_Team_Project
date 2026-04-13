@@ -92,5 +92,6 @@ MonoBehaviour:
   _autoSpawnPlayerPrefabClientSide: 0
   _ensureHostPlayerObjectAfterSceneLoad: 1
   _spawnSinglePlayerFallbackIfMissing: 1
+  _playerSpawnAllowedStates: 02000000030000000400000005000000
   _defaultJoinCode: LOCAL
   _verboseLogging: 0

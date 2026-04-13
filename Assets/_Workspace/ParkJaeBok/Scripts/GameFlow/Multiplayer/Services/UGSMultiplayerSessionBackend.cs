@@ -65,6 +65,15 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
     [Tooltip("Player Prefab 자동 스폰을 클라이언트 측에서 수행할지 여부입니다.")]
     [SerializeField] private bool _autoSpawnPlayerPrefabClientSide; // NetworkConfig.AutoSpawnPlayerPrefabClientSide 적용값입니다.
 
+    [Tooltip("플레이어 스폰/재스폰 폴백을 허용할 GameFlow 상태 목록입니다. Title/Boot에서는 기본적으로 허용되지 않습니다.")]
+    [SerializeField] private GameFlowState[] _playerSpawnAllowedStates =
+    {
+        GameFlowState.Town,
+        GameFlowState.StageLoading,
+        GameFlowState.StagePlaying,
+        GameFlowState.ReturnToTown
+    }; // 플레이어 스폰 폴백이 동작 가능한 GameFlow 상태 화이트리스트입니다.
+
     private string _activeLobbyId; // 현재 로컬 피어가 연결된 Lobby ID 캐시입니다.
     private string _activeJoinCode; // 현재 세션에서 사용하는 Lobby Join Code 캐시입니다.
     private string _localPlayerId; // UGS Authentication에서 발급된 로컬 플레이어 ID 캐시입니다.
@@ -658,6 +667,11 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
     /// </summary>
     private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
     {
+        if (!IsPlayerSpawnAllowedByGameFlowState(loadedScene))
+        {
+            return;
+        }
+
         TrySpawnMissingSinglePlayerLocalPlayer();
 
         if (!_ensureHostPlayerObjectAfterSceneLoad)
@@ -763,6 +777,49 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
 
         gameFlowController = _cachedGameFlowController;
         return gameFlowController != null;
+    }
+
+    /// <summary>
+    /// 현재 GameFlow 상태가 플레이어 스폰 폴백 허용 대상인지 판별합니다.
+    /// </summary>
+    private bool IsPlayerSpawnAllowedByGameFlowState(Scene loadedScene)
+    {
+        if (!TryResolveGameFlowController(out GameFlowController gameFlowController))
+        {
+            Debug.LogWarning("[UGSMultiplayerSessionBackend] Player spawn fallback blocked: GameFlowController is missing.", this);
+            return false;
+        }
+
+        if (!gameFlowController.IsPlayerSpawnAllowedScene(loadedScene.name))
+        {
+            if (_verboseLogging)
+            {
+                Debug.LogWarning($"[UGSMultiplayerSessionBackend] Player spawn fallback blocked by scene policy. scene={loadedScene.name}", this);
+            }
+
+            return false;
+        }
+
+        GameFlowState currentState = gameFlowController.CurrentState; // 플레이어 스폰 폴백 허용 여부를 판정할 현재 GameFlow 상태입니다.
+        if (_playerSpawnAllowedStates == null || _playerSpawnAllowedStates.Length == 0)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _playerSpawnAllowedStates.Length; index++)
+        {
+            if (_playerSpawnAllowedStates[index] == currentState)
+            {
+                return true;
+            }
+        }
+
+        if (_verboseLogging)
+        {
+            Debug.LogWarning($"[UGSMultiplayerSessionBackend] Player spawn fallback blocked by GameFlowState={currentState}", this);
+        }
+
+        return false;
     }
 
     /// <summary>

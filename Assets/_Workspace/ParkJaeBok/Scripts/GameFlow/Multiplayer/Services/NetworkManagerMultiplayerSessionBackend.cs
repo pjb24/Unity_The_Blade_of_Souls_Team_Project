@@ -31,6 +31,15 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     [Tooltip("싱글플레이 씬 로드 후 Player 오브젝트가 없으면 _playerPrefab을 로컬 인스턴스로 보충 생성할지 여부입니다.")]
     [SerializeField] private bool _spawnSinglePlayerFallbackIfMissing = true; // 싱글플레이에서 플레이어 누락 시 로컬 플레이어 프리팹을 자동 생성할지 제어하는 플래그입니다.
 
+    [Tooltip("플레이어 스폰/재스폰 폴백을 허용할 GameFlow 상태 목록입니다. Title/Boot에서는 기본적으로 허용되지 않습니다.")]
+    [SerializeField] private GameFlowState[] _playerSpawnAllowedStates =
+     {
+         GameFlowState.Town,
+         GameFlowState.StageLoading,
+         GameFlowState.StagePlaying,
+         GameFlowState.ReturnToTown
+     }; // 플레이어 스폰 폴백이 동작 가능한 GameFlow 상태 화이트리스트입니다.
+
     [Header("Policy")]
     [Tooltip("Host가 생성한 Join Code를 저장해 UI에 노출할 때 사용할 기본 문자열입니다.")]
     [SerializeField] private string _defaultJoinCode = "LOCAL"; // Host 시작 성공 시 Join Code로 반환할 기본 문자열입니다.
@@ -303,8 +312,13 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     /// <summary>
     /// 씬 로드 이후 Host 로컬 PlayerObject가 누락되었는지 점검하고 필요 시 재스폰을 시도합니다.
     /// </summary>
-    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
     {
+        if (!IsPlayerSpawnAllowedByGameFlowState(loadedScene))
+        {
+            return;
+        }
+
         TrySpawnMissingSinglePlayerLocalPlayer();
 
         if (!_ensureHostPlayerObjectAfterSceneLoad)
@@ -421,6 +435,49 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
 
         gameFlowController = _cachedGameFlowController;
         return gameFlowController != null;
+    }
+
+    /// <summary>
+    /// 현재 GameFlow 상태가 플레이어 스폰 폴백 허용 대상인지 판별합니다.
+    /// </summary>
+    private bool IsPlayerSpawnAllowedByGameFlowState(Scene loadedScene)
+    {
+        if (!TryResolveGameFlowController(out GameFlowController gameFlowController))
+        {
+            Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] Player spawn fallback blocked: GameFlowController is missing.", this);
+            return false;
+        }
+
+        if (!gameFlowController.IsPlayerSpawnAllowedScene(loadedScene.name))
+        {
+            if (_verboseLogging)
+            {
+                Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] Player spawn fallback blocked by scene policy. scene={loadedScene.name}", this);
+            }
+
+            return false;
+        }
+
+        GameFlowState currentState = gameFlowController.CurrentState; // 플레이어 스폰 폴백 허용 여부를 판정할 현재 GameFlow 상태입니다.
+        if (_playerSpawnAllowedStates == null || _playerSpawnAllowedStates.Length == 0)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _playerSpawnAllowedStates.Length; index++)
+        {
+            if (_playerSpawnAllowedStates[index] == currentState)
+            {
+                return true;
+            }
+        }
+
+        if (_verboseLogging)
+        {
+            Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] Player spawn fallback blocked by GameFlowState={currentState}", this);
+        }
+
+        return false;
     }
 
     /// <summary>
