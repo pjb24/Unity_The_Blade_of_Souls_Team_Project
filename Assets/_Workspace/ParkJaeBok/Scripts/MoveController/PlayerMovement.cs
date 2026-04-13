@@ -36,6 +36,19 @@ public class PlayerMovement : MonoBehaviour
     // 대시 눌림 입력을 물리 프레임까지 버퍼링한다.
     private bool _dashPressed;
 
+    // 외부 드라이버(PlayerInputDriver) 사용 시 이동 입력을 전달받는 버퍼이다.
+    private Vector2 _drivenMoveInput;
+    // 외부 드라이버(PlayerInputDriver) 사용 시 달리기 유지 입력을 전달받는 버퍼이다.
+    private bool _drivenRunHeld;
+    // 외부 드라이버(PlayerInputDriver) 사용 시 점프 눌림 입력을 전달받는 버퍼이다.
+    private bool _drivenJumpPressed;
+    // 외부 드라이버(PlayerInputDriver) 사용 시 점프 해제 입력을 전달받는 버퍼이다.
+    private bool _drivenJumpReleased;
+    // 외부 드라이버(PlayerInputDriver) 사용 시 대시 눌림 입력을 전달받는 버퍼이다.
+    private bool _drivenDashPressed;
+    // 입력 소스를 InputManager 직접 읽기에서 외부 드라이버 주입으로 전환할지 여부를 제어한다.
+    private bool _useDrivenInput;
+
     //jump vars
     // 점프 상승 구간이 아직 유효한지 나타내며 중력/정점 처리 분기를 결정한다.
     private bool _isJumping;
@@ -195,11 +208,45 @@ public class PlayerMovement : MonoBehaviour
     // 입력을 수집해 물리 프레임에서 소비할 버퍼 플래그를 설정한다.
     private void Update()
     {
+        if (_useDrivenInput)
+        {
+            _moveInput = _drivenMoveInput;
+            _runHeld = _drivenRunHeld;
+            if (_drivenJumpPressed) _jumpPressed = true;
+            if (_drivenJumpReleased) _jumpReleased = true;
+            if (_drivenDashPressed) _dashPressed = true;
+
+            _drivenJumpPressed = false;
+            _drivenJumpReleased = false;
+            _drivenDashPressed = false;
+            return;
+        }
+
         _moveInput = InputManager.Movement;
         _runHeld = InputManager.RunIsHeld;
         if (InputManager.JumpWasPressed) _jumpPressed = true;
         if (InputManager.JumpWasReleased) _jumpReleased = true;
         if (InputManager.DashWasPressed) _dashPressed = true;
+    }
+
+    /// <summary>
+    /// 입력 소스를 외부 드라이버(PlayerInputDriver) 기반으로 전환하거나 해제합니다.
+    /// </summary>
+    public void SetDrivenInputEnabled(bool enabled)
+    {
+        _useDrivenInput = enabled;
+    }
+
+    /// <summary>
+    /// 외부 드라이버가 수집한 프레임 입력을 PlayerMovement에 주입합니다.
+    /// </summary>
+    public void SetDrivenInputFrame(Vector2 movement, bool runHeld, bool jumpPressed, bool jumpReleased, bool dashPressed)
+    {
+        _drivenMoveInput = movement;
+        _drivenRunHeld = runHeld;
+        _drivenJumpPressed |= jumpPressed;
+        _drivenJumpReleased |= jumpReleased;
+        _drivenDashPressed |= dashPressed;
     }
 
     // 경사면 옵션이 켜진 경우 비주얼 회전을 마지막 단계에서 보간한다.
