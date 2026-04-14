@@ -17,7 +17,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &469647105247001807
 Transform:
   m_ObjectHideFlags: 0
@@ -87,8 +87,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NetworkManagerMultiplayerSessionBackend
   _networkManager: {fileID: 0}
   _playerPrefab: {fileID: 6058810458548238607, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
-  _defaultNetworkPrefabs: []
-  _registerDefaultNetworkPrefabsAtRuntime: 0
   _autoSpawnPlayerPrefabClientSide: 0
   _ensureHostPlayerObjectAfterSceneLoad: 1
   _spawnSinglePlayerFallbackIfMissing: 1

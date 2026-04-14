@@ -56,12 +56,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
     [Tooltip("싱글플레이 Town 진입 시 플레이어가 없으면 로컬 Player Prefab 생성 폴백을 수행할지 여부입니다.")]
     [SerializeField] private bool _spawnSinglePlayerFallbackIfMissing = true; // 싱글플레이 플레이어 누락 폴백 생성 활성화 여부입니다.
 
-    [Tooltip("NetworkManager에 기본 등록할 네트워크 프리팹 목록입니다.")]
-    [SerializeField] private List<GameObject> _defaultNetworkPrefabs = new(); // 런타임 AddNetworkPrefab에 사용할 네트워크 프리팹 목록입니다.
-
-    [Tooltip("Default Network Prefabs를 런타임 AddNetworkPrefab으로 등록할지 여부입니다.")]
-    [SerializeField] private bool _registerDefaultNetworkPrefabsAtRuntime; // 런타임 네트워크 프리팹 등록 정책 플래그입니다.
-
     [Tooltip("Player Prefab 자동 스폰을 클라이언트 측에서 수행할지 여부입니다.")]
     [SerializeField] private bool _autoSpawnPlayerPrefabClientSide; // NetworkConfig.AutoSpawnPlayerPrefabClientSide 적용값입니다.
 
@@ -85,7 +79,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
 
     private CancellationTokenSource _heartbeatCancellationTokenSource; // Host Heartbeat 루프 취소를 제어하는 CancellationTokenSource입니다.
     private Task _heartbeatLoopTask; // Host Heartbeat 비동기 루프 Task를 추적하는 캐시입니다.
-    private readonly HashSet<int> _registeredNetworkPrefabIds = new(); // Network Prefab 중복 등록을 막기 위한 InstanceID 캐시입니다.
     private bool _networkCallbacksRegistered; // NetworkManager 콜백 등록 상태를 추적하는 런타임 플래그입니다.
     private GameFlowController _cachedGameFlowController; // 플레이 모드 조회에 사용할 GameFlowController 캐시 참조입니다.
 
@@ -630,36 +623,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
             networkManager.NetworkConfig.PlayerPrefab = _playerPrefab;
             networkManager.NetworkConfig.AutoSpawnPlayerPrefabClientSide = _autoSpawnPlayerPrefabClientSide;
         }
-
-        if (!_registerDefaultNetworkPrefabsAtRuntime || _defaultNetworkPrefabs == null || _defaultNetworkPrefabs.Count == 0)
-        {
-            return;
-        }
-
-        for (int index = 0; index < _defaultNetworkPrefabs.Count; index++)
-        {
-            RegisterNetworkPrefabIfNeeded(networkManager, _defaultNetworkPrefabs[index]);
-        }
-    }
-
-    /// <summary>
-    /// 동일 프리팹 중복 등록을 피하면서 AddNetworkPrefab을 수행합니다.
-    /// </summary>
-    private void RegisterNetworkPrefabIfNeeded(NetworkManager networkManager, GameObject prefab)
-    {
-        if (networkManager == null || prefab == null)
-        {
-            return;
-        }
-
-        int prefabId = prefab.GetInstanceID();
-        if (_registeredNetworkPrefabIds.Contains(prefabId))
-        {
-            return;
-        }
-
-        networkManager.AddNetworkPrefab(prefab);
-        _registeredNetworkPrefabIds.Add(prefabId);
     }
 
     /// <summary>

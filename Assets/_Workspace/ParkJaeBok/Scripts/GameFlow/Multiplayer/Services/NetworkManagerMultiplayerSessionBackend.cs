@@ -13,14 +13,8 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     [Tooltip("멀티플레이 네트워크 수립을 수행할 NetworkManager 참조입니다. 비어 있으면 NetworkManager.Singleton을 사용합니다.")]
     [SerializeField] private NetworkManager _networkManager; // Host/Client 시작/종료를 위임할 NetworkManager 참조입니다.
 
-    [Tooltip("Host/Client 자동 스폰에 사용할 공통 Player Prefab입니다. Phase 1 요구사항에 따라 단일 프리팹만 사용합니다.")]
+    [Tooltip("Host/Client 자동 스폰에 사용할 공통 Player Prefab입니다.")]
     [SerializeField] private GameObject _playerPrefab; // NetworkManager.NetworkConfig.PlayerPrefab으로 연결할 단일 플레이어 프리팹 참조입니다.
-
-    [Tooltip("NetworkManager에 기본 등록할 네트워크 프리팹 목록입니다. Player 포함 추가 네트워크 오브젝트를 등록할 때 사용합니다.")]
-    [SerializeField] private List<GameObject> _defaultNetworkPrefabs = new(); // 세션 시작 전에 AddNetworkPrefab으로 등록할 기본 네트워크 프리팹 목록입니다.
-
-    [Tooltip("런타임에서 Default Network Prefabs를 AddNetworkPrefab으로 추가 등록할지 여부입니다. 중복 등록 에러 방지를 위해 기본값은 false를 권장합니다.")]
-    [SerializeField] private bool _registerDefaultNetworkPrefabsAtRuntime; // 기본 네트워크 프리팹 목록을 런타임에 추가 등록할지 제어하는 정책 값입니다.
 
     [Tooltip("Player Prefab 자동 스폰을 Server 권한으로 수행할지 여부입니다. Host 플레이어 누락을 방지하려면 false(기본값)를 권장합니다.")]
     [SerializeField] private bool _autoSpawnPlayerPrefabClientSide = false; // NetworkConfig.AutoSpawnPlayerPrefabClientSide에 반영할 정책 값입니다.
@@ -50,7 +44,6 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     private string _activeJoinCode; // 현재 런타임 세션에서 사용 중인 Join Code 캐시입니다.
     private int _cachedMaxPlayerCount = 2; // 세션 정원 판정에 사용할 최대 인원 수 캐시입니다.
     private bool _isStageInProgress; // 중도 Join 금지 정책을 반영하기 위한 Stage 진행 상태 캐시입니다.
-    private readonly HashSet<int> _registeredNetworkPrefabIds = new(); // AddNetworkPrefab 중복 등록을 방지하기 위해 기록하는 프리팹 InstanceID 집합입니다.
     private bool _networkCallbacksRegistered; // 현재 NetworkManager 연결/해제 콜백이 등록된 상태인지 추적하는 플래그입니다.
     private GameFlowController _cachedGameFlowController; // 플레이 모드 판별에 사용할 GameFlowController 캐시 참조입니다.
 
@@ -266,47 +259,6 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             networkManager.NetworkConfig.PlayerPrefab = _playerPrefab;
             networkManager.NetworkConfig.AutoSpawnPlayerPrefabClientSide = _autoSpawnPlayerPrefabClientSide;
         }
-
-        if (!_registerDefaultNetworkPrefabsAtRuntime)
-        {
-            return;
-        }
-
-        if (_defaultNetworkPrefabs == null || _defaultNetworkPrefabs.Count == 0)
-        {
-            return;
-        }
-
-        for (int index = 0; index < _defaultNetworkPrefabs.Count; index++)
-        {
-            GameObject prefab = _defaultNetworkPrefabs[index];
-            if (prefab == _playerPrefab)
-            {
-                continue;
-            }
-
-            RegisterNetworkPrefabIfNeeded(networkManager, prefab);
-        }
-    }
-
-    /// <summary>
-    /// 동일 프리팹 중복 등록 없이 NetworkManager.AddNetworkPrefab을 수행합니다.
-    /// </summary>
-    private void RegisterNetworkPrefabIfNeeded(NetworkManager networkManager, GameObject prefab)
-    {
-        if (networkManager == null || prefab == null)
-        {
-            return;
-        }
-
-        int prefabId = prefab.GetInstanceID();
-        if (_registeredNetworkPrefabIds.Contains(prefabId))
-        {
-            return;
-        }
-
-        networkManager.AddNetworkPrefab(prefab);
-        _registeredNetworkPrefabIds.Add(prefabId);
     }
 
     /// <summary>
