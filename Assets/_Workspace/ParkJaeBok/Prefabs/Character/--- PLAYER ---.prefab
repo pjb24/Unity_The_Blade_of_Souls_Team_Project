@@ -231,7 +231,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1632356955
+  GlobalObjectIdHash: 2122165157
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -351,8 +351,10 @@ MonoBehaviour:
   _cameraTarget: {fileID: 6731959234957534330}
   _bindLookAtProperties: 0
   _rebindOnSceneLoaded: 1
+  _bindInSinglePlayerWithoutNetworkSpawn: 1
   _componentTypeNameFilter: 
   _verboseLogging: 0
+  _hasBoundCameraTarget: 0
 --- !u!114 &1569005885950623159
 MonoBehaviour:
   m_ObjectHideFlags: 0
