@@ -16,19 +16,12 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     [Tooltip("Host/Client 자동 스폰에 사용할 공통 Player Prefab입니다.")]
     [SerializeField] private GameObject _playerPrefab; // NetworkManager.NetworkConfig.PlayerPrefab으로 연결할 단일 플레이어 프리팹 참조입니다.
 
-    [Tooltip("Player Prefab 자동 스폰을 Server 권한으로 수행할지 여부입니다. Host 플레이어 누락을 방지하려면 false(기본값)를 권장합니다.")]
-    [SerializeField] private bool _autoSpawnPlayerPrefabClientSide = false; // NetworkConfig.AutoSpawnPlayerPrefabClientSide에 반영할 정책 값입니다.
-
     [Tooltip("씬 전환 후 Host/Server 관점에서 로컬 PlayerObject가 사라졌을 때 자동 재스폰을 시도할지 여부입니다.")]
     [SerializeField] private bool _ensureHostPlayerObjectAfterSceneLoad = true; // 씬 전환으로 PlayerObject가 파괴된 경우 Host 로컬 플레이어 재스폰을 시도할지 제어하는 플래그입니다.
-
-    [Tooltip("싱글플레이 씬 로드 후 Player 오브젝트가 없으면 _playerPrefab을 로컬 인스턴스로 보충 생성할지 여부입니다.")]
-    [SerializeField] private bool _spawnSinglePlayerFallbackIfMissing = true; // 싱글플레이에서 플레이어 누락 시 로컬 플레이어 프리팹을 자동 생성할지 제어하는 플래그입니다.
 
     [Tooltip("플레이어 스폰/재스폰 폴백을 허용할 GameFlow 상태 목록입니다. Title/Boot에서는 기본적으로 허용되지 않습니다.")]
     [SerializeField] private GameFlowState[] _playerSpawnAllowedStates =
      {
-         GameFlowState.Town,
          GameFlowState.StageLoading,
          GameFlowState.StagePlaying,
          GameFlowState.ReturnToTown
@@ -85,7 +78,6 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             networkManager.Shutdown();
         }
 
-        ConfigureNetworkPrefabs(networkManager);
         RegisterNetworkCallbacks(networkManager);
 
         bool started = networkManager.StartHost();
@@ -128,7 +120,6 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             networkManager.Shutdown();
         }
 
-        ConfigureNetworkPrefabs(networkManager);
         RegisterNetworkCallbacks(networkManager);
 
         bool started = networkManager.StartClient();
@@ -245,23 +236,6 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     }
 
     /// <summary>
-    /// 세션 시작 전에 PlayerPrefab/DefaultNetworkPrefabs를 NetworkManager에 반영합니다.
-    /// </summary>
-    private void ConfigureNetworkPrefabs(NetworkManager networkManager)
-    {
-        if (networkManager == null)
-        {
-            return;
-        }
-
-        if (_playerPrefab != null)
-        {
-            networkManager.NetworkConfig.PlayerPrefab = _playerPrefab;
-            networkManager.NetworkConfig.AutoSpawnPlayerPrefabClientSide = _autoSpawnPlayerPrefabClientSide;
-        }
-    }
-
-    /// <summary>
     /// 씬 로드 이후 Host 로컬 PlayerObject가 누락되었는지 점검하고 필요 시 재스폰을 시도합니다.
     /// </summary>
     private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
@@ -271,7 +245,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             return;
         }
 
-        TrySpawnMissingSinglePlayerLocalPlayer();
+        TrySpawnSinglePlayerLocalPlayer();
 
         if (!_ensureHostPlayerObjectAfterSceneLoad)
         {
@@ -338,14 +312,12 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     /// <summary>
     /// 싱글플레이 모드에서 씬 로드 후 플레이어가 누락된 경우 로컬 플레이어 프리팹을 생성합니다.
     /// </summary>
-    private void TrySpawnMissingSinglePlayerLocalPlayer()
+    private void TrySpawnSinglePlayerLocalPlayer()
     {
-        if (!_spawnSinglePlayerFallbackIfMissing || _playerPrefab == null)
+        if (_playerPrefab == null)
         {
-            if (_spawnSinglePlayerFallbackIfMissing && _playerPrefab == null)
-            {
-                Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] 싱글플레이 폴백 스폰을 건너뜁니다. Player Prefab이 비어 있습니다.", this);
-            }
+            Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] 싱글플레이 폴백 스폰을 건너뜁니다. Player Prefab이 비어 있습니다.", this);
+
             return;
         }
 
@@ -360,12 +332,6 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         }
 
         if (gameFlowController.CurrentPlayMode != E_GamePlayMode.SinglePlayer)
-        {
-            return;
-        }
-
-        PlayerMovement existingPlayer = FindAnyObjectByType<PlayerMovement>(); // 현재 활성 씬에 이미 존재하는 플레이어 이동 컴포넌트 참조입니다.
-        if (existingPlayer != null)
         {
             return;
         }
