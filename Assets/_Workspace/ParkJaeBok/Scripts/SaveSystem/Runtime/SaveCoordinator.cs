@@ -738,6 +738,51 @@ public class SaveCoordinator : MonoBehaviour
     }
 
     /// <summary>
+    /// 지정 슬롯의 채널 파일을 삭제해 빈 슬롯 상태로 초기화합니다.
+    /// </summary>
+    public bool ClearSlotData(int slotIndex, bool persistAsLastUsed = true)
+    {
+        if (_backend == null)
+        {
+            Debug.LogWarning($"[SaveCoordinator] Backend가 없어 슬롯 삭제를 수행할 수 없습니다. slot={slotIndex}", this);
+            return false;
+        }
+
+        int safeSlotIndex = Mathf.Max(1, slotIndex); // 삭제 대상 파일명 계산에 사용할 보정 슬롯 번호입니다.
+        bool allSucceeded = true; // 채널 파일 삭제 전체 성공 여부 누적값입니다.
+
+        for (int i = 0; i < _channelPolicies.Count; i++)
+        {
+            SaveChannelPolicy policy = _channelPolicies[i]; // 현재 삭제 대상 채널 정책입니다.
+            if (policy == null || string.IsNullOrWhiteSpace(policy.FileName))
+            {
+                continue;
+            }
+
+            string resolvedFileName = ResolveChannelFileName(policy.FileName, safeSlotIndex); // 슬롯 접미사가 반영된 삭제 대상 파일명입니다.
+            bool deletedResolved = _backend.TryDelete(resolvedFileName);
+            allSucceeded &= deletedResolved;
+
+            if (_useSaveSlots && safeSlotIndex == 1)
+            {
+                bool deletedLegacyBase = _backend.TryDelete(policy.FileName); // 슬롯 시스템 도입 이전 기본 파일명 삭제 성공 여부입니다.
+                allSucceeded &= deletedLegacyBase;
+            }
+        }
+
+        SetActiveSaveSlot(safeSlotIndex, persistAsLastUsed);
+        return allSucceeded;
+    }
+
+    /// <summary>
+    /// 현재 활성 슬롯의 데이터를 삭제해 빈 슬롯 상태로 초기화합니다.
+    /// </summary>
+    public bool ClearActiveSlotData(bool persistAsLastUsed = true)
+    {
+        return ClearSlotData(_activeSaveSlotIndex, persistAsLastUsed);
+    }
+
+    /// <summary>
     /// 지정 슬롯의 진행 요약 정보를 반환합니다.
     /// </summary>
     public bool TryGetSlotProgressSummary(int slotIndex, out SaveSlotProgressSummary summary)

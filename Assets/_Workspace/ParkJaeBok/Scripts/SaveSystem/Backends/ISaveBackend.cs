@@ -17,4 +17,9 @@ public interface ISaveBackend
     /// 저장 루트 경로를 반환합니다.
     /// </summary>
     string GetSaveRootPath();
+
+    /// <summary>
+    /// 지정 파일과 관련 백업 파일을 삭제합니다.
+    /// </summary>
+    bool TryDelete(string fileName);
 }

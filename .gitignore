@@ -102,3 +102,5 @@ InitTestScene*.unity*
 /[Aa]ssets/TextMesh Pro.meta
 /[Aa]ssets/TextMesh Pro/*
 /[Aa]ssets/ThirdParty/*
+/ProjectSettings/Packages/com.unity.multiplayer.tools/CustomColorSettings.asset
+/ProjectSettings/VirtualProjectsConfig.json

@@ -14,8 +14,8 @@ public class TitleMenuPanelCloseHandler : MonoBehaviour
     [Tooltip("백드롭을 숨길지 판단할 때 함께 확인할 다른 패널 루트 오브젝트입니다.")]
     [SerializeField] private GameObject _otherPanelRoot; // 다른 패널 활성 상태를 확인하기 위한 보조 패널 루트 참조입니다.
 
-    [Tooltip("패널 닫힘 후 기본 메뉴 선택 복귀를 수행할 Presenter입니다.")]
-    [SerializeField] private TitleMenuPresenter _titleMenuPresenter; // 패널 닫힘 직후 메뉴 선택 복귀를 요청할 Presenter 참조입니다.
+    [Tooltip("패널 닫힘 후 기본 메뉴 복귀를 수행할 TitlePlayModePresenter입니다.")]
+    [SerializeField] private TitlePlayModePresenter _titlePlayModePresenter; // 패널 닫힘 직후 타이틀 기본 메뉴 복귀를 요청할 프레젠터 참조입니다.
 
     /// <summary>
     /// Close 버튼 클릭 시 대상 패널을 닫고 필요 시 모달 백드롭을 숨깁니다.
@@ -30,7 +30,7 @@ public class TitleMenuPanelCloseHandler : MonoBehaviour
 
         _targetPanelRoot.SetActive(false);
         TryHideBackdrop();
-        _titleMenuPresenter?.NotifyModalClosed();
+        _titlePlayModePresenter?.OpenTopMenu();
     }
 
     /// <summary>

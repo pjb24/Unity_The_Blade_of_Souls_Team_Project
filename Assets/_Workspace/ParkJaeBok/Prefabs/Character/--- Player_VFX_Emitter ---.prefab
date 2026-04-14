@@ -11,9 +11,10 @@ GameObject:
   - component: {fileID: 6974003468345572428}
   - component: {fileID: 818768495396795040}
   - component: {fileID: 8573846598399393646}
-  m_Layer: 0
+  - component: {fileID: 8975333639023520345}
+  m_Layer: 7
   m_Name: --- Player_VFX_Emitter ---
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -62,6 +63,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuffAuraController
   _buffAuraId: 4
   _auraAttachTarget: {fileID: 6974003468345572428}
+--- !u!114 &8975333639023520345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4391109432192289971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2681d95fb6f2294fb0fdcd85505130a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionVfxBridge
+  _actionController: {fileID: 0}
+  _actionEffectMaps:
+  - ActionType: 5
+    StartEffectId: 3
+    CompleteEffectId: 0
+    CancelEffectId: 0
+  _useHitWindowTrail: 0
+  _hitWindowTrailEffectId: 6
+  _trailAttachTarget: {fileID: 0}
+  _useTransformScaleForFacing: 0
+  _defaultFacingDirection: 0
+  _usePlayerMovementFacing: 1
+  _playerMovement: {fileID: 0}
 --- !u!1 &8445636874210458825
 GameObject:
   m_ObjectHideFlags: 0
@@ -71,7 +97,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7514453287918703387}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: DustSpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}

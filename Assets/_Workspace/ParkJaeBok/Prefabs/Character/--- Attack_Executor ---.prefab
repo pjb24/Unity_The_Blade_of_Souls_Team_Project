@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 2904827519901548356}
   - component: {fileID: -5962116161829518522}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: --- Attack_Executor ---
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -45,6 +45,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttackExecutor
   _actionController: {fileID: 0}
-  _actionMaps: []
+  _actionMaps:
+  - _actionType: 22
+    _attackSpec: {fileID: 11400000, guid: fd749f841859701429727c8062f5b5c6, type: 2}
+  - _actionType: 23
+    _attackSpec: {fileID: 11400000, guid: 5ec7c5dcc93b2cb459c939f91a3e5ee0, type: 2}
+  - _actionType: 24
+    _attackSpec: {fileID: 11400000, guid: df3af438924914848925d8fbb009eeda, type: 2}
   _autoExecuteOnHitWindowOpen: 1
-  _drawGizmos: 0
+  _drawGizmos: 1

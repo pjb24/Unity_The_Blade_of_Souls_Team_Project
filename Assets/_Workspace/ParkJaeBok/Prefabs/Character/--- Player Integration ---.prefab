@@ -10,9 +10,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1678128366771884493}
   - component: {fileID: 245346388558926703}
-  m_Layer: 0
+  - component: {fileID: 2744874651139039573}
+  m_Layer: 7
   m_Name: --- Player Integration ---
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -48,3 +49,26 @@ MonoBehaviour:
   _playerMovement: {fileID: 0}
   _landPresentationDuration: 0.1
   _moveInputThreshold: 0.1
+  _suspendWhileNonMovementActionRunning: 1
+--- !u!114 &2744874651139039573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8549950397105570555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d01facd766b67f4195408fb042aeb14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionContextualAttackController
+  _actionController: {fileID: 0}
+  _playerMovement: {fileID: 0}
+  _attackInputRoutes:
+  - RouteName: Attack_Normal
+    Enabled: 1
+    InputAction: {fileID: 0}
+    RuleProfile: {fileID: 11400000, guid: 688c3ca3ef76e334a8fdd88b3c0015c5, type: 2}
+  _enableRuntimeLog: 1
+  _listenerRetryInterval: 0.1
+  _listenerMaxRetryCount: 30

@@ -37,6 +37,18 @@ public class GameFlowController : MonoBehaviour
     [Tooltip("새 게임 시작 시 기본 씬 로드 후 도달할 논리 상태입니다.")]
     [SerializeField] private GameFlowState _defaultNewGameLoadedState = GameFlowState.Town; // 새 게임 로드 완료 이후 상태 전환 목표입니다.
 
+    [Tooltip("타이틀에서 싱글플레이 시작 시 기본으로 로드할 씬 이름입니다.")]
+    [SerializeField] private string _singlePlayerStartSceneName = "Town"; // 싱글플레이 시작 요청에서 사용할 기본 씬 이름입니다.
+
+    [Tooltip("타이틀에서 멀티플레이 Host 시작 시 기본으로 로드할 로비/게임 씬 이름입니다.")]
+    [SerializeField] private string _multiplayerHostStartSceneName = "Town"; // 멀티플레이 Host 시작 요청에서 사용할 기본 씬 이름입니다.
+
+    [Tooltip("타이틀에서 멀티플레이 Client 참가 시 기본으로 로드할 로비/게임 씬 이름입니다.")]
+    [SerializeField] private string _multiplayerClientStartSceneName = "Town"; // 멀티플레이 Client 참가 요청에서 사용할 기본 씬 이름입니다.
+
+    [Tooltip("타이틀에서 멀티플레이 시작 시 Host/Client가 함께 진입할 공통 Town 씬 이름입니다. 비어 있으면 Host/Client 개별 씬 설정을 사용합니다.")]
+    [SerializeField] private string _multiplayerSharedTownSceneName = "Town"; // 멀티플레이 시작 시 Host/Client 공통으로 사용할 Town 씬 이름입니다.
+
     [Header("Lifecycle")]
     [Tooltip("씬 전환 후에도 GameFlowController를 유지할지 여부입니다.")]
     [SerializeField] private bool _dontDestroyOnLoad = true; // DDOL 적용 여부를 제어하는 플래그입니다.
@@ -85,6 +97,9 @@ public class GameFlowController : MonoBehaviour
     private readonly FlowExitGuard _flowExitGuard = new FlowExitGuard(); // 종료 요청 중복 진입을 원자적으로 차단할 가드 인스턴스입니다.
     private GameFlowRuntimeDiagnostics _runtimeDiagnostics; // 운영 가시성 지표를 누적/조회할 런타임 진단 저장소입니다.
     private DateTime _recoveryCircuitOpenUntilUtc; // Recovery 서킷브레이커 오픈 종료 예정 UTC 시각입니다.
+    private E_GamePlayMode _currentPlayMode = E_GamePlayMode.SinglePlayer; // 현재 선택된 플레이 모드를 추적하는 런타임 상태입니다.
+    [Tooltip("디버그용: 현재 멀티 세션에서 이 피어가 가진 권한 역할(Host/Client)입니다.")]
+    [SerializeField] private E_MultiplayerSessionRole _currentMultiplayerSessionRole = E_MultiplayerSessionRole.None; // 멀티플레이 세션에서 현재 피어 권한(Host/Client)을 추적하는 런타임 상태입니다.
 
     /// <summary>
     /// 현재 GameFlow 상태 타입을 외부에서 조회합니다.
@@ -107,9 +122,78 @@ public class GameFlowController : MonoBehaviour
     public GameFlowDebugSnapshot DebugSnapshot => GetDebugSnapshot();
 
     /// <summary>
+    /// 현재 선택된 플레이 모드를 외부(UI/로비)에서 조회합니다.
+    /// </summary>
+    public E_GamePlayMode CurrentPlayMode => _currentPlayMode;
+
+    /// <summary>
+    /// 현재 멀티 세션 권한 역할을 외부(UI/네트워크 어댑터)에서 조회합니다.
+    /// </summary>
+    public E_MultiplayerSessionRole CurrentMultiplayerSessionRole => _currentMultiplayerSessionRole;
+
+    /// <summary>
+    /// 지정 씬 이름이 플레이어 스폰을 허용하는 인게임 씬인지 판별합니다.
+    /// </summary>
+    public bool IsPlayerSpawnAllowedScene(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            return false;
+        }
+
+        if (MatchesSceneName(sceneName, _titleSceneName))
+        {
+            return false;
+        }
+
+        if (MatchesSceneName(sceneName, _defaultNewGameSceneName)
+            || MatchesSceneName(sceneName, _singlePlayerStartSceneName)
+            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName))
+            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName)))
+        {
+            return true;
+        }
+
+        if (_stageCatalog == null || _stageCatalog.Stages == null)
+        {
+            return false;
+        }
+
+        IReadOnlyList<StageDefinition> stages = _stageCatalog.Stages; // 인게임 스테이지 씬 이름 매칭에 사용할 StageCatalog 목록입니다.
+        for (int index = 0; index < stages.Count; index++)
+        {
+            StageDefinition stageDefinition = stages[index]; // 현재 인게임 씬 이름을 비교할 스테이지 정의입니다.
+            if (stageDefinition == null)
+            {
+                continue;
+            }
+
+            if (MatchesSceneName(sceneName, stageDefinition.SceneName))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 싱글톤 접근용 GameFlowController 인스턴스입니다.
     /// </summary>
     public static GameFlowController Instance { get; private set; }
+
+    /// <summary>
+    /// 두 씬 이름 문자열이 동일한지 대소문자 무시 비교로 판별합니다.
+    /// </summary>
+    private bool MatchesSceneName(string lhs, string rhs)
+    {
+        if (string.IsNullOrWhiteSpace(lhs) || string.IsNullOrWhiteSpace(rhs))
+        {
+            return false;
+        }
+
+        return string.Equals(lhs.Trim(), rhs.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// 의존성을 보정하고 상태 머신을 구성합니다.
@@ -190,11 +274,133 @@ public class GameFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// 새 게임 시작 요청을 처리합니다.
+    /// 타이틀에서 싱글플레이 시작 요청을 처리합니다.
     /// </summary>
-    public bool RequestStartNewGame()
+    private bool RequestStartSinglePlayer()
     {
-        return RequestStartNewGame(_defaultNewGameSceneName, _defaultNewGameLoadedState);
+        _currentPlayMode = E_GamePlayMode.SinglePlayer;
+        _currentMultiplayerSessionRole = E_MultiplayerSessionRole.None;
+        string sceneName = string.IsNullOrWhiteSpace(_singlePlayerStartSceneName) ? _defaultNewGameSceneName : _singlePlayerStartSceneName;
+        return RequestStartNewGame(sceneName, _defaultNewGameLoadedState);
+    }
+
+    /// <summary>
+    /// 지정 슬롯 기준으로 싱글 New Game 시작을 처리합니다.
+    /// </summary>
+    public bool RequestStartSinglePlayerNewGameInSlot(int slotIndex, bool clearSlotIfUsed)
+    {
+        if (_saveCoordinator == null)
+        {
+            LogWarning("SaveCoordinator가 없어 슬롯 기반 New Game 시작을 처리할 수 없습니다.");
+            return false;
+        }
+
+        int safeSlotIndex = Mathf.Max(1, slotIndex); // 슬롯 기반 시작에 사용할 보정 슬롯 번호입니다.
+        _saveCoordinator.SetActiveSaveSlot(safeSlotIndex, true);
+
+        if (clearSlotIfUsed && _saveCoordinator.HasUsedProgressInSlot(safeSlotIndex))
+        {
+            bool cleared = _saveCoordinator.ClearSlotData(safeSlotIndex, true);
+            if (!cleared)
+            {
+                LogWarning($"슬롯 초기화에 실패해 New Game 시작을 중단합니다. slot={safeSlotIndex}");
+                return false;
+            }
+        }
+
+        return RequestStartSinglePlayer();
+    }
+
+    /// <summary>
+    /// 지정 슬롯 기준으로 Load Game(Continue)을 처리합니다.
+    /// </summary>
+    public bool RequestStartLoadGameInSlot(int slotIndex)
+    {
+        if (_saveCoordinator == null)
+        {
+            LogWarning("SaveCoordinator가 없어 슬롯 기반 Load Game 시작을 처리할 수 없습니다.");
+            return false;
+        }
+
+        int safeSlotIndex = Mathf.Max(1, slotIndex); // 슬롯 기반 로드에 사용할 보정 슬롯 번호입니다.
+        if (!_saveCoordinator.HasUsedProgressInSlot(safeSlotIndex))
+        {
+            LogWarning($"선택 슬롯에 저장 데이터가 없어 Load Game을 시작할 수 없습니다. slot={safeSlotIndex}");
+            return false;
+        }
+
+        _saveCoordinator.SetActiveSaveSlot(safeSlotIndex, true);
+        return RequestContinue();
+    }
+
+    /// <summary>
+    /// 마지막 사용 슬롯 기준으로 Continue 시작을 처리합니다.
+    /// </summary>
+    public bool RequestContinueFromLastUsedSlot()
+    {
+        if (_saveCoordinator == null)
+        {
+            LogWarning("SaveCoordinator가 없어 마지막 사용 슬롯 Continue를 처리할 수 없습니다.");
+            return false;
+        }
+
+        if (_saveCoordinator.TryGetLastUsedSlotIndex(out int lastUsedSlotIndex) == false)
+        {
+            LogWarning("마지막 사용 슬롯을 찾지 못해 Continue를 시작할 수 없습니다.");
+            return false;
+        }
+
+        if (!_saveCoordinator.HasUsedProgressInSlot(lastUsedSlotIndex))
+        {
+            LogWarning($"마지막 사용 슬롯에 데이터가 없어 Continue를 시작할 수 없습니다. slot={lastUsedSlotIndex}");
+            return false;
+        }
+
+        _saveCoordinator.SetActiveSaveSlot(lastUsedSlotIndex, true);
+        return RequestContinue();
+    }
+
+    /// <summary>
+    /// 타이틀에서 멀티플레이 Host 시작 요청을 처리합니다.
+    /// </summary>
+    public bool RequestStartMultiplayerHost()
+    {
+        _currentPlayMode = E_GamePlayMode.MultiplayerHost;
+        _currentMultiplayerSessionRole = E_MultiplayerSessionRole.Host;
+        string sceneName = ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName);
+        return RequestStartNewGame(sceneName, _defaultNewGameLoadedState);
+    }
+
+    /// <summary>
+    /// 타이틀에서 멀티플레이 Client 참가 요청을 처리합니다.
+    /// </summary>
+    public bool RequestStartMultiplayerClient()
+    {
+        _currentPlayMode = E_GamePlayMode.MultiplayerClient;
+        _currentMultiplayerSessionRole = E_MultiplayerSessionRole.Client;
+        string sceneName = ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName);
+        return RequestStartNewGame(sceneName, _defaultNewGameLoadedState);
+    }
+
+    /// <summary>
+    /// 멀티 세션 구성 완료 시 외부 네트워크 계층에서 피어 역할을 반영합니다.
+    /// </summary>
+    public void SetMultiplayerSessionRole(E_MultiplayerSessionRole role)
+    {
+        _currentMultiplayerSessionRole = role;
+    }
+
+    /// <summary>
+    /// 현재 플레이 모드/역할 기준으로 스테이지 선택 권한이 있는지 판정합니다.
+    /// </summary>
+    public bool CanSelectStageInCurrentMode()
+    {
+        if (_currentPlayMode == E_GamePlayMode.SinglePlayer)
+        {
+            return true;
+        }
+
+        return _currentMultiplayerSessionRole == E_MultiplayerSessionRole.Host;
     }
 
     /// <summary>
@@ -251,6 +457,12 @@ public class GameFlowController : MonoBehaviour
     {
         _stateMachine?.DispatchEvent(new GameFlowEvent(GameFlowEventType.EnterStageRequested, "RequestEnterStage", "", stageDefinition));
 
+        if (!CanSelectStageInCurrentMode())
+        {
+            LogWarning($"현재 플레이 모드/권한으로는 스테이지 선택이 불가합니다. mode={_currentPlayMode}, role={_currentMultiplayerSessionRole}");
+            return false;
+        }
+
         if (stageDefinition == null)
         {
             LogWarning("stageDefinition이 null이라 스테이지 진입 요청을 거부합니다.");
@@ -265,6 +477,24 @@ public class GameFlowController : MonoBehaviour
 
         _stageSession.SetNextStage(stageDefinition);
         return TryStartSceneLoad(stageDefinition.SceneName, GameFlowState.StagePlaying, "RequestEnterStage");
+    }
+
+    /// <summary>
+    /// 멀티플레이 시작 시 Host/Client 공통 Town 씬 우선 규칙으로 시작 씬 이름을 해석합니다.
+    /// </summary>
+    private string ResolveMultiplayerStartSceneName(string fallbackSceneName)
+    {
+        if (!string.IsNullOrWhiteSpace(_multiplayerSharedTownSceneName))
+        {
+            return _multiplayerSharedTownSceneName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackSceneName))
+        {
+            return fallbackSceneName;
+        }
+
+        return _defaultNewGameSceneName;
     }
 
     /// <summary>

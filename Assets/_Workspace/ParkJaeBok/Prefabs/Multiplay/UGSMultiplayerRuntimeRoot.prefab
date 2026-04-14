@@ -1,0 +1,101 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2231013239778041329
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5718794888683731914}
+  - component: {fileID: 8411604793116231885}
+  - component: {fileID: -7904075014249797571}
+  m_Layer: 0
+  m_Name: UGSMultiplayerRuntimeRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5718794888683731914
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2231013239778041329}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8411604793116231885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2231013239778041329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1079637cfb3d9e74faa318e0e2dadb23, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MultiplayerSessionOrchestrator
+  _gameFlowController: {fileID: 0}
+  _sessionBackendBehaviour: {fileID: -7904075014249797571}
+  _maxPlayerCount: 2
+  _reconnectWindowSeconds: 60
+  _dontDestroyOnLoad: 1
+  _autoResolveDependenciesOnUse: 1
+  _activeJoinCode: 
+  _connectionState: 0
+  _lastFailureReason: 
+  _uiJoinCode: 
+  _uiJoinCodeInputField: {fileID: 0}
+  _autoResolveJoinCodeInputFieldOnUse: 1
+  _joinCodeInputFieldObjectName: IF_JoinCode
+  _uiClientId: Client_A
+  _localClientId: 
+  _isLocalClientReadyDeclared: 0
+  _onJoinCodeGenerated:
+    m_PersistentCalls:
+      m_Calls: []
+  _onSessionFailed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onReturnToTitle:
+    m_PersistentCalls:
+      m_Calls: []
+  _onPlayerCountUpdated:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &-7904075014249797571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2231013239778041329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfab14d3d872bcb4a973ef586d4aebcc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UGSMultiplayerSessionBackend
+  _networkManager: {fileID: 0}
+  _unityTransport: {fileID: 0}
+  _heartbeatIntervalSeconds: 15
+  _verboseLogging: 0
+  _authenticationProfile: default
+  _environmentName: 
+  _autoSignInAnonymously: 1
+  _playerPrefab: {fileID: 6058810458548238607, guid: de2f997484397bf40b2de7c21f64ad13, type: 3}
+  _ensureHostPlayerObjectAfterSceneLoad: 1
+  _spawnSinglePlayerFallbackIfMissing: 1
+  _defaultNetworkPrefabs: []
+  _registerDefaultNetworkPrefabsAtRuntime: 0
+  _autoSpawnPlayerPrefabClientSide: 0
+  _playerSpawnAllowedStates: 02000000030000000400000005000000

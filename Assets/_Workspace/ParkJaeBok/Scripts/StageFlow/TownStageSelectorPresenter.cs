@@ -1,4 +1,6 @@
+using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// 마을 UI에서 스테이지 선택 입력을 받아 상태 판정과 씬 전환을 처리하는 프리젠터입니다.
@@ -19,6 +21,28 @@ public class TownStageSelectorPresenter : MonoBehaviour
 
     [Tooltip("스테이지 진입 명령을 전달할 GameFlowController 참조입니다. 비어 있으면 GameFlowController.Instance를 사용합니다.")]
     [SerializeField] private GameFlowController _gameFlowController; // 스테이지 진입을 GameFlow 명령으로 위임할 컨트롤러 참조입니다.
+
+    [Tooltip("멀티 세션 상태를 조회할 MultiplayerSessionOrchestrator 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
+    [SerializeField] private MultiplayerSessionOrchestrator _multiplayerSessionOrchestrator; // Host의 Client Join 완료 여부를 판정할 멀티 세션 오케스트레이터 참조입니다.
+
+    [Tooltip("멀티플레이 Client처럼 스테이지 선택 권한이 없을 때 호출할 UnityEvent입니다.")]
+    [SerializeField] private UnityEvent _onStageSelectionBlockedByRole; // 권한 부족으로 스테이지 선택이 차단될 때 UI 안내를 호출하는 이벤트입니다.
+
+    [Tooltip("멀티 Host가 Client Join 완료 전 스테이지 진입을 시도할 때 호출할 UnityEvent입니다.")]
+    [SerializeField] private UnityEvent _onStageSelectionBlockedUntilClientJoined; // Client Join 완료 전 Host 스테이지 진입 차단 시 UI 안내를 호출하는 이벤트입니다.
+
+    /// <summary>
+    /// 누락된 의존성 참조를 보정합니다.
+    /// </summary>
+    private void Awake()
+    {
+        if (_multiplayerSessionOrchestrator == null)
+        {
+            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance != null
+                ? MultiplayerSessionOrchestrator.Instance
+                : FindAnyObjectByType<MultiplayerSessionOrchestrator>();
+        }
+    }
 
     /// <summary>
     /// 카탈로그 인덱스를 기반으로 스테이지 진입을 시도합니다.
@@ -82,11 +106,28 @@ public class TownStageSelectorPresenter : MonoBehaviour
     /// <summary>
     /// 전달된 StageDefinition 기준으로 상태 판정, 세션 저장, 씬 전환을 처리합니다.
     /// </summary>
-    public void SelectStage(StageDefinition stageDefinition)
+    public async void SelectStage(StageDefinition stageDefinition)
     {
         if (stageDefinition == null)
         {
             Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageInvalidInput, "[TownStageSelectorPresenter] stageDefinition이 null입니다."), this);
+            return;
+        }
+
+        GameFlowController gameFlowController = ResolveGameFlowController(); // 스테이지 진입 명령 및 권한 판정을 전달할 GameFlowController 참조입니다.
+        if (gameFlowController != null && !gameFlowController.CanSelectStageInCurrentMode())
+        {
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageFlowRequestFailed, "[TownStageSelectorPresenter] 현재 플레이 모드/권한에서는 Host만 스테이지를 선택할 수 있습니다."), this);
+            _onStageSelectionBlockedByRole?.Invoke();
+            return;
+        }
+
+        await TryRefreshHostPlayerCountAsync();
+        if (IsBlockedUntilClientJoined())
+        {
+            int currentPlayerCount = _multiplayerSessionOrchestrator != null ? _multiplayerSessionOrchestrator.CurrentPlayerCount : 1; // 차단 로그에 노출할 현재 세션 인원 수입니다.
+            Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageFlowRequestFailed, $"[TownStageSelectorPresenter] Host는 Client Join 완료 전 스테이지를 시작할 수 없습니다. currentPlayerCount={currentPlayerCount}"), this);
+            _onStageSelectionBlockedUntilClientJoined?.Invoke();
             return;
         }
 
@@ -109,7 +150,6 @@ public class TownStageSelectorPresenter : MonoBehaviour
             Debug.Log($"[TownStageSelectorPresenter] Stage Selected: id={stageDefinition.StageId}, scene={stageDefinition.SceneName}, multiplayer={availability.IsMultiplayerAvailable}", this);
         }
 
-        GameFlowController gameFlowController = ResolveGameFlowController(); // 스테이지 진입 명령을 전달할 GameFlowController 참조입니다.
         if (gameFlowController != null)
         {
             bool startedFromFlow = gameFlowController.RequestEnterStage(stageDefinition);
@@ -160,5 +200,45 @@ public class TownStageSelectorPresenter : MonoBehaviour
         string sceneName = stageDefinition != null ? stageDefinition.SceneName : string.Empty; // 텔레메트리 로그에 포함할 대상 씬 이름입니다.
         Debug.LogWarning(GameFlowWarningCatalog.BuildKeyed(GameFlowWarningCatalog.KeyStageGameFlowRequired, $"[TownStageSelectorPresenter][GAMEFLOW_REQUIRED] reason={reason}, stageId={stageId}, scene={sceneName}"), this);
         Debug.Log($"[Telemetry][GameFlowRequired] feature=TownStageSelectorPresenter, reason={reason}, stageId={stageId}, scene={sceneName}", this);
+    }
+
+    /// <summary>
+    /// 멀티 Host가 Client Join 완료 전인지 여부를 판정합니다.
+    /// </summary>
+    private bool IsBlockedUntilClientJoined()
+    {
+        if (_multiplayerSessionOrchestrator == null)
+        {
+            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance != null
+                ? MultiplayerSessionOrchestrator.Instance
+                : FindAnyObjectByType<MultiplayerSessionOrchestrator>();
+        }
+
+        if (_multiplayerSessionOrchestrator == null)
+        {
+            return false;
+        }
+
+        return _multiplayerSessionOrchestrator.IsHosting && !_multiplayerSessionOrchestrator.IsHostReadyForStageEntry;
+    }
+
+    /// <summary>
+    /// Host가 스테이지 선택을 시도할 때 백엔드 기준 최신 세션 인원 수를 비동기로 동기화합니다.
+    /// </summary>
+    private async Task TryRefreshHostPlayerCountAsync()
+    {
+        if (_multiplayerSessionOrchestrator == null)
+        {
+            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance != null
+                ? MultiplayerSessionOrchestrator.Instance
+                : FindAnyObjectByType<MultiplayerSessionOrchestrator>();
+        }
+
+        if (_multiplayerSessionOrchestrator == null || !_multiplayerSessionOrchestrator.IsHosting)
+        {
+            return;
+        }
+
+        await _multiplayerSessionOrchestrator.RefreshPlayerCountFromActiveSessionAsync();
     }
 }
