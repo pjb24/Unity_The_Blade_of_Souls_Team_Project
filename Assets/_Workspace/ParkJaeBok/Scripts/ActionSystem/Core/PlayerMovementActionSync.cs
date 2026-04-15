@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -13,9 +14,12 @@ public class PlayerMovementActionSync : MonoBehaviour
     [SerializeField] private float _landPresentationDuration = 0.1f; // 착지 액션을 유지할 최소 시간(초)
     [SerializeField] private float _moveInputThreshold = 0.1f; // Move 액션 전환에 사용할 최소 입력 크기 임계값
     [SerializeField] private bool _suspendWhileNonMovementActionRunning = true; // 비이동 액션 실행 중 이동 동기화 요청을 일시 중단할지 여부
+    [Tooltip("NetworkObject를 찾지 못해 소유권 검증 없이 동작할 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenOwnershipUnavailable = true; // 네트워크 오브젝트 소유권을 확인할 수 없을 때 경고 로그 출력 여부
 
     private bool _wasGroundedLastFrame; // 이전 프레임 지면 접촉 여부
     private float _landActionTimer; // Land 액션 유지 시간 타이머
+    private NetworkObject _networkObject; // 소유권 기반 입력 처리 판정을 위한 NetworkObject 참조
 
     /// <summary>
     /// 초기 참조를 보정하고 시작 시 지면 상태를 스냅샷합니다.
@@ -23,6 +27,13 @@ public class PlayerMovementActionSync : MonoBehaviour
     private void Awake()
     {
         TryResolveReferences();
+        _networkObject = GetComponent<NetworkObject>();
+
+        if (_networkObject == null && _warnWhenOwnershipUnavailable)
+        {
+            Debug.LogWarning($"[PlayerMovementActionSync] NetworkObject가 없어 소유권 검증 없이 동작합니다. object={name}");
+        }
+
         if (_playerMovement != null && _playerMovement.Controller != null)
         {
             _wasGroundedLastFrame = _playerMovement.Controller.IsGrounded();
@@ -36,6 +47,13 @@ public class PlayerMovementActionSync : MonoBehaviour
     {
         if (!TryResolveReferences())
         {
+            return;
+        }
+
+        if (!CanProcessActionSync())
+        {
+            _wasGroundedLastFrame = _playerMovement.Controller.IsGrounded();
+            _landActionTimer = 0f;
             return;
         }
 
@@ -168,8 +186,26 @@ public class PlayerMovementActionSync : MonoBehaviour
     /// </summary>
     private bool IsMoveInputActive()
     {
-        Vector2 moveInput = InputManager.Movement; // 현재 프레임의 이동 입력 벡터
-        return moveInput.sqrMagnitude >= _moveInputThreshold * _moveInputThreshold;
+        Vector2 planarVelocity = _playerMovement.Velocity; // 현재 프레임 이동 동기화 판정에 사용할 이동 속도 벡터
+        return planarVelocity.sqrMagnitude >= _moveInputThreshold * _moveInputThreshold;
+    }
+
+    /// <summary>
+    /// 네트워크 소유권 기준으로 현재 인스턴스가 이동 액션 동기화를 수행할 수 있는지 판정합니다.
+    /// </summary>
+    private bool CanProcessActionSync()
+    {
+        if (_networkObject == null)
+        {
+            return true;
+        }
+
+        if (!_networkObject.IsSpawned)
+        {
+            return false;
+        }
+
+        return _networkObject.IsOwner;
     }
 
     /// <summary>

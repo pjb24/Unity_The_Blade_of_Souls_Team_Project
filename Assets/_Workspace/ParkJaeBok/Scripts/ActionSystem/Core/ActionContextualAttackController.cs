@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -28,6 +29,8 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     [SerializeField] private bool _enableRuntimeLog = false; // 공격 규칙 선택/차단 로그를 출력할지 여부
     [SerializeField] private float _listenerRetryInterval = 0.1f; // ActionController 리스너 지연 등록 재시도 간격(초)
     [SerializeField] private int _listenerMaxRetryCount = 30; // ActionController 리스너 지연 등록 최대 재시도 횟수
+    [Tooltip("NetworkObject를 찾지 못해 소유권 검증 없이 동작할 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenOwnershipUnavailable = true; // 네트워크 오브젝트 소유권을 확인할 수 없을 때 경고 로그 출력 여부
 
     private readonly List<AttackInputRouteBinding> _runtimeRoutes = new List<AttackInputRouteBinding>(); // 런타임에서 유효성 검사를 통과한 입력 라우트 목록
     private readonly Dictionary<InputAction, int> _routeIndexByInputAction = new Dictionary<InputAction, int>(); // 콜백으로 들어온 InputAction을 라우트 인덱스로 역조회하기 위한 맵
@@ -38,12 +41,14 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     private float _attackInputBufferTimer; // 버퍼링된 공격 입력의 남은 유효 시간
     private string _bufferedRouteName; // 현재 버퍼 입력이 속한 라우트 이름
     private AttackContextRuleProfile _bufferedRuleProfile; // 현재 버퍼 입력에 적용할 규칙 프로필
+    private NetworkObject _networkObject; // 소유권 기반 입력 처리 판정을 위한 NetworkObject 참조
 
     /// <summary>
     /// 활성화 시 입력/리스너 구독을 등록합니다.
     /// </summary>
     private void OnEnable()
     {
+        EnsureNetworkOwnershipReference();
         RegisterInputAction();
         RestartActionListenerRegisterCoroutine();
     }
@@ -78,6 +83,12 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     /// </summary>
     private void Update()
     {
+        if (!CanProcessLocalOwnerLogic())
+        {
+            ResetBufferedInput();
+            return;
+        }
+
         if (!_hasBufferedAttackInput)
         {
             return;
@@ -98,6 +109,11 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     /// </summary>
     private void OnAttackInputPerformed(InputAction.CallbackContext context)
     {
+        if (!CanProcessLocalOwnerLogic())
+        {
+            return;
+        }
+
         if (!_routeIndexByInputAction.TryGetValue(context.action, out int routeIndex))
         {
             return;
@@ -216,7 +232,7 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
             flags |= E_AttackContextFlags.Airborne;
         }
 
-        if (InputManager.Movement.sqrMagnitude > 0.01f)
+        if (_playerMovement.Velocity.sqrMagnitude > 0.01f)
         {
             flags |= E_AttackContextFlags.Moving;
         }
@@ -252,6 +268,43 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         }
 
         return flags;
+    }
+
+    /// <summary>
+    /// NetworkObject 참조를 캐시하고 누락 시 경고를 출력합니다.
+    /// </summary>
+    private void EnsureNetworkOwnershipReference()
+    {
+        if (_networkObject != null)
+        {
+            return;
+        }
+
+        _networkObject = GetComponent<NetworkObject>();
+        if (_networkObject == null && _warnWhenOwnershipUnavailable)
+        {
+            Debug.LogWarning($"[ActionContextualAttackController] NetworkObject가 없어 소유권 검증 없이 동작합니다. object={name}");
+        }
+    }
+
+    /// <summary>
+    /// 네트워크 소유권 기준으로 현재 인스턴스가 로컬 입력 기반 공격 로직을 수행할 수 있는지 판정합니다.
+    /// </summary>
+    private bool CanProcessLocalOwnerLogic()
+    {
+        EnsureNetworkOwnershipReference();
+
+        if (_networkObject == null)
+        {
+            return true;
+        }
+
+        if (!_networkObject.IsSpawned)
+        {
+            return false;
+        }
+
+        return _networkObject.IsOwner;
     }
 
     /// <summary>

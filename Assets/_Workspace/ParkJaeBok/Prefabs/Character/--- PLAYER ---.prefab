@@ -231,7 +231,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2122165157
+  GlobalObjectIdHash: 1632356955
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -335,6 +335,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerNetworkSync
   ShowTopMostFoldoutHeaderGroup: 1
   _networkTransform: {fileID: 1952865801753107381}
+  _actionController: {fileID: 0}
+  _enableActionStateSync: 1
+  _actionStateSendInterval: 0.033
+  _warnMissingActionController: 1
 --- !u!114 &-910381344378754778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -589,6 +593,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5029073434713289560, guid: d9ad53464808618478ec05f249f95a73, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7944331432045131538, guid: d9ad53464808618478ec05f249f95a73, type: 3}
+      propertyPath: _enableIdleBreak
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8397185906079373947, guid: d9ad53464808618478ec05f249f95a73, type: 3}
