@@ -335,10 +335,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerNetworkSync
   ShowTopMostFoldoutHeaderGroup: 1
   _networkTransform: {fileID: 1952865801753107381}
-  _actionController: {fileID: 0}
+  _actionController: {fileID: 126503336672774226}
+  _playerMovement: {fileID: 1249389477860502122}
   _enableActionStateSync: 1
   _actionStateSendInterval: 0.033
   _warnMissingActionController: 1
+  _enableFacingDirectionSync: 1
+  _facingDirectionSendInterval: 0.05
+  _warnMissingPlayerMovement: 1
+  _applyReplicatedFacingToOwner: 0
+  _lastSentFacingRight: 1
+  _lastReplicatedFacingRight: 1
 --- !u!114 &-910381344378754778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -541,10 +548,6 @@ PrefabInstance:
       propertyPath: _actionController
       value: 
       objectReference: {fileID: 126503336672774226}
-    - target: {fileID: 2744874651139039573, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
-      propertyPath: _defaultAttackRuleProfile
-      value: 
-      objectReference: {fileID: 11400000, guid: 688c3ca3ef76e334a8fdd88b3c0015c5, type: 2}
     - target: {fileID: 8549950397105570555, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
       propertyPath: m_Name
       value: --- Player Integration ---
@@ -605,10 +608,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5029073434713289560, guid: d9ad53464808618478ec05f249f95a73, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7944331432045131538, guid: d9ad53464808618478ec05f249f95a73, type: 3}
-      propertyPath: _enableIdleBreak
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8397185906079373947, guid: d9ad53464808618478ec05f249f95a73, type: 3}

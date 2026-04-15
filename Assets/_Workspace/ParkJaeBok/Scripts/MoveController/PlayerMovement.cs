@@ -1,8 +1,14 @@
+using System;
 using UnityEngine;
 
 [SelectionBase]
 public class PlayerMovement : MonoBehaviour
 {
+    /// <summary>
+    /// 바라보는 방향이 갱신될 때마다 통지되는 이벤트입니다.
+    /// </summary>
+    public event Action<bool> FacingDirectionChanged;
+
     [Header("References")]
     // 캐릭터 이동에 사용되는 모든 수치 데이터(속도, 가속, 점프값)를 담는다.
     public PlayerMovementStats MoveStats;
@@ -187,6 +193,11 @@ public class PlayerMovement : MonoBehaviour
     private void Awake()
     {
         IsFacingRight = true;
+
+        if (_visualsTransform == null)
+        {
+            Debug.LogWarning($"[PlayerMovement] Visuals Transform이 비어 있어 방향 반전을 적용할 수 없습니다. object={name}", this);
+        }
 
         _rb = GetComponent<Rigidbody2D>();
         Controller = GetComponent<MovementController>();
@@ -480,9 +491,30 @@ public class PlayerMovement : MonoBehaviour
     // 스프라이트 스케일을 뒤집어 좌우 바라보는 방향을 전환한다.
     private void Turn(bool turnRight)
     {
-        IsFacingRight = turnRight;
-        int mult = IsFacingRight ? 1 : -1;
-        _visualsTransform.localScale = new Vector3(Mathf.Abs(_visualsTransform.localScale.x) * mult, _visualsTransform.localScale.y, _visualsTransform.localScale.z);
+        SetFacingDirection(turnRight);
+    }
+
+    /// <summary>
+    /// 좌우 바라보는 방향 상태와 비주얼 반전을 함께 적용합니다.
+    /// </summary>
+    public void SetFacingDirection(bool isFacingRight)
+    {
+        if (_visualsTransform == null)
+        {
+            Debug.LogWarning($"[PlayerMovement] Visuals Transform이 없어 방향 반전을 적용할 수 없습니다. object={name}", this);
+            return;
+        }
+
+        bool isVisualScaleFacingRight = _visualsTransform.localScale.x >= 0f;
+        if (IsFacingRight == isFacingRight && isVisualScaleFacingRight == isFacingRight)
+        {
+            return;
+        }
+
+        IsFacingRight = isFacingRight;
+        int multiplier = IsFacingRight ? 1 : -1;
+        _visualsTransform.localScale = new Vector3(Mathf.Abs(_visualsTransform.localScale.x) * multiplier, _visualsTransform.localScale.y, _visualsTransform.localScale.z);
+        FacingDirectionChanged?.Invoke(IsFacingRight);
     }
 
     // 지면 법선과 상태를 기준으로 비주얼 목표 회전을 계산한다.
