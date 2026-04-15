@@ -478,6 +478,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 6731959234957534330}
     m_Modifications:
     - target: {fileID: 245346388558926703, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
+      propertyPath: _networkObject
+      value: 
+      objectReference: {fileID: 5892350524157319419}
+    - target: {fileID: 245346388558926703, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
       propertyPath: _playerMovement
       value: 
       objectReference: {fileID: 1249389477860502122}
@@ -526,6 +530,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2744874651139039573, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
+      propertyPath: _networkObject
+      value: 
+      objectReference: {fileID: 5892350524157319419}
+    - target: {fileID: 2744874651139039573, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
       propertyPath: _playerMovement
       value: 
       objectReference: {fileID: 1249389477860502122}
@@ -533,6 +541,10 @@ PrefabInstance:
       propertyPath: _actionController
       value: 
       objectReference: {fileID: 126503336672774226}
+    - target: {fileID: 2744874651139039573, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
+      propertyPath: _defaultAttackRuleProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 688c3ca3ef76e334a8fdd88b3c0015c5, type: 2}
     - target: {fileID: 8549950397105570555, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
       propertyPath: m_Name
       value: --- Player Integration ---

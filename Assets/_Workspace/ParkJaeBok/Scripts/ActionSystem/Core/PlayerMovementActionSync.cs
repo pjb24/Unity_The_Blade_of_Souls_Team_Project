@@ -19,7 +19,7 @@ public class PlayerMovementActionSync : MonoBehaviour
 
     private bool _wasGroundedLastFrame; // 이전 프레임 지면 접촉 여부
     private float _landActionTimer; // Land 액션 유지 시간 타이머
-    private NetworkObject _networkObject; // 소유권 기반 입력 처리 판정을 위한 NetworkObject 참조
+    [SerializeField] private NetworkObject _networkObject; // 소유권 기반 입력 처리 판정을 위한 NetworkObject 참조
 
     /// <summary>
     /// 초기 참조를 보정하고 시작 시 지면 상태를 스냅샷합니다.
@@ -27,7 +27,11 @@ public class PlayerMovementActionSync : MonoBehaviour
     private void Awake()
     {
         TryResolveReferences();
-        _networkObject = GetComponent<NetworkObject>();
+
+        if (_networkObject == null)
+        {
+            _networkObject = GetComponent<NetworkObject>();
+        }
 
         if (_networkObject == null && _warnWhenOwnershipUnavailable)
         {
