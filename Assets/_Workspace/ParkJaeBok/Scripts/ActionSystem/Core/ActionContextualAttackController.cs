@@ -26,6 +26,8 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     [SerializeField] private bool _warnWhenOwnershipUnavailable = true; // 네트워크 오브젝트 소유권을 확인할 수 없을 때 경고 로그 출력 여부
     [Tooltip("InputManager 공격 입력 라우트 이름입니다. 로그와 디버깅 용도로 사용됩니다.")]
     [SerializeField] private string _inputManagerAttackRouteName = "InputManagerAttack"; // InputManager 공격 입력 라우트 표시 이름입니다.
+    [Tooltip("싱글플레이/멀티플레이 로컬 실행 경로 판정 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _enableOwnerRouteLog = false; // 로컬 실행 권한 판정(싱글/멀티) 로그 출력 여부입니다.
 
     private Coroutine _registerActionListenerCoroutine; // ActionController 리스너 지연 등록 코루틴 핸들
     private bool _isActionListenerRegistered; // ActionController 리스너가 현재 등록된 상태인지 여부
@@ -258,24 +260,64 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         }
     }
 
-    /// <summary>
-    /// 네트워크 소유권 기준으로 현재 인스턴스가 로컬 입력 기반 공격 로직을 수행할 수 있는지 판정합니다.
-    /// </summary>
     private bool CanProcessLocalOwnerLogic()
     {
         EnsureNetworkOwnershipReference();
 
         if (_networkObject == null)
         {
+            if (_enableOwnerRouteLog)
+            {
+                Debug.Log($"[ActionContextualAttackController] Local attack route: network object missing -> treat as single/local. object={name}");
+            }
+
             return true;
         }
 
         if (!_networkObject.IsSpawned)
         {
-            return false;
+            if (!IsOfflineSingleRoute())
+            {
+                if (_enableOwnerRouteLog)
+                {
+                    Debug.Log($"[ActionContextualAttackController] Local attack route blocked: waiting network spawn. object={name}");
+                }
+
+                return false;
+            }
+
+            if (_enableOwnerRouteLog)
+            {
+                Debug.Log($"[ActionContextualAttackController] Local attack route: offline single fallback (network unspawned). object={name}");
+            }
+
+            return true;
+        }
+
+        if (_enableOwnerRouteLog)
+        {
+            Debug.Log($"[ActionContextualAttackController] Local attack route: network owner={_networkObject.IsOwner}. object={name}");
         }
 
         return _networkObject.IsOwner;
+    }
+
+    /// <summary>
+    /// 네트워크 오브젝트가 스폰되지 않은 상황이 오프라인 싱글플레이인지 판정합니다.
+    /// </summary>
+    private bool IsOfflineSingleRoute()
+    {
+        if (NetworkManager.Singleton == null)
+        {
+            if (_warnWhenOwnershipUnavailable)
+            {
+                Debug.LogWarning($"[ActionContextualAttackController] NetworkManager.Singleton is null. Fallback to offline local attack route. object={name}");
+            }
+
+            return true;
+        }
+
+        return !NetworkManager.Singleton.IsListening;
     }
 
     /// <summary>

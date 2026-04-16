@@ -16,6 +16,8 @@ public class PlayerMovementActionSync : MonoBehaviour
     [SerializeField] private bool _suspendWhileNonMovementActionRunning = true; // 비이동 액션 실행 중 이동 동기화 요청을 일시 중단할지 여부
     [Tooltip("NetworkObject를 찾지 못해 소유권 검증 없이 동작할 때 경고 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _warnWhenOwnershipUnavailable = true; // 네트워크 오브젝트 소유권을 확인할 수 없을 때 경고 로그 출력 여부
+    [Tooltip("싱글플레이/멀티플레이 이동 액션 동기화 경로 판정 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _enableOwnershipRouteLog = false; // 이동 액션 동기화 로컬 권한 판정 로그 출력 여부입니다.
 
     private bool _wasGroundedLastFrame; // 이전 프레임 지면 접촉 여부
     private float _landActionTimer; // Land 액션 유지 시간 타이머
@@ -201,15 +203,58 @@ public class PlayerMovementActionSync : MonoBehaviour
     {
         if (_networkObject == null)
         {
+            if (_enableOwnershipRouteLog)
+            {
+                Debug.Log($"[PlayerMovementActionSync] Movement route: network object missing -> treat as single/local. object={name}");
+            }
+
             return true;
         }
 
         if (!_networkObject.IsSpawned)
         {
-            return false;
+            if (!IsOfflineSingleRoute())
+            {
+                if (_enableOwnershipRouteLog)
+                {
+                    Debug.Log($"[PlayerMovementActionSync] Movement route blocked: waiting network spawn. object={name}");
+                }
+
+                return false;
+            }
+
+            if (_enableOwnershipRouteLog)
+            {
+                Debug.Log($"[PlayerMovementActionSync] Movement route: offline single fallback (network unspawned). object={name}");
+            }
+
+            return true;
+        }
+
+        if (_enableOwnershipRouteLog)
+        {
+            Debug.Log($"[PlayerMovementActionSync] Movement route: network owner={_networkObject.IsOwner}. object={name}");
         }
 
         return _networkObject.IsOwner;
+    }
+
+    /// <summary>
+    /// 네트워크 오브젝트가 스폰되지 않은 상황이 오프라인 싱글플레이인지 판정합니다.
+    /// </summary>
+    private bool IsOfflineSingleRoute()
+    {
+        if (NetworkManager.Singleton == null)
+        {
+            if (_warnWhenOwnershipUnavailable)
+            {
+                Debug.LogWarning($"[PlayerMovementActionSync] NetworkManager.Singleton is null. Fallback to offline local movement route. object={name}");
+            }
+
+            return true;
+        }
+
+        return !NetworkManager.Singleton.IsListening;
     }
 
     /// <summary>
