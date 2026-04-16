@@ -53,16 +53,9 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
     [Tooltip("Host/Server가 씬 로드 후 PlayerObject 누락 시 자동 재스폰을 시도할지 여부입니다.")]
     [SerializeField] private bool _ensureHostPlayerObjectAfterSceneLoad = true; // Host 씬 전환 이후 PlayerObject 누락 보정 활성화 여부입니다.
 
-    [Tooltip("싱글플레이 Town 진입 시 플레이어가 없으면 로컬 Player Prefab 생성 폴백을 수행할지 여부입니다.")]
-    [SerializeField] private bool _spawnSinglePlayerFallbackIfMissing = true; // 싱글플레이 플레이어 누락 폴백 생성 활성화 여부입니다.
-
-    [Tooltip("Player Prefab 자동 스폰을 클라이언트 측에서 수행할지 여부입니다.")]
-    [SerializeField] private bool _autoSpawnPlayerPrefabClientSide; // NetworkConfig.AutoSpawnPlayerPrefabClientSide 적용값입니다.
-
     [Tooltip("플레이어 스폰/재스폰 폴백을 허용할 GameFlow 상태 목록입니다. Title/Boot에서는 기본적으로 허용되지 않습니다.")]
     [SerializeField] private GameFlowState[] _playerSpawnAllowedStates =
     {
-        GameFlowState.Town,
         GameFlowState.StageLoading,
         GameFlowState.StagePlaying,
         GameFlowState.ReturnToTown
@@ -113,7 +106,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
 
         try
         {
-            ConfigureNetworkPrefabs(networkManager);
             RegisterNetworkCallbacks(networkManager);
 
             int allocationClientCount = Mathf.Max(1, maxPlayerCount) - 1; // Host를 제외한 Relay Allocation 참가 슬롯 수입니다.
@@ -193,7 +185,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
 
         try
         {
-            ConfigureNetworkPrefabs(networkManager);
             RegisterNetworkCallbacks(networkManager);
 
             Lobby lobby = await LobbyService.Instance.JoinLobbyByCodeAsync(joinCode.Trim());
@@ -609,23 +600,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
     }
 
     /// <summary>
-    /// 세션 시작 전에 PlayerPrefab/DefaultNetworkPrefabs를 NetworkManager 설정에 반영합니다.
-    /// </summary>
-    private void ConfigureNetworkPrefabs(NetworkManager networkManager)
-    {
-        if (networkManager == null)
-        {
-            return;
-        }
-
-        if (_playerPrefab != null)
-        {
-            networkManager.NetworkConfig.PlayerPrefab = _playerPrefab;
-            networkManager.NetworkConfig.AutoSpawnPlayerPrefabClientSide = _autoSpawnPlayerPrefabClientSide;
-        }
-    }
-
-    /// <summary>
     /// 씬 로드 후 플레이어 누락 폴백을 점검하고 필요 시 보정 스폰을 수행합니다.
     /// </summary>
     private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
@@ -635,7 +609,7 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
             return;
         }
 
-        TrySpawnMissingSinglePlayerLocalPlayer();
+        TrySpawnSinglePlayerLocalPlayer();
 
         if (!_ensureHostPlayerObjectAfterSceneLoad)
         {
@@ -693,9 +667,9 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
     /// <summary>
     /// 싱글플레이 Town 진입 시 플레이어가 없으면 로컬 Player Prefab을 생성합니다.
     /// </summary>
-    private void TrySpawnMissingSinglePlayerLocalPlayer()
+    private void TrySpawnSinglePlayerLocalPlayer()
     {
-        if (!_spawnSinglePlayerFallbackIfMissing || _playerPrefab == null)
+        if (_playerPrefab == null)
         {
             return;
         }
@@ -716,13 +690,6 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
             return;
         }
 
-        PlayerMovement existingPlayer = FindAnyObjectByType<PlayerMovement>(); // 현재 씬에 이미 배치된 플레이어 이동 컴포넌트 참조입니다.
-        if (existingPlayer != null)
-        {
-            return;
-        }
-
-        Debug.LogWarning("[UGSMultiplayerSessionBackend] SinglePlayer fallback: Town load 후 player가 없어 PlayerPrefab을 생성합니다.", this);
         Instantiate(_playerPrefab);
     }
 

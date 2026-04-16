@@ -335,6 +335,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerNetworkSync
   ShowTopMostFoldoutHeaderGroup: 1
   _networkTransform: {fileID: 1952865801753107381}
+  _actionController: {fileID: 126503336672774226}
+  _playerMovement: {fileID: 1249389477860502122}
+  _enableActionStateSync: 1
+  _actionStateSendInterval: 0.033
+  _warnMissingActionController: 1
+  _enableFacingDirectionSync: 1
+  _facingDirectionSendInterval: 0.05
+  _warnMissingPlayerMovement: 1
+  _applyReplicatedFacingToOwner: 0
+  _lastSentFacingRight: 1
+  _lastReplicatedFacingRight: 1
 --- !u!114 &-910381344378754778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -351,8 +362,10 @@ MonoBehaviour:
   _cameraTarget: {fileID: 6731959234957534330}
   _bindLookAtProperties: 0
   _rebindOnSceneLoaded: 1
+  _bindInSinglePlayerWithoutNetworkSpawn: 1
   _componentTypeNameFilter: 
   _verboseLogging: 0
+  _hasBoundCameraTarget: 0
 --- !u!114 &1569005885950623159
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -472,6 +485,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 6731959234957534330}
     m_Modifications:
     - target: {fileID: 245346388558926703, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
+      propertyPath: _networkObject
+      value: 
+      objectReference: {fileID: 5892350524157319419}
+    - target: {fileID: 245346388558926703, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
       propertyPath: _playerMovement
       value: 
       objectReference: {fileID: 1249389477860502122}
@@ -519,6 +536,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2744874651139039573, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
+      propertyPath: _networkObject
+      value: 
+      objectReference: {fileID: 5892350524157319419}
     - target: {fileID: 2744874651139039573, guid: 622fe9ea385e8f848bc7e9010c2196ba, type: 3}
       propertyPath: _playerMovement
       value: 

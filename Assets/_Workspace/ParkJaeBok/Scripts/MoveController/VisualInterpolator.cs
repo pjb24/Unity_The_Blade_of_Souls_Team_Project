@@ -18,7 +18,7 @@ public class VisualInterpolator : MonoBehaviour
     {
         _rb = GetComponentInParent<Rigidbody2D>();
 
-        transform.parent = null;
+        //transform.parent = null;
         _prevPos = _currPos = _rb.position;
     }
 

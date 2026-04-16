@@ -75,9 +75,6 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("Host 세션 생성 시 사용할 Host 식별자 문자열입니다.")]
     [SerializeField] private string _hostClientId = "Host_A"; // Host 세션 생성 요청에서 사용할 로컬 Host 식별자입니다.
 
-    [Tooltip("Client 모드 선택 시 Join 팝업을 자동으로 열지 여부입니다.")]
-    [SerializeField] private bool _autoOpenJoinPopupOnClientSelected = true; // Client 선택 직후 Join 팝업 자동 표시 여부를 제어하는 플래그입니다.
-
     [Tooltip("Join 요청 성공 시 Join 팝업을 자동으로 닫을지 여부입니다.")]
     [SerializeField] private bool _autoCloseJoinPopupOnJoinSucceeded = true; // Join 성공 후 Join 팝업 자동 닫기 수행 여부를 제어하는 플래그입니다.
 
@@ -472,9 +469,8 @@ public class TitlePlayModePresenter : MonoBehaviour
         ApplySelectedSlotBeforePlay();
         _lastSelectedMode = E_GamePlayMode.MultiplayerClient;
         bool started = _multiplayerSessionOrchestrator != null || _gameFlowController != null;
-        HandleStartResult(started, _onMultiplayerClientStartSucceeded);
 
-        if (started && _autoOpenJoinPopupOnClientSelected)
+        if (started)
         {
             OpenJoinPopup();
         }

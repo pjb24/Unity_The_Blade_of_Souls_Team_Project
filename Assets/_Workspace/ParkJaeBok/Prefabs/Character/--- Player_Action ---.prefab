@@ -112,7 +112,7 @@ MonoBehaviour:
   _enablePresentationLock: 1
   _presentationLockTriggerActions: 0f000000
   _presentationLockReleaseActions: 02000000
-  _enableIdleBreak: 1
+  _enableIdleBreak: 0
   _idleBreakBaseAction: 1
   _idleBreakActions: 0a0000000b0000000c000000
   _idleBreakMinDelaySeconds: 4

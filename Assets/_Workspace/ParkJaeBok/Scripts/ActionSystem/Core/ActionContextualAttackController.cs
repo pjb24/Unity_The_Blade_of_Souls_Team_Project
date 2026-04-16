@@ -1,36 +1,31 @@
 using System.Collections;
-using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// 공격 입력 시점의 이동 맥락을 평가해 상황별 공격 액션을 요청하는 컨트롤러입니다.
 /// </summary>
 public class ActionContextualAttackController : MonoBehaviour, IActionListener
 {
-    [System.Serializable]
-    private struct AttackInputRouteBinding
-    {
-        public string RouteName; // 인스펙터와 로그에서 입력 라우트를 구분하기 위한 표시 이름
-        public bool Enabled; // 해당 입력 라우트 활성화 여부
-        public InputActionReference InputAction; // 라우트별 공격 입력 액션 참조
-        public AttackContextRuleProfile RuleProfile; // 라우트별 공격 규칙 프로필 참조
-    }
-
     [Header("References")]
+    [Tooltip("공격 액션 요청을 전달할 ActionController 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
     [SerializeField] private ActionController _actionController; // 공격 액션 요청을 전달할 액션 컨트롤러 참조
+    [Tooltip("공격 맥락 플래그 계산에 사용할 PlayerMovement 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
     [SerializeField] private PlayerMovement _playerMovement; // 공격 맥락 판정에 사용할 이동 상태 제공자 참조
-
-    [Header("Attack Input Routes")]
-    [SerializeField] private AttackInputRouteBinding[] _attackInputRoutes = new AttackInputRouteBinding[0]; // 입력 종류별 공격 라우팅 구성을 담는 배열
+    [Tooltip("InputManager Attack 입력에 매핑해 사용할 기본 공격 규칙 프로필입니다.")]
+    [SerializeField] private AttackContextRuleProfile _defaultAttackRuleProfile; // InputManager Attack 입력 처리에 사용할 기본 공격 규칙 프로필입니다.
 
     [Header("Runtime Options")]
+    [Tooltip("공격 규칙 선택/차단 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _enableRuntimeLog = false; // 공격 규칙 선택/차단 로그를 출력할지 여부
+    [Tooltip("ActionController 리스너 지연 등록 재시도 간격(초)입니다.")]
     [SerializeField] private float _listenerRetryInterval = 0.1f; // ActionController 리스너 지연 등록 재시도 간격(초)
+    [Tooltip("ActionController 리스너 지연 등록 최대 재시도 횟수입니다.")]
     [SerializeField] private int _listenerMaxRetryCount = 30; // ActionController 리스너 지연 등록 최대 재시도 횟수
-
-    private readonly List<AttackInputRouteBinding> _runtimeRoutes = new List<AttackInputRouteBinding>(); // 런타임에서 유효성 검사를 통과한 입력 라우트 목록
-    private readonly Dictionary<InputAction, int> _routeIndexByInputAction = new Dictionary<InputAction, int>(); // 콜백으로 들어온 InputAction을 라우트 인덱스로 역조회하기 위한 맵
+    [Tooltip("NetworkObject를 찾지 못해 소유권 검증 없이 동작할 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenOwnershipUnavailable = true; // 네트워크 오브젝트 소유권을 확인할 수 없을 때 경고 로그 출력 여부
+    [Tooltip("InputManager 공격 입력 라우트 이름입니다. 로그와 디버깅 용도로 사용됩니다.")]
+    [SerializeField] private string _inputManagerAttackRouteName = "InputManagerAttack"; // InputManager 공격 입력 라우트 표시 이름입니다.
 
     private Coroutine _registerActionListenerCoroutine; // ActionController 리스너 지연 등록 코루틴 핸들
     private bool _isActionListenerRegistered; // ActionController 리스너가 현재 등록된 상태인지 여부
@@ -38,13 +33,14 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     private float _attackInputBufferTimer; // 버퍼링된 공격 입력의 남은 유효 시간
     private string _bufferedRouteName; // 현재 버퍼 입력이 속한 라우트 이름
     private AttackContextRuleProfile _bufferedRuleProfile; // 현재 버퍼 입력에 적용할 규칙 프로필
+    [SerializeField] private NetworkObject _networkObject; // 소유권 기반 입력 처리 판정을 위한 NetworkObject 참조
 
     /// <summary>
     /// 활성화 시 입력/리스너 구독을 등록합니다.
     /// </summary>
     private void OnEnable()
     {
-        RegisterInputAction();
+        EnsureNetworkOwnershipReference();
         RestartActionListenerRegisterCoroutine();
     }
 
@@ -55,7 +51,6 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     {
         StopRunningCoroutine(ref _registerActionListenerCoroutine);
         TryImmediateUnregisterActionListenerOnDisable();
-        UnregisterInputAction();
         ResetBufferedInput();
     }
 
@@ -78,6 +73,18 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     /// </summary>
     private void Update()
     {
+        if (!CanProcessLocalOwnerLogic())
+        {
+            ResetBufferedInput();
+            return;
+        }
+
+        if (InputManager.AttackWasPressed)
+        {
+            string routeName = string.IsNullOrWhiteSpace(_inputManagerAttackRouteName) ? "InputManagerAttack" : _inputManagerAttackRouteName; // 로그와 버퍼 식별에 사용할 입력 라우트 이름입니다.
+            TryHandleAttackInput("InputManager", routeName, _defaultAttackRuleProfile);
+        }
+
         if (!_hasBufferedAttackInput)
         {
             return;
@@ -94,31 +101,11 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 공격 입력 발생 시 입력 액션에 매핑된 라우트로 공격 액션 요청을 시도합니다.
-    /// </summary>
-    private void OnAttackInputPerformed(InputAction.CallbackContext context)
-    {
-        if (!_routeIndexByInputAction.TryGetValue(context.action, out int routeIndex))
-        {
-            return;
-        }
-
-        if (routeIndex < 0 || routeIndex >= _runtimeRoutes.Count)
-        {
-            return;
-        }
-
-        AttackInputRouteBinding route = _runtimeRoutes[routeIndex]; // 현재 입력에 매핑된 라우트 설정 스냅샷
-        string routeName = string.IsNullOrWhiteSpace(route.RouteName) ? "UnnamedRoute" : route.RouteName; // 로그/버퍼 키로 사용할 라우트 이름
-        TryHandleAttackInput("InputPerformed", routeName, route.RuleProfile);
-    }
-
-    /// <summary>
     /// 입력 시점의 맥락 규칙을 평가해 공격 요청/차단/버퍼링을 처리합니다.
     /// </summary>
     private void TryHandleAttackInput(string source, string routeName, AttackContextRuleProfile ruleProfile)
     {
-        if (!TryResolveReferences())
+        if (!TryResolveCoreReferences())
         {
             return;
         }
@@ -216,7 +203,7 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
             flags |= E_AttackContextFlags.Airborne;
         }
 
-        if (InputManager.Movement.sqrMagnitude > 0.01f)
+        if (_playerMovement.Velocity.sqrMagnitude > 0.01f)
         {
             flags |= E_AttackContextFlags.Moving;
         }
@@ -252,6 +239,43 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         }
 
         return flags;
+    }
+
+    /// <summary>
+    /// NetworkObject 참조를 캐시하고 누락 시 경고를 출력합니다.
+    /// </summary>
+    private void EnsureNetworkOwnershipReference()
+    {
+        if (_networkObject != null)
+        {
+            return;
+        }
+
+        _networkObject = GetComponent<NetworkObject>();
+        if (_networkObject == null && _warnWhenOwnershipUnavailable)
+        {
+            Debug.LogWarning($"[ActionContextualAttackController] NetworkObject가 없어 소유권 검증 없이 동작합니다. object={name}");
+        }
+    }
+
+    /// <summary>
+    /// 네트워크 소유권 기준으로 현재 인스턴스가 로컬 입력 기반 공격 로직을 수행할 수 있는지 판정합니다.
+    /// </summary>
+    private bool CanProcessLocalOwnerLogic()
+    {
+        EnsureNetworkOwnershipReference();
+
+        if (_networkObject == null)
+        {
+            return true;
+        }
+
+        if (!_networkObject.IsSpawned)
+        {
+            return false;
+        }
+
+        return _networkObject.IsOwner;
     }
 
     /// <summary>
@@ -379,92 +403,6 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 활성화된 입력 라우트를 구성해 런타임 리스트를 갱신합니다.
-    /// </summary>
-    private void BuildRuntimeRoutes()
-    {
-        _runtimeRoutes.Clear();
-
-        for (int i = 0; i < _attackInputRoutes.Length; i++)
-        {
-            AttackInputRouteBinding route = _attackInputRoutes[i];
-            if (!route.Enabled)
-            {
-                continue;
-            }
-
-            if (route.InputAction == null || route.InputAction.action == null)
-            {
-                continue;
-            }
-
-            if (route.RuleProfile == null)
-            {
-                continue;
-            }
-
-            _runtimeRoutes.Add(route);
-        }
-
-        // 레거시 단일 입력 폴백 없이 _attackInputRoutes 기반 구성만 허용합니다.
-    }
-
-    /// <summary>
-    /// 입력 액션 구독을 등록합니다.
-    /// </summary>
-    private void RegisterInputAction()
-    {
-        if (!TryResolveReferences())
-        {
-            return;
-        }
-
-        _routeIndexByInputAction.Clear();
-
-        for (int i = 0; i < _runtimeRoutes.Count; i++)
-        {
-            AttackInputRouteBinding route = _runtimeRoutes[i];
-            InputAction inputAction = route.InputAction.action; // 라우트에 매핑된 실제 입력 액션 인스턴스
-
-            if (_routeIndexByInputAction.ContainsKey(inputAction))
-            {
-                Debug.LogWarning($"[ActionContextualAttackController] Duplicate InputAction binding ignored: route={route.RouteName}");
-                continue;
-            }
-
-            inputAction.performed += OnAttackInputPerformed;
-            inputAction.Enable();
-            _routeIndexByInputAction[inputAction] = i;
-        }
-
-        if (_routeIndexByInputAction.Count == 0)
-        {
-            Debug.LogWarning("[ActionContextualAttackController] No valid attack input routes are configured.");
-        }
-    }
-
-    /// <summary>
-    /// 입력 액션 구독을 해제합니다.
-    /// </summary>
-    private void UnregisterInputAction()
-    {
-        if (_routeIndexByInputAction.Count == 0)
-        {
-            return;
-        }
-
-        List<InputAction> keys = new List<InputAction>(_routeIndexByInputAction.Keys); // 구독 해제 대상 입력 액션 키 목록 스냅샷
-        for (int i = 0; i < keys.Count; i++)
-        {
-            InputAction inputAction = keys[i];
-            inputAction.performed -= OnAttackInputPerformed;
-            inputAction.Disable();
-        }
-
-        _routeIndexByInputAction.Clear();
-    }
-
-    /// <summary>
     /// ActionController 리스너 등록 코루틴을 재시작합니다.
     /// </summary>
     private void RestartActionListenerRegisterCoroutine()
@@ -566,9 +504,9 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 참조가 비어 있을 때 동일 오브젝트 기준으로 자동 보정을 시도합니다.
+    /// 공격 입력 처리에 필요한 핵심 참조(ActionController/PlayerMovement)를 보정합니다.
     /// </summary>
-    private bool TryResolveReferences()
+    private bool TryResolveCoreReferences()
     {
         if (_actionController == null)
         {
@@ -580,16 +518,6 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
             _playerMovement = GetComponent<PlayerMovement>();
         }
 
-        BuildRuntimeRoutes();
-
-        if (_runtimeRoutes.Count == 0)
-        {
-            Debug.LogWarning($"[ActionContextualAttackController] No usable attack route/profile pair is configured on {name}.");
-            return false;
-        }
-
-        // 입력 구독은 PlayerMovement.Controller 초기화 시점과 분리해 유지하고,
-        // 실제 맥락 판정에서 Controller null 여부를 안전하게 처리합니다.
         return _actionController != null && _playerMovement != null;
     }
 
