@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 4588995805741180383}
   - component: {fileID: 4397434496589944427}
   - component: {fileID: 16871069682181859}
+  - component: {fileID: 793419730018100700}
   m_Layer: 0
   m_Name: Bootstrap Systems Root
   m_TagString: Untagged
@@ -91,6 +92,7 @@ MonoBehaviour:
   _fadeOutDuration: 0.2
   _fadeInDuration: 0.2
   _blockInputWhileTransition: 1
+  _preferNetworkSceneManagement: 1
 --- !u!114 &8820946515419213869
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -193,3 +195,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StageProgressRuntime
   _dontDestroyOnLoad: 1
   _records: []
+--- !u!114 &793419730018100700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad994b71773563b43bd066eca8536b8c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SinglePlayerPauseService
+  _dontDestroyOnLoad: 1
+  _useTimeScalePause: 1
+  _disablePlayerInputWhilePaused: 1
+  _verboseLog: 1
+  _gameFlowController: {fileID: 6349070038292939143}
+  _sceneTransitionService: {fileID: 4599951219679633824}
