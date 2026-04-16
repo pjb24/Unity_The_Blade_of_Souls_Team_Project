@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// 싱글플레이 Town/Stage 공통 Pause 입력, UI 표시, Settings 연동, Main Menu 복귀를 조율하는 Presenter입니다.
+/// 싱글/멀티플레이 Town/Stage 공통 Pause 입력, UI 표시, Settings 연동, Main Menu 복귀를 조율하는 Presenter입니다.
 /// </summary>
 public class SinglePlayerPausePresenter : MonoBehaviour
 {
@@ -25,6 +25,9 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     [Tooltip("Main Menu 복귀 요청을 전달할 GameFlowController입니다. 비어 있으면 런타임에서 해석합니다.")]
     [SerializeField] private GameFlowController _gameFlowController; // Main Menu 복귀 요청을 위임할 게임 흐름 컨트롤러 참조입니다.
 
+    [Tooltip("멀티 세션 Host 종료/Client 단독 이탈 흐름을 위임할 MultiplayerSessionOrchestrator입니다. 비어 있으면 런타임에서 해석합니다.")]
+    [SerializeField] private MultiplayerSessionOrchestrator _multiplayerSessionOrchestrator; // 멀티플레이 Main Menu 경로를 위임할 세션 오케스트레이터 참조입니다.
+
     [Header("Input")]
     [Tooltip("Pause 토글 입력 액션 참조입니다. 비어 있으면 Escape 키 폴백을 사용합니다.")]
     [SerializeField] private InputActionReference _pauseToggleAction; // Pause 토글 입력 액션 참조입니다.
@@ -40,6 +43,7 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     [SerializeField] private bool _verboseLog = true; // Pause Presenter 상세 로그 출력 여부입니다.
 
     private ITitleMenuOptionsPanelBridge _settingsBridge; // SettingsRoot 오픈 전 동기화를 호출할 브리지 인터페이스 참조입니다.
+    private PauseFlowCoordinator _pauseFlowCoordinator; // 플레이 모드별 Pause 흐름 제어를 담당하는 Coordinator 인스턴스입니다.
     private bool _isSettingsOpenedFromPause; // Pause에서 Settings를 열어둔 상태인지 추적하는 런타임 플래그입니다.
 
     /// <summary>
@@ -60,6 +64,8 @@ public class SinglePlayerPausePresenter : MonoBehaviour
             _pausePanelView.SetVisible(false);
             _pausePanelView.SetInteractable(true);
         }
+
+        _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
     }
 
     /// <summary>
@@ -103,13 +109,12 @@ public class SinglePlayerPausePresenter : MonoBehaviour
             return;
         }
 
-        if (_pauseService == null)
+        if (_pauseFlowCoordinator == null)
         {
-            Debug.LogWarning("[SinglePlayerPausePresenter] PauseService가 없어 Pause 토글 입력을 처리할 수 없습니다.", this);
-            return;
+            _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
         }
 
-        if (_pauseService.IsPaused)
+        if (_pauseFlowCoordinator != null && _pauseFlowCoordinator.IsPaused())
         {
             ResumeGame();
             return;
@@ -123,13 +128,18 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     /// </summary>
     public void OpenPause()
     {
-        if (_pauseService == null)
+        if (_pauseFlowCoordinator == null)
         {
-            Debug.LogWarning("[SinglePlayerPausePresenter] PauseService가 없어 OpenPause를 중단합니다.", this);
+            _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
+        }
+
+        if (_pauseFlowCoordinator == null)
+        {
+            Debug.LogWarning("[SinglePlayerPausePresenter] PauseFlowCoordinator가 없어 OpenPause를 중단합니다.", this);
             return;
         }
 
-        bool paused = _pauseService.TryEnterPause("Pause.ToggleInput"); // Pause 입력 토글에서 상태 진입 시도 결과입니다.
+        bool paused = _pauseFlowCoordinator.TryOpenPause("Pause.ToggleInput"); // Pause 입력 토글에서 상태 진입 시도 결과입니다.
         if (paused == false)
         {
             return;
@@ -147,13 +157,18 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     /// </summary>
     public void ResumeGame()
     {
-        if (_pauseService == null)
+        if (_pauseFlowCoordinator == null)
         {
-            Debug.LogWarning("[SinglePlayerPausePresenter] PauseService가 없어 ResumeGame을 중단합니다.", this);
+            _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
+        }
+
+        if (_pauseFlowCoordinator == null)
+        {
+            Debug.LogWarning("[SinglePlayerPausePresenter] PauseFlowCoordinator가 없어 ResumeGame을 중단합니다.", this);
             return;
         }
 
-        bool resumed = _pauseService.TryResume("Pause.ResumeButton"); // Resume 처리 결과입니다.
+        bool resumed = _pauseFlowCoordinator.TryResume("Pause.ResumeButton"); // Resume 처리 결과입니다.
         if (resumed == false)
         {
             Debug.LogWarning("[SinglePlayerPausePresenter] Pause 해제에 실패했습니다.", this);
@@ -178,7 +193,12 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     /// </summary>
     public void OpenSettings()
     {
-        if (_pauseService == null || _pauseService.IsPaused == false)
+        if (_pauseFlowCoordinator == null)
+        {
+            _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
+        }
+
+        if (_pauseFlowCoordinator == null || _pauseFlowCoordinator.IsPaused() == false)
         {
             Debug.LogWarning("[SinglePlayerPausePresenter] Pause 상태가 아니라 Settings 오픈을 차단합니다.", this);
             return;
@@ -206,26 +226,27 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     /// <summary>
     /// Pause 상태에서 Main Menu 복귀를 요청합니다.
     /// </summary>
-    public void ReturnToMainMenu()
+    public async void ReturnToMainMenu()
     {
         ResolveDependencies();
 
-        if (_gameFlowController == null)
+        if (_pauseFlowCoordinator == null)
         {
-            Debug.LogWarning("[SinglePlayerPausePresenter] GameFlowController가 없어 Main Menu 복귀를 중단합니다.", this);
-            return;
+            _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
         }
 
-        if (_pauseService != null)
+        if (_pauseFlowCoordinator == null)
         {
-            _pauseService.ForceResume("Pause.ReturnToMainMenu");
+            Debug.LogWarning("[SinglePlayerPausePresenter] PauseFlowCoordinator가 없어 Main Menu 복귀를 중단합니다.", this);
+            return;
         }
+        _pauseFlowCoordinator.ForceClearPauseState("Pause.ReturnToMainMenu");
 
         SetSettingsVisible(false);
         HidePausePanel();
         _isSettingsOpenedFromPause = false;
 
-        bool requested = _gameFlowController.RequestExit(true); // 기존 GameFlow 타이틀 복귀 파이프라인 요청 결과입니다.
+        bool requested = await _pauseFlowCoordinator.ReturnToMainMenuAsync(); // 모드별 Main Menu 복귀 플로우 요청 결과입니다.
         if (requested == false)
         {
             Debug.LogWarning("[SinglePlayerPausePresenter] Main Menu 복귀 요청에 실패했습니다.", this);
@@ -331,6 +352,16 @@ public class SinglePlayerPausePresenter : MonoBehaviour
             return true;
         }
 
+        if (_pauseFlowCoordinator == null)
+        {
+            _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
+        }
+
+        if (_pauseFlowCoordinator != null && !_pauseFlowCoordinator.CanOpenPausePanel())
+        {
+            return true;
+        }
+
         if (_isSettingsOpenedFromPause && _settingsRoot != null)
         {
             if (_settingsRoot.activeSelf == false)
@@ -405,6 +436,11 @@ public class SinglePlayerPausePresenter : MonoBehaviour
         if (_gameFlowController == null)
         {
             _gameFlowController = GameFlowController.Instance;
+        }
+
+        if (_multiplayerSessionOrchestrator == null)
+        {
+            _multiplayerSessionOrchestrator = MultiplayerSessionOrchestrator.Instance;
         }
     }
 }
