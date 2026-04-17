@@ -474,3 +474,61 @@ Host가 세션을 만들었는데 Client Join에서 `SessionNotFound`가 뜨면,
 3. 실패 코드 매핑(`SessionNotFound`, `SessionFull` 등)을 운영 에러 코드로 표준화
 
 즉, **UI-오케스트레이터-백엔드 인터페이스 구조를 유지한 채로 인프라만 교체**하는 것이 핵심입니다.
+
+---
+
+## 9) Client Join 실패 메시지 UI 확장 설정
+
+Client Join 실패가 발생했을 때 사용자에게 실패 사유를 즉시 노출하려면 아래 컴포넌트를 추가하세요.
+
+### 9-1. 추가 스크립트
+- `Assets/_Workspace/ParkJaeBok/Scripts/GameFlow/Multiplayer/Core/E_ClientJoinFailureType.cs`
+- `Assets/_Workspace/ParkJaeBok/Scripts/GameFlow/Multiplayer/Core/ClientJoinFailureResult.cs`
+- `Assets/_Workspace/ParkJaeBok/Scripts/UI/TitleMenu/MultiplayerJoinFailureMessageCatalog.cs`
+- `Assets/_Workspace/ParkJaeBok/Scripts/UI/TitleMenu/MultiplayerJoinFailurePresenter.cs`
+- `Assets/_Workspace/ParkJaeBok/Scripts/UI/TitleMenu/MultiplayerJoinFailureView.cs`
+
+### 9-2. ScriptableObject 생성
+1. Project 창에서 `Create > Game > UI > Multiplayer Join Failure Message Catalog`를 선택합니다.
+2. 에셋 이름을 예: `SO_JoinFailureMessageCatalog`로 저장합니다.
+3. `Entries`에 실패 유형별 문구/정책을 입력합니다.
+   - `FailureType`: JoinCodeEmpty, SessionNotFound, SessionFull, StageInProgress, NetworkUnavailable 등
+   - `UseTitle`: 제목 노출 여부
+   - `Title` / `Body`: 사용자 문구
+   - `AutoClose` / `AutoCloseDelaySeconds`: 자동 닫힘 정책
+   - `UseManualCloseButton`: 닫기 버튼 사용 여부
+4. 미매핑 실패를 위한 `Fallback` 섹션 문구도 반드시 설정합니다.
+
+### 9-3. Scene 오브젝트 구성(프리팹 가능)
+`MultiplayerPanelRoot/Panel_Multiplayer` 하위에 실패 메시지 패널을 추가합니다.
+
+예시:
+```text
+Panel_Multiplayer
+├── Input_JoinCode
+├── Btn_JoinSubmit
+├── Panel_JoinFailureMessage (기본 비활성)
+│   ├── Txt_FailureTitle (TMP_Text)
+│   ├── Txt_FailureBody (TMP_Text)
+│   └── Btn_CloseFailure (Button)
+```
+
+### 9-4. 컴포넌트 연결
+1. `Panel_JoinFailureMessage` 또는 상위 UI 루트에 `MultiplayerJoinFailureView`를 붙입니다.
+2. 아래 필드를 연결합니다.
+   - `_messageRoot` -> `Panel_JoinFailureMessage`
+   - `_titleText` -> `Txt_FailureTitle`
+   - `_bodyText` -> `Txt_FailureBody`
+   - `_closeButton` -> `Btn_CloseFailure`
+3. `TitleMenuRoot`(또는 Join 팝업 관리 루트)에 `MultiplayerJoinFailurePresenter`를 붙입니다.
+4. 아래 필드를 연결합니다.
+   - `_multiplayerSessionOrchestrator` -> `MultiplayerRuntimeRoot/MultiplayerSessionOrchestrator`
+   - `_view` -> `MultiplayerJoinFailureView`
+   - `_messageCatalog` -> `SO_JoinFailureMessageCatalog`
+
+### 9-5. Orchestrator 이벤트 확인
+`MultiplayerSessionOrchestrator`는 Join 실패 시 아래 두 경로를 모두 발행합니다.
+- 기존 문자열 이벤트: `_onSessionFailed`
+- 표준 실패 이벤트: `_onClientJoinFailed` + `ClientJoinFailed`
+
+> 권장: 신규 UI는 `ClientJoinFailed` 흐름을 사용하고, 기존 `_onSessionFailed`는 레거시 호환 목적으로 유지하세요.
