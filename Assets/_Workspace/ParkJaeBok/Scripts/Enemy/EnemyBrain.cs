@@ -16,6 +16,13 @@ public class EnemyBrain : MonoBehaviour
         Recover,
         HitStun,
         Dead,
+        ReturnHome,
+    }
+
+    private enum E_HomePositionSourceType
+    {
+        InitialTransformPosition,
+        AnchorTransform,
     }
 
     private enum E_EnemyMovementState
@@ -45,6 +52,18 @@ public class EnemyBrain : MonoBehaviour
     [SerializeField] private EnemyPatrolRouteProvider _patrolRouteProvider; // 순찰 경로 기반 목적지 계산에 사용할 RouteProvider 컴포넌트 참조입니다.
     [Tooltip("저장/복원에서 Enemy 개체를 안정적으로 식별할 런타임 ID입니다.")]
     [SerializeField] private string _enemyRuntimeId; // 저장/복원 시스템에서 Enemy 개체를 식별할 고유 런타임 ID입니다.
+
+    [Header("Home Position")]
+    [Tooltip("복귀 기준 Home Position의 원본을 선택합니다. InitialTransformPosition은 초기화 시 월드 좌표를 사용하고 AnchorTransform은 별도 Anchor 위치를 사용합니다.")]
+    [SerializeField] private E_HomePositionSourceType _homePositionSourceType = E_HomePositionSourceType.InitialTransformPosition; // 복귀 기준 Home Position의 원본 선택 값입니다.
+    [Tooltip("Home Position Source가 AnchorTransform일 때 사용할 기준 Anchor입니다.")]
+    [SerializeField] private Transform _homeAnchor; // Anchor 기반 Home Position 계산에 사용할 기준 트랜스폼 참조입니다.
+    [Tooltip("Home 도착 마감 처리에서 위치 스냅을 허용할 최대 거리입니다. 목표 좌표 자체 오염을 숨기지 않고 미세 오차만 보정합니다.")]
+    [SerializeField] private float _homeSnapDistance = 0.05f; // Home 도착 시 미세 오차 마감 처리용 스냅 허용 거리 값입니다.
+    [Tooltip("현재 Enemy가 사용 중인 Home Position 월드 좌표 디버그 값입니다.")]
+    [SerializeField] private Vector2 _resolvedHomePosition; // 현재 Enemy가 사용 중인 Home Position 월드 좌표 캐시입니다.
+    [Tooltip("Home Position이 정상 초기화되었는지 여부 디버그 값입니다.")]
+    [SerializeField] private bool _isHomePositionResolved; // Home Position 초기화 성공 여부 디버그 플래그입니다.
 
     [Header("Advanced Extensions")]
     [Tooltip("IEnemyDecisionPolicy 구현체를 담는 전술 정책 컴포넌트 참조입니다.")]
@@ -171,7 +190,8 @@ public class EnemyBrain : MonoBehaviour
         TryResolveReferences();
         ResolveExtensionModules();
 
-        _spawnPosition = transform.position;
+        ResolveHomePosition();
+        _spawnPosition = _resolvedHomePosition;
         _patrolDestination = _spawnPosition;
 
         ApplyArchetypeToLocomotionModules();
@@ -190,6 +210,8 @@ public class EnemyBrain : MonoBehaviour
     /// </summary>
     private void OnEnable()
     {
+        ResolveHomePosition();
+        _spawnPosition = _resolvedHomePosition;
         _didRequestDeadAction = false;
         _recoverUntilTime = 0f;
         _hitStunUntilTime = 0f;
@@ -222,6 +244,41 @@ public class EnemyBrain : MonoBehaviour
         ResetCombatMovementCommand();
         TryResolveTarget();
         ApplyArchetypeToLocomotionModules();
+    }
+
+    /// <summary>
+    /// 스폰 완료 직후 등 런타임 초기화 파이프라인에서 Home Position을 다시 캡처할 때 호출합니다.
+    /// </summary>
+    public void CaptureHomePosition()
+    {
+        ResolveHomePosition();
+        _spawnPosition = _resolvedHomePosition;
+        _patrolDestination = _spawnPosition;
+        _floatingAltitudeCommand = _spawnPosition.y + GetFloatingAltitude();
+    }
+
+    /// <summary>
+    /// 현재 설정 기준(Home Source/Anchor)으로 Home Position을 해석하고 누락 시 경고와 함께 안전한 폴백을 적용합니다.
+    /// </summary>
+    private void ResolveHomePosition()
+    {
+        if (_homePositionSourceType == E_HomePositionSourceType.AnchorTransform)
+        {
+            if (_homeAnchor != null)
+            {
+                _resolvedHomePosition = _homeAnchor.position;
+                _isHomePositionResolved = true;
+                return;
+            }
+
+            _resolvedHomePosition = transform.position;
+            _isHomePositionResolved = false;
+            Debug.LogWarning($"[EnemyBrain] Home Anchor가 비어 있어 현재 위치를 Home Position 폴백으로 사용합니다. Object={name}", this);
+            return;
+        }
+
+        _resolvedHomePosition = transform.position;
+        _isHomePositionResolved = true;
     }
 
     /// <summary>
@@ -287,6 +344,12 @@ public class EnemyBrain : MonoBehaviour
             }
 
             float distanceToTarget = context.DistanceToTarget; // 기본 전투 상태 전이 계산에 사용할 타겟 거리 값입니다.
+            if (ShouldRestartChaseFromReturn(distanceToTarget))
+            {
+                EnterChaseState();
+                return;
+            }
+
             if (CanAttack(distanceToTarget))
             {
                 EnterAttackState(context);
@@ -301,6 +364,12 @@ public class EnemyBrain : MonoBehaviour
         }
 
         if (ShouldReturnToSpawn())
+        {
+            EnterReturnToSpawnState();
+            return;
+        }
+
+        if (ShouldReturnToHome(context.DistanceToTarget))
         {
             EnterReturnToSpawnState();
             return;
@@ -390,9 +459,14 @@ public class EnemyBrain : MonoBehaviour
     /// </summary>
     private void EnterReturnToSpawnState()
     {
-        _state = E_EnemyState.Chase;
+        _state = E_EnemyState.ReturnHome;
         RequestActionSafe(GetMoveAction());
-        SetCombatMovementTarget(_spawnPosition);
+        SetCombatMovementTarget(_resolvedHomePosition);
+
+        if (IsAtHomePosition())
+        {
+            FinalizeHomeArrival();
+        }
     }
 
     /// <summary>
@@ -1068,6 +1142,19 @@ public class EnemyBrain : MonoBehaviour
     }
 
     /// <summary>
+    /// ReturnHome 도중 감지 반경 내 타겟이 재진입하면 즉시 Chase로 복귀해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldRestartChaseFromReturn(float distanceToTarget)
+    {
+        if (_state != E_EnemyState.ReturnHome)
+        {
+            return false;
+        }
+
+        return distanceToTarget <= GetDetectRange();
+    }
+
+    /// <summary>
     /// 리쉬 규칙에 따라 스폰 지점 복귀가 필요한지 판정합니다.
     /// </summary>
     private bool ShouldReturnToSpawn()
@@ -1079,6 +1166,69 @@ public class EnemyBrain : MonoBehaviour
 
         float distanceFromSpawn = Vector2.Distance(transform.position, _spawnPosition); // 현재 위치와 스폰 지점 사이 거리입니다.
         return distanceFromSpawn > _archetype.LeashDistance;
+    }
+
+    /// <summary>
+    /// 전투 추적이 끝난 뒤 Home Position에 도달할 때까지 Return 상태를 유지해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldReturnToHome(float distanceToTarget)
+    {
+        if (IsDead() || IsInRecoverWindow() || IsInHitStunWindow())
+        {
+            return false;
+        }
+
+        bool hasTargetInCombatRange = _target != null && (CanAttack(distanceToTarget) || CanChase(distanceToTarget)); // 현재 타겟이 전투 추적 범위(공격/추적) 안에 있어 Return을 중단해야 하는지 판정한 결과입니다.
+        if (hasTargetInCombatRange)
+        {
+            return false;
+        }
+
+        bool shouldContinueReturning = _state == E_EnemyState.ReturnHome; // 이미 복귀 중이면 도착 전까지 상태를 유지하기 위한 플래그입니다.
+        bool shouldStartReturning = _state == E_EnemyState.Chase || _state == E_EnemyState.Attack || _state == E_EnemyState.Recover; // 추적/전투 상태에서 타겟 상실 시 복귀를 시작하기 위한 플래그입니다.
+        if (!shouldContinueReturning && !shouldStartReturning)
+        {
+            return false;
+        }
+
+        if (IsAtHomePosition())
+        {
+            FinalizeHomeArrival();
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 현재 위치가 Home Position 도착 임계값 안에 있는지 판정합니다.
+    /// </summary>
+    private bool IsAtHomePosition()
+    {
+        return Vector2.Distance(transform.position, _resolvedHomePosition) <= GetStoppingDistance();
+    }
+
+    /// <summary>
+    /// Home 도착 확정 시 상태를 Idle로 정리하고 필요 시 미세 오차만 스냅 보정합니다.
+    /// </summary>
+    private void FinalizeHomeArrival()
+    {
+        float snapDistance = Mathf.Max(0f, _homeSnapDistance); // Home 도착 마감 처리에서 허용할 최대 스냅 거리 값입니다.
+        float remainingDistance = Vector2.Distance(transform.position, _resolvedHomePosition); // Home 도착 판정 이후 남은 미세 거리 값입니다.
+        if (remainingDistance > 0f && remainingDistance <= snapDistance)
+        {
+            Vector3 snappedPosition = transform.position; // Home 도착 마감 처리에서 사용할 스냅 대상 위치 값입니다.
+            snappedPosition.x = _resolvedHomePosition.x;
+            snappedPosition.y = _resolvedHomePosition.y;
+            transform.position = snappedPosition;
+        }
+        else if (remainingDistance > snapDistance && snapDistance > 0f)
+        {
+            Debug.LogWarning($"[EnemyBrain] Home 도착 마감 스냅 범위를 초과했습니다. Position={transform.position}, Home={_resolvedHomePosition}, Remaining={remainingDistance:F3}", this);
+        }
+
+        _state = E_EnemyState.Idle;
+        ClearCombatMovementTarget();
     }
 
     /// <summary>
@@ -1730,5 +1880,10 @@ public class EnemyBrain : MonoBehaviour
         Vector3 patrolCenter = Application.isPlaying ? (Vector3)_spawnPosition : transform.position; // 순찰 반경 중심 시각화에 사용할 좌표입니다.
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(patrolCenter, patrolRadius);
+
+        Vector3 homePosition = Application.isPlaying ? (Vector3)_resolvedHomePosition : transform.position; // Home Position 시각화에 사용할 기준 좌표입니다.
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(homePosition, Mathf.Max(0.05f, GetStoppingDistance()));
+        Gizmos.DrawLine(transform.position, homePosition);
     }
 }

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67e51cc6e7c60e14d8a4e2ab4234b05c, type: 3}
+  m_Name: ActionRuleProfile_BloodLight
+  m_EditorClassIdentifier: Assembly-CSharp::ActionRuleProfile
+  _actorType: 1
+  _rules:
+  - ActionType: 32
+    Enabled: 1
+    Priority: 0
+    IsInterruptible: 1
+    AutoCompleteSeconds: 0
+  - ActionType: 33
+    Enabled: 1
+    Priority: 0
+    IsInterruptible: 1
+    AutoCompleteSeconds: 0
+  - ActionType: 14
+    Enabled: 1
+    Priority: 0
+    IsInterruptible: 1
+    AutoCompleteSeconds: 0
+  - ActionType: 15
+    Enabled: 1
+    Priority: 0
+    IsInterruptible: 0
+    AutoCompleteSeconds: 0

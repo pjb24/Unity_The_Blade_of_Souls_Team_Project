@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1355b6763812f794687a6289507999a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  _soundDatabase: {fileID: 11400000, guid: ee871410d37e7c943916b7fbb0d9b590, type: 2}
+  _soundDatabase: {fileID: 11400000, guid: a1041f78e3cb40d4e8e34eacea5163f2, type: 2}
   _dontDestroyOnLoad: 1
   _initialSfxPoolSize: 12
   _maxSfxPoolSize: 32

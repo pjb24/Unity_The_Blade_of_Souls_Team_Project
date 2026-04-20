@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 827fd3f40410f29428821044f9a192fd, type: 3}
+  m_Name: EnemyArchetypeData_BloodLight
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyArchetypeData
+  _archetypeId: Enemy_BloodLight
+  _moveSpeed: 8
+  _stoppingDistance: 0.1
+  _defaultLocomotionType: 1
+  _canSwitchLocomotion: 0
+  _switchCooldown: 0.8
+  _minAirTime: 0.6
+  _groundProbeDistance: 0.3
+  _slopeLimit: 45
+  _edgeStopDistance: 0.35
+  _hoverHeight: 2
+  _hoverDamping: 4
+  _verticalMaxSpeed: 8
+  _maxAirTime: 4
+  _allowMovementTransitionDuringAttack: 0
+  _useFloatingMovement: 1
+  _movementSwitchDuration: 0.2
+  _locomotionObstacleCheckDistance: 1
+  _locomotionGroundCheckDistance: 1.25
+  _landingRequeryCooldown: 0.3
+  _detectRange: 6
+  _loseRange: 50
+  _attackRange: 3
+  _attackCooldown: 1.2
+  _recoverDuration: 0.25
+  _hitStunDuration: 0.15
+  _useLeash: 1
+  _leashDistance: 10
+  _usePatrol: 0
+  _patrolRadius: 0
+  _patrolWaitTime: 1
+  _spawnAction: 16
+  _idleAction: 32
+  _patrolAction: 33
+  _moveAction: 33
+  _attackAction: 13
+  _recoverAction: 19
+  _hitStunAction: 14
+  _deadAction: 15
