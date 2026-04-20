@@ -13,6 +13,7 @@ using Unity.Services.Relay;
 using Unity.Services.Relay.Models;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Process = System.Diagnostics.Process;
 
 /// <summary>
 /// UGS(Authentication/Lobby/Relay)와 NGO(NetworkManager)를 연동해 Host/Client 세션을 관리하는 백엔드 구현입니다.
@@ -39,6 +40,9 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
 
     [Tooltip("UGS 초기화 시 사용할 Authentication 프로필 이름입니다. 비어 있지 않으면 멀티 인스턴스 테스트에서 프로필 분리가 가능합니다.")]
     [SerializeField] private string _authenticationProfile = "default"; // Unity Authentication 초기화에 사용할 프로필 이름입니다.
+
+    [Tooltip("동일 PC에서 다중 실행 시 Authentication 프로필 뒤에 프로세스 ID를 자동으로 덧붙일지 여부입니다.")]
+    [SerializeField] private bool _appendProcessIdToAuthenticationProfile = true; // 멀티 인스턴스 실행 시 PlayerId 충돌을 방지하기 위한 프로필 분기 플래그입니다.
 
     [Tooltip("UGS 초기화 시 사용할 Environment 이름입니다. 비어 있으면 Unity Dashboard 기본 환경을 사용합니다.")]
     [SerializeField] private string _environmentName; // UnityServices.InitializeAsync 호출 시 적용할 환경 이름입니다.
@@ -444,9 +448,10 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
         try
         {
             InitializationOptions options = new InitializationOptions(); // UGS Core 초기화 시 프로필/환경 옵션을 전달하기 위한 옵션 객체입니다.
-            if (!string.IsNullOrWhiteSpace(_authenticationProfile))
+            string resolvedAuthenticationProfile = ResolveAuthenticationProfile(); // 현재 실행 인스턴스에서 사용할 최종 Authentication 프로필 문자열입니다.
+            if (!string.IsNullOrWhiteSpace(resolvedAuthenticationProfile))
             {
-                options.SetProfile(_authenticationProfile.Trim());
+                options.SetProfile(resolvedAuthenticationProfile);
             }
 
             if (!string.IsNullOrWhiteSpace(_environmentName))
@@ -472,6 +477,10 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
 
             _localPlayerId = AuthenticationService.Instance.PlayerId;
             _isUgsInitialized = true;
+            if (_verboseLogging)
+            {
+                Debug.Log($"[UGSMultiplayerSessionBackend] UGS ready. profile={resolvedAuthenticationProfile}, playerId={_localPlayerId}", this);
+            }
         }
         catch (Exception exception)
         {
@@ -481,6 +490,21 @@ public class UGSMultiplayerSessionBackend : MonoBehaviour, IMultiplayerSessionBa
                 Debug.LogError($"[UGSMultiplayerSessionBackend] UGS initialization failed. reason={exception}", this);
             }
         }
+    }
+
+    /// <summary>
+    /// 동일 PC 다중 실행 충돌을 줄이기 위해 실행 인스턴스 기준 Authentication 프로필 문자열을 생성합니다.
+    /// </summary>
+    private string ResolveAuthenticationProfile()
+    {
+        string baseProfile = string.IsNullOrWhiteSpace(_authenticationProfile) ? "default" : _authenticationProfile.Trim(); // Authentication 프로필 생성에 사용할 기본 문자열입니다.
+        if (!_appendProcessIdToAuthenticationProfile)
+        {
+            return baseProfile;
+        }
+
+        int processId = Process.GetCurrentProcess().Id; // 현재 실행 인스턴스를 식별하기 위한 운영체제 프로세스 ID입니다.
+        return $"{baseProfile}_{processId}";
     }
 
     /// <summary>
