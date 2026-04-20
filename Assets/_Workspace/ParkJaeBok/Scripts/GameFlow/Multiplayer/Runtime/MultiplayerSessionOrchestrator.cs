@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
@@ -15,6 +16,9 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
 
     [Serializable]
     public class IntEvent : UnityEvent<int> { }
+
+    [Serializable]
+    public class ClientJoinFailureEvent : UnityEvent<ClientJoinFailureResult> { }
 
     [Header("Dependencies")]
     [Tooltip("플레이 모드 전환과 씬 전환 요청을 전달할 GameFlowController 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
@@ -47,6 +51,12 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     [Tooltip("디버그용: 마지막 정책 거부 사유입니다.")]
     [SerializeField] private string _lastFailureReason; // 최근 실패 사유를 추적하는 디버그 문자열입니다.
 
+    [Tooltip("디버그용: 마지막 Client Join 시도 상태입니다.")]
+    [SerializeField] private E_ClientJoinAttemptState _clientJoinAttemptState = E_ClientJoinAttemptState.Idle; // Client Join 상태 흐름(시도/성공/실패)을 추적하는 디버그 값입니다.
+
+    [Tooltip("디버그용: 마지막 Client Join 실패 결과입니다.")]
+    [SerializeField] private ClientJoinFailureResult _lastClientJoinFailure; // 최근 Client Join 실패 결과를 Inspector에서 확인하기 위한 디버그 값입니다.
+
     [Tooltip("UI 버튼 OnClick에서 사용할 Join Code 입력 캐시 값입니다. 제출 직전에 입력 필드 값으로 갱신됩니다.")]
     [SerializeField] private string _uiJoinCode; // UI에서 입력한 Join Code를 임시 보관하는 문자열입니다.
 
@@ -75,6 +85,9 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     [Tooltip("정책 또는 세션 처리 실패 사유를 UI에 전달할 이벤트입니다.")]
     [SerializeField] private StringEvent _onSessionFailed; // 세션 처리 실패 사유 표시용 이벤트입니다.
 
+    [Tooltip("Client Join 실패 결과를 타입 안전하게 전달하는 이벤트입니다.")]
+    [SerializeField] private ClientJoinFailureEvent _onClientJoinFailed; // Client Join 실패 UI 프리젠터가 구독할 표준 실패 결과 이벤트입니다.
+
     [Tooltip("Host 종료 또는 재접속 실패 등으로 타이틀 복귀가 필요할 때 호출할 이벤트입니다.")]
     [SerializeField] private UnityEvent _onReturnToTitle; // 타이틀 복귀 안내 연출을 트리거하기 위한 이벤트입니다.
 
@@ -86,6 +99,9 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     private ReconnectPolicyService _reconnectPolicyService; // 재접속 윈도우/1회 제한을 판정하는 서비스 인스턴스입니다.
     private int _currentPlayerCount = 1; // 현재 세션 인원 수(Host 포함)를 추적하는 런타임 값입니다.
     private bool _isStageInProgress; // 현재 Stage 진행 여부를 추적하는 런타임 플래그입니다.
+    private NetworkManager _networkManager; // 세션 종료 감지 콜백을 등록할 NGO NetworkManager 참조입니다.
+    private bool _isNetworkCallbacksRegistered; // NetworkManager 연결 해제 콜백 등록 여부를 추적하는 플래그입니다.
+    private bool _isReturnToTitleInProgress; // 타이틀 복귀 중복 진입을 차단하는 런타임 플래그입니다.
 
     /// <summary>
     /// 현재 활성 세션 Join Code를 조회합니다.
@@ -134,6 +150,11 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     public int CurrentPlayerCount => _currentPlayerCount;
 
     /// <summary>
+    /// Client Join 실패 결과를 구독하기 위한 런타임 이벤트입니다.
+    /// </summary>
+    public event Action<ClientJoinFailureResult> ClientJoinFailed;
+
+    /// <summary>
     /// Host 관점에서 원격 Client가 최소 1명 이상 참가했는지 여부를 조회합니다.
     /// </summary>
     public bool HasRemoteClientJoined => _currentPlayerCount > 1;
@@ -171,6 +192,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         _admissionGuardService = new SessionAdmissionGuardService(_maxPlayerCount);
         _reconnectPolicyService = new ReconnectPolicyService(_reconnectWindowSeconds);
         SceneManager.sceneLoaded += HandleSceneLoaded;
+        BindNetworkDisconnectCallback(true);
     }
 
     /// <summary>
@@ -179,6 +201,7 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
+        BindNetworkDisconnectCallback(false);
 
         if (Instance == this)
         {
@@ -213,7 +236,9 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         _currentPlayerCount = 1;
         _isStageInProgress = false;
         _connectionState = E_MultiplayerConnectionState.Hosting;
+        _isReturnToTitleInProgress = false;
         _reconnectPolicyService.Reset();
+        BindNetworkDisconnectCallback(true);
 
         if (_gameFlowController != null)
         {
@@ -237,31 +262,34 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     {
         ResolveDependenciesIfNeeded();
 
+        _clientJoinAttemptState = E_ClientJoinAttemptState.Attempting;
+        _lastClientJoinFailure = default;
+
         string normalizedJoinCode = NormalizeJoinCode(joinCode); // 백엔드 조회에 사용할 공백 제거/대문자 보정 Join Code입니다.
         if (string.IsNullOrWhiteSpace(normalizedJoinCode))
         {
-            return Fail("JoinCodeEmpty");
+            return FailClientJoin("JoinCodeEmpty", "Join 시도 입력값이 비어 있습니다.");
         }
 
         if (_sessionBackend == null)
         {
-            return Fail("SessionBackendMissing");
+            return FailClientJoin("SessionBackendMissing", "Join 백엔드 참조가 비어 있습니다.");
         }
 
         if (_gameFlowController == null)
         {
-            return Fail("GameFlowControllerMissing");
+            return FailClientJoin("GameFlowControllerMissing", "GameFlowController 참조가 비어 있습니다.");
         }
 
         if (!_admissionGuardService.CanJoin(_isStageInProgress, _currentPlayerCount, out string policyReason))
         {
-            return Fail($"AdmissionDenied:{policyReason}");
+            return FailClientJoin($"AdmissionDenied:{policyReason}", $"AdmissionGuard가 Join 요청을 차단했습니다. policyReason={policyReason}");
         }
 
         SessionOperationResult joinedResult = await _sessionBackend.JoinSessionAsync(normalizedJoinCode, clientId);
         if (!joinedResult.IsSuccess)
         {
-            return Fail($"JoinFailed:{joinedResult.Reason}");
+            return FailClientJoin($"JoinFailed:{joinedResult.Reason}", $"세션 백엔드 JoinSessionAsync 실패. backendReason={joinedResult.Reason}");
         }
 
         _activeJoinCode = normalizedJoinCode;
@@ -269,13 +297,17 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         _isLocalClientReadyDeclared = false;
         _currentPlayerCount = Math.Min(_maxPlayerCount, _currentPlayerCount + 1);
         _connectionState = E_MultiplayerConnectionState.JoinedAsClient;
+        _isReturnToTitleInProgress = false;
         _onPlayerCountUpdated?.Invoke(_currentPlayerCount);
+        BindNetworkDisconnectCallback(true);
 
         if (_gameFlowController != null)
         {
             _gameFlowController.SetMultiplayerSessionRole(E_MultiplayerSessionRole.Client);
             _gameFlowController.RequestStartMultiplayerClient();
         }
+        
+        _clientJoinAttemptState = E_ClientJoinAttemptState.Succeeded;
 
         return true;
     }
@@ -285,6 +317,8 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// </summary>
     private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
     {
+        BindNetworkDisconnectCallback(true);
+
         if (_connectionState != E_MultiplayerConnectionState.JoinedAsClient)
         {
             return;
@@ -413,19 +447,28 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// </summary>
     public async void ShutdownSessionByHost()
     {
-        if (_sessionBackend != null && !string.IsNullOrWhiteSpace(_activeJoinCode))
+        await ReturnToMainMenuFromPauseAsync();
+    }
+
+    /// <summary>
+    /// 인게임 Pause의 Main Menu 버튼에서 호출하는 모드별 타이틀 복귀 경로입니다.
+    /// </summary>
+    public async Task<bool> ReturnToMainMenuFromPauseAsync()
+    {
+        ResolveDependenciesIfNeeded();
+        BindNetworkDisconnectCallback(true);
+
+        if (_connectionState == E_MultiplayerConnectionState.Hosting)
         {
-            SessionOperationResult result = await _sessionBackend.CloseSessionAsync(_activeJoinCode);
-            if (!result.IsSuccess)
-            {
-                Debug.LogWarning($"[MultiplayerSessionOrchestrator] CloseSessionAsync warning. reason={result.Reason}", this);
-            }
+            return await ShutdownHostSessionAndReturnToTitleAsync();
         }
 
-        _connectionState = E_MultiplayerConnectionState.Closed;
-        _currentPlayerCount = 0;
-        _onPlayerCountUpdated?.Invoke(_currentPlayerCount);
-        ReturnToTitle();
+        if (_connectionState == E_MultiplayerConnectionState.JoinedAsClient)
+        {
+            return await LeaveClientSessionAndReturnToTitleAsync();
+        }
+
+        return _gameFlowController != null && _gameFlowController.RequestExit(true);
     }
 
     /// <summary>
@@ -449,6 +492,33 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
         _currentPlayerCount = Mathf.Max(0, playerCountResult.PlayerCount);
         _onPlayerCountUpdated?.Invoke(_currentPlayerCount);
         return true;
+    }
+
+    /// <summary>
+    /// Client Join 실패 결과를 표준화해 기록하고 UI 이벤트를 발행합니다.
+    /// </summary>
+    private bool FailClientJoin(string rawReason, string logDetail)
+    {
+        ClientJoinFailureResult failureResult = ClientJoinFailureResultMapper.Map(rawReason, logDetail); // 원본 실패 사유를 표준화한 UI 전달 결과입니다.
+
+        _clientJoinAttemptState = E_ClientJoinAttemptState.Failed;
+        _lastClientJoinFailure = failureResult;
+        _lastFailureReason = rawReason;
+
+        _onSessionFailed?.Invoke(rawReason);
+        _onClientJoinFailed?.Invoke(failureResult);
+        ClientJoinFailed?.Invoke(failureResult);
+
+        if (failureResult.IsFallback)
+        {
+            Debug.LogWarning($"[MultiplayerSessionOrchestrator] Client Join 실패 유형 매핑 누락. rawReason={rawReason}, detail={failureResult.LogDetail}", this);
+        }
+        else
+        {
+            Debug.LogWarning($"[MultiplayerSessionOrchestrator] Client Join 실패. type={failureResult.FailureType}, code={failureResult.FailureCode}, detail={failureResult.LogDetail}", this);
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -544,8 +614,128 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     /// </summary>
     private void ReturnToTitle()
     {
+        if (_isReturnToTitleInProgress)
+        {
+            return;
+        }
+
+        _isReturnToTitleInProgress = true;
         _onReturnToTitle?.Invoke();
-        _gameFlowController?.RequestExit(true);
+        bool requested = _gameFlowController != null && _gameFlowController.RequestExit(true); // 기존 GameFlow 타이틀 복귀 요청 결과입니다.
+        if (!requested)
+        {
+            _isReturnToTitleInProgress = false;
+        }
+    }
+
+    /// <summary>
+    /// Host가 Main Menu를 선택했을 때 세션 종료 후 전체 타이틀 복귀를 처리합니다.
+    /// </summary>
+    private async Task<bool> ShutdownHostSessionAndReturnToTitleAsync()
+    {
+        if (_sessionBackend != null && !string.IsNullOrWhiteSpace(_activeJoinCode))
+        {
+            SessionOperationResult result = await _sessionBackend.CloseSessionAsync(_activeJoinCode);
+            if (!result.IsSuccess)
+            {
+                Debug.LogWarning($"[MultiplayerSessionOrchestrator] CloseSessionAsync warning. reason={result.Reason}", this);
+            }
+        }
+
+        ResetSessionRuntimeState(E_MultiplayerConnectionState.Closed);
+        ReturnToTitle();
+        return true;
+    }
+
+    /// <summary>
+    /// Client가 Main Menu를 선택했을 때 로컬 세션 이탈 후 타이틀 복귀를 처리합니다.
+    /// </summary>
+    private async Task<bool> LeaveClientSessionAndReturnToTitleAsync()
+    {
+        if (_sessionBackend != null && !string.IsNullOrWhiteSpace(_activeJoinCode))
+        {
+            SessionOperationResult result = await _sessionBackend.CloseSessionAsync(_activeJoinCode);
+            if (!result.IsSuccess)
+            {
+                Debug.LogWarning($"[MultiplayerSessionOrchestrator] Client leave warning. reason={result.Reason}", this);
+            }
+        }
+
+        ResetSessionRuntimeState(E_MultiplayerConnectionState.Closed);
+        ReturnToTitle();
+        return true;
+    }
+
+    /// <summary>
+    /// NGO 로컬 연결 해제를 감지해 Host 종료 시 Client를 자동으로 타이틀로 복귀시킵니다.
+    /// </summary>
+    private void BindNetworkDisconnectCallback(bool bind)
+    {
+        NetworkManager resolvedNetworkManager = _networkManager != null ? _networkManager : NetworkManager.Singleton; // 콜백 등록에 사용할 NetworkManager 참조입니다.
+        _networkManager = resolvedNetworkManager;
+        if (_networkManager == null)
+        {
+            return;
+        }
+
+        if (bind)
+        {
+            if (_isNetworkCallbacksRegistered)
+            {
+                return;
+            }
+
+            _networkManager.OnClientDisconnectCallback += HandleNetworkClientDisconnected;
+            _isNetworkCallbacksRegistered = true;
+            return;
+        }
+
+        if (!_isNetworkCallbacksRegistered)
+        {
+            return;
+        }
+
+        _networkManager.OnClientDisconnectCallback -= HandleNetworkClientDisconnected;
+        _isNetworkCallbacksRegistered = false;
+    }
+
+    /// <summary>
+    /// Client 로컬 피어 연결 해제를 감지하면 타이틀 복귀를 시작합니다.
+    /// </summary>
+    private void HandleNetworkClientDisconnected(ulong clientId)
+    {
+        if (_networkManager == null)
+        {
+            return;
+        }
+
+        if (_connectionState != E_MultiplayerConnectionState.JoinedAsClient)
+        {
+            return;
+        }
+
+        if (clientId != _networkManager.LocalClientId)
+        {
+            return;
+        }
+
+        ResetSessionRuntimeState(E_MultiplayerConnectionState.Closed);
+        ReturnToTitle();
+    }
+
+    /// <summary>
+    /// 세션 종료/이탈 후 재진입 안정성을 위해 런타임 세션 캐시를 초기화합니다.
+    /// </summary>
+    private void ResetSessionRuntimeState(E_MultiplayerConnectionState nextState)
+    {
+        _connectionState = nextState;
+        _activeJoinCode = string.Empty;
+        _isStageInProgress = false;
+        _currentPlayerCount = 0;
+        _localClientId = string.Empty;
+        _isLocalClientReadyDeclared = false;
+        _reconnectPolicyService?.Reset();
+        _onPlayerCountUpdated?.Invoke(_currentPlayerCount);
     }
 
     /// <summary>

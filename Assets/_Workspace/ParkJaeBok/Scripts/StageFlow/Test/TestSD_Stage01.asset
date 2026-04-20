@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TestSD_Stage01
   m_EditorClassIdentifier: Assembly-CSharp::StageDefinition
   _stageId: stage_01
-  _sceneName: Stage_Test_01
+  _sceneName: 1 Chapter
   _displayName: Stage 1 Yongnimsa (Dragon Grove Temple)
   _isTownStage: 0
   _stageEntryPointId: Stage01_Entry_A

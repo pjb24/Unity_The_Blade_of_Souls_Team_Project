@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TestSD_Town
   m_EditorClassIdentifier: Assembly-CSharp::StageDefinition
   _stageId: town_main
-  _sceneName: Town_Test
+  _sceneName: Village
   _displayName: "\uB9C8\uC744"
   _isTownStage: 1
   _stageEntryPointId: Town_Default

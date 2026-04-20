@@ -23,6 +23,20 @@ public class PlayerNetworkSync : NetworkBehaviour
     [SerializeField] private bool _enableActionStateSync = true; // 액션 상태 네트워크 동기화 활성화 여부입니다.
     [Tooltip("액션 상태 전송 간 최소 간격(초)입니다.")]
     [SerializeField] private float _actionStateSendInterval = 0.033f; // 액션 상태 전송 빈도를 제한하기 위한 최소 간격입니다.
+    [Tooltip("Running 상태에서 필터 없이 모든 액션 타입을 복제할지 여부입니다.")]
+    [SerializeField] private bool _replicateAllActionTypes = true; // Running 상태에서 액션 타입 필터를 비활성화하고 전체 액션을 복제할지 여부입니다.
+    [Tooltip("모든 액션 복제를 사용하지 않을 때 추가로 복제 허용할 액션 타입 목록입니다.")]
+    [SerializeField]
+    private E_ActionType[] _additionalReplicatedActions = new E_ActionType[]
+    {
+        E_ActionType.Attack,
+        E_ActionType.AttackCombo1,
+        E_ActionType.AttackCombo2,
+        E_ActionType.AttackCombo3,
+        E_ActionType.AttackAir,
+        E_ActionType.AttackDash,
+        E_ActionType.AttackWall,
+    }; // 기본 이동 액션 외에도 복제를 허용할 추가 액션 타입 목록입니다.
     [Tooltip("ActionController 참조 누락 시 경고 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _warnMissingActionController = true; // ActionController 참조 누락 경고 출력 여부입니다.
 
@@ -165,7 +179,7 @@ public class PlayerNetworkSync : NetworkBehaviour
         E_ActionType currentActionType = runtime.IsRunning ? runtime.ActionType : E_ActionType.None; // 네트워크 전송용 액션 타입 스냅샷입니다.
         bool currentIsRunning = runtime.IsRunning; // 네트워크 전송용 액션 실행 여부 스냅샷입니다.
 
-        if (currentIsRunning && !IsReplicatedMovementAction(currentActionType))
+        if (currentIsRunning && !IsReplicatedAction(currentActionType))
         {
             return;
         }
@@ -302,7 +316,7 @@ public class PlayerNetworkSync : NetworkBehaviour
             ? (E_ActionType)_replicatedActionType.Value
             : E_ActionType.Idle; // 실행 중이 아닌 경우 원격 화면 표현을 Idle로 정규화합니다.
 
-        if (!IsReplicatedMovementAction(resolvedActionType))
+        if (!IsReplicatedAction(resolvedActionType))
         {
             return;
         }
@@ -340,10 +354,15 @@ public class PlayerNetworkSync : NetworkBehaviour
     }
 
     /// <summary>
-    /// 이동/점프/대시 계열처럼 원격 표현 동기화 대상으로 허용된 액션인지 판정합니다.
+    /// 원격 표현 동기화 대상으로 허용된 액션인지 판정합니다.
     /// </summary>
-    private bool IsReplicatedMovementAction(E_ActionType actionType)
+    private bool IsReplicatedAction(E_ActionType actionType)
     {
+        if (_replicateAllActionTypes)
+        {
+            return true;
+        }
+
         switch (actionType)
         {
             case E_ActionType.None:
@@ -358,8 +377,18 @@ public class PlayerNetworkSync : NetworkBehaviour
             case E_ActionType.Slide:
                 return true;
             default:
-                return false;
+                break;
         }
+
+        for (int i = 0; i < _additionalReplicatedActions.Length; i++)
+        {
+            if (_additionalReplicatedActions[i] == actionType)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

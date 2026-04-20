@@ -339,6 +339,8 @@ MonoBehaviour:
   _playerMovement: {fileID: 1249389477860502122}
   _enableActionStateSync: 1
   _actionStateSendInterval: 0.033
+  _replicateAllActionTypes: 1
+  _additionalReplicatedActions: 0d0000001600000017000000180000001d0000001e0000001f000000
   _warnMissingActionController: 1
   _enableFacingDirectionSync: 1
   _facingDirectionSendInterval: 0.05
@@ -657,6 +659,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6731959234957534330}
     m_Modifications:
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _networkObject
+      value: 
+      objectReference: {fileID: 5892350524157319419}
     - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: _actionController
       value: 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -8,12 +9,18 @@ public class AttackExecutor : MonoBehaviour
 {
     [Header("Dependencies")]
     [SerializeField] private ActionController _actionController; // 현재 액터의 액션 상태/윈도우를 조회할 ActionController 참조입니다.
+    [Tooltip("네트워크 실행 권한(서버/소유권) 판정을 위한 NetworkObject 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
+    [SerializeField] private NetworkObject _networkObject; // 네트워크 실행 권한(서버/소유권) 판정을 위한 NetworkObject 참조입니다.
 
     [Header("Action -> AttackSpec Mapping")]
     [SerializeField] private AttackActionMap[] _actionMaps; // 액션 타입별 공격 스펙 매핑 배열입니다.
 
     [Header("Execution")]
     [SerializeField] private bool _autoExecuteOnHitWindowOpen = true; // HitWindow가 열릴 때 자동으로 현재 액션 공격을 1회 실행할지 여부입니다.
+    [Tooltip("네트워크 스폰 상태에서는 서버 인스턴스에서만 공격 판정을 수행할지 여부입니다.")]
+    [SerializeField] private bool _executeOnlyOnServerWhenSpawned = true; // 네트워크 스폰 상태에서는 서버 인스턴스에서만 공격 판정을 실행할지 여부입니다.
+    [Tooltip("NetworkObject/NetworkManager 누락으로 서버 권한 판정을 확정할 수 없을 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenNetworkAuthorityUnavailable = true; // NetworkObject/NetworkManager 미구성으로 권한 판정을 확정할 수 없을 때 경고를 출력할지 여부입니다.
     [SerializeField] private bool _drawGizmos; // 씬 뷰에서 마지막 판정 영역을 Gizmos로 시각화할지 여부입니다.
 
     private readonly Dictionary<E_ActionType, AttackSpec> _specMap = new Dictionary<E_ActionType, AttackSpec>(); // 런타임 빠른 조회를 위한 액션-스펙 딕셔너리입니다.
@@ -34,6 +41,7 @@ public class AttackExecutor : MonoBehaviour
     private void Awake()
     {
         TryResolveActionController();
+        TryResolveNetworkObject();
         RebuildSpecMap();
     }
 
@@ -95,6 +103,11 @@ public class AttackExecutor : MonoBehaviour
             return false;
         }
 
+        if (!CanExecuteAttackSimulation())
+        {
+            return false;
+        }
+
         if (!_actionController.IsHitWindowOpen)
         {
             Debug.LogWarning($"[AttackExecutor] HitWindow is closed. action={actionType}, actor={name}");
@@ -145,6 +158,49 @@ public class AttackExecutor : MonoBehaviour
         }
 
         return didSendAnyHit;
+    }
+
+    /// <summary>
+    /// 현재 런타임 권한 정책 기준으로 공격 판정 시뮬레이션 실행 가능 여부를 판정합니다.
+    /// </summary>
+    private bool CanExecuteAttackSimulation()
+    {
+        if (!_executeOnlyOnServerWhenSpawned)
+        {
+            return true;
+        }
+
+        if (_networkObject == null)
+        {
+            TryResolveNetworkObject();
+        }
+
+        if (_networkObject == null)
+        {
+            if (_warnWhenNetworkAuthorityUnavailable)
+            {
+                Debug.LogWarning($"[AttackExecutor] NetworkObject가 없어 서버 권한 판정을 수행할 수 없습니다. object={name}");
+            }
+
+            return true;
+        }
+
+        if (!_networkObject.IsSpawned)
+        {
+            return true;
+        }
+
+        if (NetworkManager.Singleton == null)
+        {
+            if (_warnWhenNetworkAuthorityUnavailable)
+            {
+                Debug.LogWarning($"[AttackExecutor] NetworkManager.Singleton이 없어 서버 권한 판정을 확정할 수 없습니다. object={name}");
+            }
+
+            return true;
+        }
+
+        return NetworkManager.Singleton.IsServer;
     }
 
     /// <summary>
@@ -202,6 +258,19 @@ public class AttackExecutor : MonoBehaviour
         }
 
         return _specMap.TryGetValue(actionType, out attackSpec);
+    }
+
+    /// <summary>
+    /// NetworkObject 참조가 비어 있으면 동일 오브젝트 기준으로 자동 보정을 시도합니다.
+    /// </summary>
+    private void TryResolveNetworkObject()
+    {
+        if (_networkObject != null)
+        {
+            return;
+        }
+
+        _networkObject = GetComponent<NetworkObject>();
     }
 
     /// <summary>
