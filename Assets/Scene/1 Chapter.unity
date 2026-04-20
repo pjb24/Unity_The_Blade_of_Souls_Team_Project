@@ -15313,6 +15313,91 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3350827496973259548, guid: 7f9108c0b079a3c488e168744e77b22f, type: 3}
   m_PrefabInstance: {fileID: 813328068}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &816423518
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _groundProbeOffset.x
+      value: -0.00000011920929
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _groundProbeOffset.y
+      value: -1.4919336
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _resolvedGroundSnapDistance
+      value: 0.6292665
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _resolvedGroundProbeDistance
+      value: 0.97885895
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _resolvedEdgeProbeForwardOffset
+      value: 0.4308641
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _lastGroundReferenceColliderSize.x
+      value: 1.7234564
+      objectReference: {fileID: 0}
+    - target: {fileID: 3240921584353140450, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: _lastGroundReferenceColliderSize.y
+      value: 3.4959247
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -8.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 14.82
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110841741010526554, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8153201445621807567, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+      propertyPath: m_Name
+      value: --- Enemy Blood Light ---
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
 --- !u!1 &820258812
 GameObject:
   m_ObjectHideFlags: 0
@@ -43649,3 +43734,4 @@ SceneRoots:
   - {fileID: 296236352}
   - {fileID: 454871400}
   - {fileID: 890210752}
+  - {fileID: 816423518}
