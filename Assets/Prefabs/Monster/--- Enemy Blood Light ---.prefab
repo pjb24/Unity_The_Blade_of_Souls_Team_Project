@@ -9,7 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1749927397742992062}
-  - component: {fileID: 8857961516285685234}
   m_Layer: 8
   m_Name: Targeting
   m_TagString: Enemy
@@ -32,21 +31,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8110841741010526554}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8857961516285685234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 235480132808779011}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2c994dc7f35605945b8bee623816a88c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NearestTargetByTagProvider
-  _targetTag: Player
-  _maxAcquireRange: 20
-  _retargetInterval: 0.15
 --- !u!1 &3245205275192854914
 GameObject:
   m_ObjectHideFlags: 0
@@ -58,7 +42,6 @@ GameObject:
   - component: {fileID: 3492704942264412350}
   - component: {fileID: 6821996257399863770}
   - component: {fileID: 3435583156159000449}
-  - component: {fileID: 3156444323111414145}
   - component: {fileID: 2086281143833739421}
   - component: {fileID: 5425991953372627111}
   - component: {fileID: 7268609439610540872}
@@ -165,25 +148,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &3156444323111414145
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3245205275192854914}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ccee328c9a625d248a5326b9ef378f36, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementActionSync
-  _actionController: {fileID: 2086281143833739421}
-  _movementDriver: {fileID: 3240921584353140450}
-  _suspendWhileNonMovementActionRunning: 1
-  _idleActionType: 32
-  _moveActionType: 33
-  _hoverIdleActionType: 32
-  _flyMoveActionType: 33
 --- !u!114 &2086281143833739421
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -256,7 +220,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5444107091486401705}
-  - component: {fileID: 6027247365780205597}
   m_Layer: 8
   m_Name: SFX
   m_TagString: Enemy
@@ -279,29 +242,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8110841741010526554}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &6027247365780205597
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5274885344277512053}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e49302e903bae094abc283d59a192c3b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemySfxBridge
-  _actionController: {fileID: 2086281143833739421}
-  _hitReceiver: {fileID: 3196821534702725134}
-  _healthComponent: {fileID: 2454503219973314871}
-  _sfxOrchestrator: {fileID: 0}
-  _retryInterval: 0.1
-  _maxRetryCount: 30
-  _attackEventType: 100
-  _hitEventType: 101
-  _attackSubType: enemy_attack
-  _hitSubType: enemy_hit
-  _deathSubType: enemy_die
 --- !u!1 &6837736977413250070
 GameObject:
   m_ObjectHideFlags: 0
@@ -376,9 +316,6 @@ GameObject:
   - component: {fileID: 8110841741010526554}
   - component: {fileID: 667880077206292230}
   - component: {fileID: 3380811875358341511}
-  - component: {fileID: 8953421357085236303}
-  - component: {fileID: 3240921584353140450}
-  - component: {fileID: -727107670887587537}
   m_Layer: 8
   m_Name: --- Enemy Blood Light ---
   m_TagString: Enemy
@@ -479,160 +416,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1.7234564, y: 3.4959247}
   m_EdgeRadius: 0
---- !u!114 &8953421357085236303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8153201445621807567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 446fcb1c85fab9c4c83c04088b0048bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyBrain
-  _archetype: {fileID: 11400000, guid: faaed13cc28cbdf4aa1c7b34e19c0342, type: 2}
-  _target: {fileID: 0}
-  _targetProviderBehaviour: {fileID: 8857961516285685234}
-  _fallbackTargetTag: Player
-  _actionController: {fileID: 2086281143833739421}
-  _movementDriver: {fileID: 3240921584353140450}
-  _healthComponent: {fileID: 2454503219973314871}
-  _patrolRouteProvider: {fileID: 0}
-  _pathPlanner: {fileID: -727107670887587537}
-  _enemyRuntimeId: --- Enemy Blood Light ---:--- Enemy Blood Light ---
-  _homePositionSourceType: 0
-  _homeAnchor: {fileID: 0}
-  _homeSnapDistance: 0.05
-  _resolvedHomePosition: {x: 0, y: 0}
-  _isHomePositionResolved: 0
-  _decisionPolicyBehaviour: {fileID: 0}
-  _locomotionDecisionPolicyBehaviour: {fileID: 0}
-  _safeLandingResolver: {fileID: 0}
-  _skillExecutorBehaviour: {fileID: 0}
-  _patternRunnerBehaviour: {fileID: 0}
-  _gimmickModuleBehaviours: []
-  _state: 0
-  _movementState: 0
-  _movementTransitionReason: Initialized
-  _debugStateSummary: 
-  _lastTransitionLoggedTime: 0
-  _lastLandingCandidateCount: 0
-  _lastLandingSelectedIndex: -1
-  _lastFallbackReason: 
-  _enablePatrolStuckRecovery: 0
-  _patrolProgressDistanceThreshold: 0.03
-  _patrolStuckTimeThreshold: 0.6
-  _patrolStuckRecoverCooldown: 0.25
-  _patrolBypassHoldTime: 0.2
-  _patrolStuckElapsed: 0
-  _lastPatrolProgressDelta: 0
-  _patrolStuckRecoverCount: 0
-  _followMoveTargetYWhenFloating: 1
-  _floatingMoveTargetYOffset: 0
-  _resolvedFloatingAltitudeCommand: 0
-  _usePathPlannerWhenFloating: 1
-  _usePathPlannerWhenGrounded: 0
-  _enablePathPlannerWarningLog: 1
-  _resolvedSteeringTarget: {x: 0, y: 0}
-  _hasValidPathToTarget: 0
-  _lastPathPlannerWarning: 
---- !u!114 &3240921584353140450
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8153201445621807567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4d92765f7c9dc424a82c83b9cc19770e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyMovementDriver
-  _moveSpeed: 2.5
-  _stoppingDistance: 0.1
-  _groundProbeOffset: {x: 0, y: 0.02}
-  _groundProbeDistance: 0.3
-  _groundLayerMask:
-    serializedVersion: 2
-    m_Bits: 64
-  _edgeProbeForwardOffset: 0.35
-  _slopeLimit: 45
-  _groundSnapDistance: 0.2
-  _enableEdgeBypassCandidate: 1
-  _useGroundedGravity: 1
-  _groundGravityAcceleration: 25
-  _groundMaxFallSpeed: 12
-  _groundStickVelocity: 1.5
-  _autoTuneGroundSnapByCollider: 1
-  _groundReferenceCollider: {fileID: 3380811875358341511}
-  _probeDistanceByColliderHeight: 0.28
-  _snapDistanceByColliderHeight: 0.18
-  _edgeStopByColliderWidth: 0.25
-  _autoProbeDistanceMin: 0.1
-  _autoProbeDistanceMax: 1.25
-  _autoSnapDistanceMin: 0.05
-  _autoSnapDistanceMax: 0.8
-  _autoEdgeStopMin: 0.1
-  _autoEdgeStopMax: 1.5
-  _autoTuneColliderSizeEpsilon: 0.001
-  _autoTuneGroundProbeOffsetByCollider: 1
-  _probeOffsetLiftByColliderHeight: 0.1
-  _autoProbeOffsetLiftMin: 0.02
-  _autoProbeOffsetLiftMax: 0.25
-  _hoverHeight: 1.5
-  _hoverDamping: 4
-  _verticalMaxSpeed: 3.5
-  _floatingObstacleMask:
-    serializedVersion: 2
-    m_Bits: 64
-  _enableFloatingWallSlide: 1
-  _floatingCollisionSkin: 0.02
-  _floatingWallSlideSpeedScale: 0.9
-  _hasTargetPosition: 0
-  _targetPosition: {x: 0, y: 0}
-  _commandMoveSpeed: 2.5
-  _useAltitudeCommand: 0
-  _targetAltitude: 0
-  _edgeBypassCandidate: {x: 0, y: 0}
-  _hasEdgeBypassCandidate: 0
-  _resolvedGroundProbeDistance: 0.1
-  _resolvedGroundSnapDistance: 0.05
-  _resolvedEdgeProbeForwardOffset: 0.1
-  _lastGroundReferenceColliderSize: {x: 0, y: 0}
-  _groundVerticalVelocity: 0
-  _groundColliderBoundsMinY: 0
-  _floatingBlockedByObstacle: 0
-  _floatingLastObstacleNormal: {x: 0, y: 0}
-  _lastFloatingCollisionWarning: 
-  _lastFloatingCollisionWarningTime: 0
---- !u!114 &-727107670887587537
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8153201445621807567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 47f2c2c2bfc65de4a9a6325fc90437a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyPathPlanner2D
-  _obstacleMask:
-    serializedVersion: 2
-    m_Bits: 64
-  _repathInterval: 0.2
-  _minTargetDeltaToRepath: 0.35
-  _waypointReachDistance: 0.15
-  _detourProbeDistance: 30
-  _detourClearance: 0.2
-  _maxDetourDepth: 4
-  _drawDebugPath: 1
-  _enableWarningLog: 1
-  _debugWaypoints: []
-  _debugWaypointIndex: 0
-  _lastPathSucceeded: 0
-  _lastWarningMessage: 
 --- !u!1 &8447307058324025745
 GameObject:
   m_ObjectHideFlags: 0

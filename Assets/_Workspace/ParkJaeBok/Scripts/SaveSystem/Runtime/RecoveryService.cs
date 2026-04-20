@@ -161,13 +161,10 @@ public class RecoveryService : MonoBehaviour
         StageSpawnResolver spawnResolver = FindAnyObjectByType<StageSpawnResolver>(); // Recovery 직후 플레이어를 체크포인트 위치로 재배치할 StageSpawnResolver 참조입니다.
         bool spawnResolved = spawnResolver != null && spawnResolver.TryResolveSpawnNow(); // 체크포인트/엔트리포인트 기반 즉시 스폰 해석 성공 여부입니다.
 
-        BossEncounterStateSaveParticipant.ApplyDeferredArenaResetInScene();
-
         if (!spawnResolved)
         {
             Debug.LogWarning("[RecoveryService] Recovery는 성공했지만 스폰 복원에 실패했습니다. Town 폴백을 요청합니다.", this);
             GameFlowLogger.Recovery("Recovery load succeeded but spawn resolve failed. Requesting Town fallback.", this, true);
-            GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterPlayerSpawn);
             ReportRecoveryFailureToGameFlow("Spawn resolve failed after recovery load");
             return false;
         }

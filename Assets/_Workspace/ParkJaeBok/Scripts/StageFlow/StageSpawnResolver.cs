@@ -149,7 +149,6 @@ public class StageSpawnResolver : MonoBehaviour
         }
 
         session.ConsumeEntryPoint();
-        GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterPlayerSpawn);
         UpdateResolveStatus(true, string.Empty);
         return true;
     }
@@ -356,7 +355,7 @@ public class StageSpawnResolver : MonoBehaviour
             return null;
         }
 
-        if (_useParentTransformWhenTargetRegistryMember && taggedObject.TryGetComponent<TargetRegistryMember>(out _))
+        if (_useParentTransformWhenTargetRegistryMember)
         {
             Transform parentTransform = taggedObject.transform.parent; // TargetRegistryMember가 붙은 오브젝트의 부모 Transform 참조입니다.
             if (parentTransform != null)

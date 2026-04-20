@@ -1009,8 +1009,6 @@ public class SaveCoordinator : MonoBehaviour
         {
             RefreshParticipants();
         }
-
-        GimmickStateSaveParticipant.ApplyDeferredRestoresInScene(GimmickRestoreRuleSet.RestoreTiming.AfterSceneLoad);
     }
 
     /// <summary>
