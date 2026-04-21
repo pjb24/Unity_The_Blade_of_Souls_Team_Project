@@ -322,7 +322,15 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
       propertyPath: _contextRules.Array.data[1]._soundId
+      value: 1001
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.data[2]._soundId
       value: 1002
       objectReference: {fileID: 0}
     - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
@@ -331,7 +339,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
       propertyPath: _contextRules.Array.data[1]._contextType
+      value: 101
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.data[2]._contextType
       value: 103
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.data[2]._minHoldDuration
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1020185107138674711, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+      propertyPath: _contextRules.Array.data[2]._crossFadeDuration
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1658755828754675302, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
       propertyPath: m_Name
@@ -412,7 +432,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BootstrapTitleSceneLoader
   _sceneTransitionService: {fileID: 854791248119616891}
-  _titleSceneName: TitleMenu_Test
+  _titleSceneName: TitleMenu_John's
   _loadOnStart: 1
   _skipIfAlreadyActive: 1
   _loadOnlyOncePerPlaySession: 1
@@ -669,7 +689,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8411604793116231885, guid: 341246ec36877b54386667b093c79f07, type: 3}
       propertyPath: _onSessionFailed.m_PersistentCalls.m_Calls.Array.size
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8411604793116231885, guid: 341246ec36877b54386667b093c79f07, type: 3}
       propertyPath: _onSessionFailed.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
@@ -731,6 +751,14 @@ PrefabInstance:
     - target: {fileID: 1159163400707258473, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
+      propertyPath: _stageCatalog
+      value: 
+      objectReference: {fileID: 11400000, guid: 250be5058e72c5a45bce4ef68a36f513, type: 2}
+    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
+      propertyPath: _titleSceneName
+      value: TitleMenu_John's
       objectReference: {fileID: 0}
     - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
       propertyPath: _defaultNewGameSceneName

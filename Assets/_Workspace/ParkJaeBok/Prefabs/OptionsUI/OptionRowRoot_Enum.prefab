@@ -67,8 +67,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Enum Value
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: cd50519ede26c8345bbdb32608fafbe5, type: 2}
-  m_sharedMaterial: {fileID: 456136965486842556, guid: cd50519ede26c8345bbdb32608fafbe5, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: ee134d00330e9264784642d395b6bb40, type: 2}
+  m_sharedMaterial: {fileID: -721463426750965486, guid: ee134d00330e9264784642d395b6bb40, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -791,11 +791,11 @@ PrefabInstance:
     - target: {fileID: 6383243206299314210, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
       propertyPath: m_fontAsset
       value: 
-      objectReference: {fileID: 11400000, guid: cd50519ede26c8345bbdb32608fafbe5, type: 2}
+      objectReference: {fileID: 11400000, guid: ee134d00330e9264784642d395b6bb40, type: 2}
     - target: {fileID: 6383243206299314210, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
       propertyPath: m_sharedMaterial
       value: 
-      objectReference: {fileID: 456136965486842556, guid: cd50519ede26c8345bbdb32608fafbe5, type: 2}
+      objectReference: {fileID: -721463426750965486, guid: ee134d00330e9264784642d395b6bb40, type: 2}
     - target: {fileID: 6383243206299314210, guid: 25f40ea7b1b755a4aa487eb406989c40, type: 3}
       propertyPath: m_hasFontAssetChanged
       value: 0

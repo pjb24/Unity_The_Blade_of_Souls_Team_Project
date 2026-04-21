@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e5e7aaedaf2379348a0541a5e995e526, type: 3}
-  m_Name: TestStageCatalog
+  m_Name: StageCatalog
   m_EditorClassIdentifier: Assembly-CSharp::StageCatalog
   _stages:
-  - {fileID: 11400000, guid: e61843a84489adc4d9d2fd64443c0f30, type: 2}
-  - {fileID: 11400000, guid: 2eb7557974fd6594ab5c73178dc40272, type: 2}
-  - {fileID: 11400000, guid: a5222609578ca4b4d87e56be9f1a0c54, type: 2}
-  _townStageId: town_main
+  - {fileID: 11400000, guid: 13777d2463dbb374ea9e0307fa846a54, type: 2}
+  - {fileID: 11400000, guid: 8cecb3ecdc7226448893e9d55bd51e3a, type: 2}
+  - {fileID: 11400000, guid: 63c832a5c86202f469b1e255e5af849f, type: 2}
+  _townStageId: Village

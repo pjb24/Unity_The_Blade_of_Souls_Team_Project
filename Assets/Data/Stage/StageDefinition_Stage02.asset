@@ -10,16 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 156a6d5cba43a8d47a4117b236024a76, type: 3}
-  m_Name: TestSD_Town
+  m_Name: StageDefinition_Stage02
   m_EditorClassIdentifier: Assembly-CSharp::StageDefinition
-  _stageId: town_main
-  _sceneName: Village
-  _displayName: "\uB9C8\uC744"
-  _isTownStage: 1
-  _stageEntryPointId: Town_Default
-  _townReturnPointId: Town_Default
+  _stageId: stage_02
+  _sceneName: Stage_Test_02
+  _displayName: Stage 2 Baekhyeolgok (White Blood Valley)
+  _isTownStage: 0
+  _stageEntryPointId: Stage02_Entry_A
+  _townReturnPointId: Town_Return_A
   _isEntryEnabled: 1
-  _isInitiallyUnlocked: 1
-  _unlockConditions: []
+  _isInitiallyUnlocked: 0
+  _unlockConditions:
+  - _conditionType: 1
+    _requiredStageId: stage_01
+    _requiredTotalClearCount: 0
   _allowMultiplayer: 1
-  _bgmContextType: 103
+  _bgmContextType: 101

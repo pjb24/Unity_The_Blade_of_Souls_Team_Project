@@ -40305,7 +40305,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BgmContextBridge
   _bgmDirector: {fileID: 0}
-  _contextType: 100
+  _contextType: 103
   _pushOnEnable: 1
   _popOnDisable: 1
   _retryInterval: 0.1

@@ -2530,7 +2530,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2857955522e85224698286753f2ec7f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TownStageSelectorPresenter
-  _stageCatalog: {fileID: 11400000, guid: 328aa13009815514ca2bd5a53c34c92f, type: 2}
+  _stageCatalog: {fileID: 11400000, guid: 250be5058e72c5a45bce4ef68a36f513, type: 2}
   _useAvailabilityValidation: 1
   _playUiClickSfx: 1
   _verboseLog: 1
@@ -4154,7 +4154,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BgmContextBridge
   _bgmDirector: {fileID: 0}
-  _contextType: 103
+  _contextType: 101
   _pushOnEnable: 1
   _popOnDisable: 1
   _retryInterval: 0.1
