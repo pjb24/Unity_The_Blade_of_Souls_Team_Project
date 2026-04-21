@@ -160,6 +160,11 @@ public class MultiplayerSessionOrchestrator : MonoBehaviour
     public bool HasRemoteClientJoined => _currentPlayerCount > 1;
 
     /// <summary>
+    /// 최근 세션 처리 실패 사유 문자열을 조회합니다.
+    /// </summary>
+    public string LastFailureReason => _lastFailureReason;
+
+    /// <summary>
     /// 의존성과 정책 서비스를 초기화합니다.
     /// </summary>
     private void Awake()

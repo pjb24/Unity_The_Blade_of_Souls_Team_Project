@@ -2389,6 +2389,8 @@ GameObject:
   m_Component:
   - component: {fileID: 317581817}
   - component: {fileID: 317581820}
+  - component: {fileID: 317581821}
+  - component: {fileID: 317581822}
   m_Layer: 5
   m_Name: TitleMenuRoot
   m_TagString: Untagged
@@ -2441,6 +2443,7 @@ MonoBehaviour:
   _gameFlowController: {fileID: 0}
   _saveCoordinator: {fileID: 0}
   _multiplayerSessionOrchestrator: {fileID: 0}
+  _hostFlowController: {fileID: 317581821}
   _autoResolveMultiplayerSessionOrchestratorOnUse: 1
   _selectedSlotIndex: 1
   _autoSelectLastUsedSlotForContinue: 1
@@ -2473,6 +2476,53 @@ MonoBehaviour:
   _lastRequestSucceeded: 0
   _lastAppliedSlotIndex: 1
   _currentSlotFlowMode: 0
+--- !u!114 &317581821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 317581816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7b681262ef58ea04b8c4d01a08a6c955, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TitleMultiplayerHostFlowController
+  _multiplayerSessionOrchestrator: {fileID: 0}
+  _flowView: {fileID: 317581822}
+  _hostClientId: Host_A
+  _onHostStartSucceeded:
+    m_PersistentCalls:
+      m_Calls: []
+  _onHostStartFailed:
+    m_PersistentCalls:
+      m_Calls: []
+  _state: 0
+  _lastFailureReason: 
+--- !u!114 &317581822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 317581816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b724afafd765814585f1cf598a43b03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TitleMultiplayerHostFlowView
+  _titleMenuCanvasGroup: {fileID: 2062662491}
+  _inputBlockOverlay: {fileID: 1804775615}
+  _eventSystem: {fileID: 1254505527}
+  _uiInputModuleBehaviour: {fileID: 1254505526}
+  _statusRoot: {fileID: 0}
+  _statusText: {fileID: 0}
+  _startingStatusMessage: Starting host...
+  _failureRoot: {fileID: 0}
+  _failureText: {fileID: 0}
+  _defaultFailureMessage: Failed to start host. Please retry.
+  _showStatusWhileBusy: 1
+  _appendFailureReason: 1
 --- !u!1 &337917968
 GameObject:
   m_ObjectHideFlags: 0
@@ -20196,6 +20246,7 @@ GameObject:
   - component: {fileID: 2062662489}
   - component: {fileID: 2062662488}
   - component: {fileID: 2062662487}
+  - component: {fileID: 2062662491}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -20287,6 +20338,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!225 &2062662491
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2062662486}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1001 &2076480239
 PrefabInstance:
   m_ObjectHideFlags: 0

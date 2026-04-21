@@ -25,6 +25,9 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("멀티 세션 생성/참가 흐름을 위임할 MultiplayerSessionOrchestrator 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
     [SerializeField] private MultiplayerSessionOrchestrator _multiplayerSessionOrchestrator; // 멀티 Host/Client 세션 흐름을 처리할 오케스트레이터 참조입니다.
 
+    [Tooltip("타이틀 Host 시작 요청을 단일 진입점으로 통제할 흐름 제어기입니다.")]
+    [SerializeField] private TitleMultiplayerHostFlowController _hostFlowController; // Host 시작 요청 단일 진입점/상태 전이/Busy UI를 담당할 흐름 제어기 참조입니다.
+
     [Tooltip("멀티 관련 UI 액션 시 오케스트레이터 참조가 비어 있으면 DDOL 영역까지 자동 재탐색할지 여부입니다.")]
     [SerializeField] private bool _autoResolveMultiplayerSessionOrchestratorOnUse = true; // 멀티 버튼 클릭 시 오케스트레이터 자동 재탐색 활성화 여부를 제어하는 플래그입니다.
 
@@ -124,6 +127,11 @@ public class TitlePlayModePresenter : MonoBehaviour
         if (_multiplayerSessionOrchestrator == null)
         {
             ResolveMultiplayerSessionOrchestrator();
+        }
+
+        if (_hostFlowController == null)
+        {
+            _hostFlowController = GetComponent<TitleMultiplayerHostFlowController>();
         }
     }
 
@@ -449,15 +457,20 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// <summary>
     /// 멀티플레이 Host 버튼 클릭 시 Host 시작 요청을 처리합니다.
     /// </summary>
-    public async void OnClickMultiplayerHost()
+    public void OnClickMultiplayerHost()
     {
         ResolveMultiplayerSessionOrchestratorIfNeeded();
         ApplySelectedSlotBeforePlay();
         _lastSelectedMode = E_GamePlayMode.MultiplayerHost;
-        bool started = _multiplayerSessionOrchestrator != null
-            ? await _multiplayerSessionOrchestrator.StartHostSessionFromTitleAsync(_hostClientId)
-            : _gameFlowController != null && _gameFlowController.RequestStartMultiplayerHost();
-        HandleStartResult(started, _onMultiplayerHostStartSucceeded);
+
+        if (_hostFlowController == null)
+        {
+            Debug.LogWarning("[TitlePlayModePresenter] HostFlowController가 비어 있어 Host 시작 요청을 수행할 수 없습니다.", this);
+            HandleStartResult(false, _onMultiplayerHostStartSucceeded);
+            return;
+        }
+
+        _hostFlowController.RequestStartHost();
     }
 
     /// <summary>
@@ -503,14 +516,21 @@ public class TitlePlayModePresenter : MonoBehaviour
 
     /// <summary>
     /// Join 팝업의 Join 버튼 OnClick에서 호출하는 래퍼 메서드입니다.
-    /// Bootstrap/DDOL 오케스트레이터의 Join 진입점을 실행합니다.
+    /// 단일 흐름 제어기를 통해 Client Join 진입점을 실행합니다.
     /// </summary>
     public async void OnClickJoinSessionFromTitle()
     {
         ResolveMultiplayerSessionOrchestratorIfNeeded();
         _lastSelectedMode = E_GamePlayMode.MultiplayerClient;
 
-        bool started = _multiplayerSessionOrchestrator != null && await _multiplayerSessionOrchestrator.OnClickJoinSessionFromTitleProxyAsync();
+        if (_hostFlowController == null)
+        {
+            Debug.LogWarning("[TitlePlayModePresenter] HostFlowController가 비어 있어 Client Join 요청을 수행할 수 없습니다.", this);
+            HandleStartResult(false, _onMultiplayerClientStartSucceeded);
+            return;
+        }
+
+        bool started = await _hostFlowController.RequestJoinFromTitleAsync();
         HandleStartResult(started, _onMultiplayerClientStartSucceeded);
 
         if (started && _autoCloseJoinPopupOnJoinSucceeded)
