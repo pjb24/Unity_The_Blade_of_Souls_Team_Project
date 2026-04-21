@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 67e51cc6e7c60e14d8a4e2ab4234b05c, type: 3}
-  m_Name: TestActionRuleProfile
+  m_Name: ActionRuleProfile_Player
   m_EditorClassIdentifier: Assembly-CSharp::ActionRuleProfile
   _actorType: 0
   _rules:

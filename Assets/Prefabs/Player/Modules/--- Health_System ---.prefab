@@ -44,6 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ff93807ed5b0f5458fc4cfa20cf1a10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  _initialMaxHealth: 100
-  _initialCurrentHealth: 100
+  _initialMaxHealth: 500
+  _initialCurrentHealth: 500
   _allowHealWhenDead: 0

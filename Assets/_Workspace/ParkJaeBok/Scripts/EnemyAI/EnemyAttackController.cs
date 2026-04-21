@@ -45,7 +45,7 @@ public class EnemyAttackController : MonoBehaviour
     [Tooltip("네트워크 권한 판정을 확정할 수 없는 경우 경고 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _warnWhenNetworkAuthorityUnavailable = true; // 네트워크 권한 판정 실패 시 경고 출력 여부입니다.
 
-    private readonly Collider2D[] _overlapBuffer = new Collider2D[16]; // OverlapCircleNonAlloc 탐지 결과를 보관하는 임시 버퍼입니다.
+    private readonly Collider2D[] _overlapBuffer = new Collider2D[16]; // OverlapCircle 탐지 결과를 재사용 버퍼에 보관하는 임시 배열입니다.
     private readonly HashSet<int> _damagedTargetIds = new HashSet<int>(); // 현재 공격 시퀀스에서 이미 타격한 타겟 InstanceId 집합입니다.
 
     private float _nextAttackAllowedAt; // 다음 공격 가능 시각입니다.
@@ -329,7 +329,7 @@ public class EnemyAttackController : MonoBehaviour
     }
 
     /// <summary>
-    /// OverlapCircleNonAlloc 기반 즉시 판정으로 대상에게 HitRequest를 전달합니다.
+    /// ContactFilter2D + OverlapCircle 기반 즉시 판정으로 대상에게 HitRequest를 전달합니다.
     /// </summary>
     private void ResolveDamageByOverlap()
     {
@@ -339,7 +339,12 @@ public class EnemyAttackController : MonoBehaviour
         }
 
         Vector2 center = (Vector2)transform.position + _attackOffset;
-        int hitCount = Physics2D.OverlapCircleNonAlloc(center, _attackRadius, _overlapBuffer, _targetLayerMask);
+        ContactFilter2D targetFilter = default; // 공격 대상 레이어/트리거 포함 규칙을 정의하는 물리 필터입니다.
+        targetFilter.useLayerMask = true;
+        targetFilter.layerMask = _targetLayerMask;
+        targetFilter.useTriggers = true;
+
+        int hitCount = Physics2D.OverlapCircle(center, _attackRadius, targetFilter, _overlapBuffer);
         int processedTargetCount = 0; // 현재 AttackActive 이벤트에서 실제 처리한 타겟 수입니다.
 
         for (int index = 0; index < hitCount; index++)

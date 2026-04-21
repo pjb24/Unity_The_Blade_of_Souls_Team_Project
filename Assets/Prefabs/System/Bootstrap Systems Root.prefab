@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 4397434496589944427}
   - component: {fileID: 16871069682181859}
   - component: {fileID: 793419730018100700}
+  - component: {fileID: 1949728695239915533}
   m_Layer: 0
   m_Name: Bootstrap Systems Root
   m_TagString: Untagged
@@ -51,19 +52,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57e900d018fa3a04cacad621dd8e3be9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameFlowController
-  _stageCatalog: {fileID: 11400000, guid: 328aa13009815514ca2bd5a53c34c92f, type: 2}
+  _stageCatalog: {fileID: 11400000, guid: 250be5058e72c5a45bce4ef68a36f513, type: 2}
   _sceneTransitionService: {fileID: 4599951219679633824}
   _saveCoordinator: {fileID: 8820946515419213869}
   _stageSession: {fileID: 4397434496589944427}
   _stageProgressRuntime: {fileID: 16871069682181859}
   _errorRecoveryPolicy: {fileID: 11400000, guid: 99aafd10e7c2cfc42ad98c1411ceb3f1, type: 2}
-  _titleSceneName: TitleMenu_Test
-  _defaultNewGameSceneName: Town_Test
+  _titleSceneName: TitleMenu_John's
+  _defaultNewGameSceneName: Village
   _defaultNewGameLoadedState: 2
-  _singlePlayerStartSceneName: Town_Test
-  _multiplayerHostStartSceneName: Town_Test
-  _multiplayerClientStartSceneName: Town_Test
-  _multiplayerSharedTownSceneName: Town_Test
+  _singlePlayerStartSceneName: Village
+  _multiplayerHostStartSceneName: Village
+  _multiplayerClientStartSceneName: Village
+  _multiplayerSharedTownSceneName: Village
   _dontDestroyOnLoad: 1
   _autoInitializeOnAwake: 1
   _verboseLog: 1
@@ -213,3 +214,22 @@ MonoBehaviour:
   _verboseLog: 1
   _gameFlowController: {fileID: 6349070038292939143}
   _sceneTransitionService: {fileID: 4599951219679633824}
+--- !u!114 &1949728695239915533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6655b2be151eda4f985ffdb4b83c898, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalPlayerHealthProvider
+  _gameFlowController: {fileID: 6349070038292939143}
+  _networkManager: {fileID: 0}
+  _resolveOnSceneLoaded: 1
+  _allowNetworkOwnerFallbackScan: 1
+  _allowSinglePlayerFallbackScan: 1
+  _warnOnFallbackPath: 1
+  _resolvedLocalHealth: {fileID: 0}

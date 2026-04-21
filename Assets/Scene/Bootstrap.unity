@@ -752,34 +752,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _stageCatalog
+    - target: {fileID: 1949728695239915533, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
+      propertyPath: _networkManager
       value: 
-      objectReference: {fileID: 11400000, guid: 250be5058e72c5a45bce4ef68a36f513, type: 2}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _titleSceneName
-      value: TitleMenu_John's
-      objectReference: {fileID: 0}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _defaultNewGameSceneName
-      value: Village
-      objectReference: {fileID: 0}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _singlePlayerStartSceneName
-      value: Village
-      objectReference: {fileID: 0}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _multiplayerHostStartSceneName
-      value: Village
-      objectReference: {fileID: 0}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _multiplayerSharedTownSceneName
-      value: Village
-      objectReference: {fileID: 0}
-    - target: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      propertyPath: _multiplayerClientStartSceneName
-      value: Village
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1482065451}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
