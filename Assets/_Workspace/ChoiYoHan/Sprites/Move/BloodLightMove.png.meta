@@ -1,0 +1,539 @@
+fileFormatVersion: 2
+guid: 63e76a99e144e104ab6345710329e804
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -4214815467069357291
+    second: BloodLightMove_0
+  - first:
+      213: -8319417907220063483
+    second: BloodLightMove_1
+  - first:
+      213: -18983265587215658
+    second: BloodLightMove_2
+  - first:
+      213: 7307907894424117198
+    second: BloodLightMove_3
+  - first:
+      213: 8267599536975819304
+    second: BloodLightMove_4
+  - first:
+      213: -3133120360335971706
+    second: BloodLightMove_5
+  - first:
+      213: -5476595291725746835
+    second: BloodLightMove_6
+  - first:
+      213: 8930096509532048928
+    second: BloodLightMove_7
+  - first:
+      213: -7304615169352590738
+    second: BloodLightMove_8
+  - first:
+      213: 5128149528748002188
+    second: BloodLightMove_9
+  - first:
+      213: 6252308704999727657
+    second: BloodLightMove_10
+  - first:
+      213: -2602890589736163211
+    second: BloodLightMove_11
+  - first:
+      213: 6358693908610787172
+    second: BloodLightMove_12
+  - first:
+      213: -5382070975704606428
+    second: BloodLightMove_13
+  - first:
+      213: 6312183813806827558
+    second: BloodLightMove_14
+  - first:
+      213: -4178281234184147633
+    second: BloodLightMove_15
+  - first:
+      213: 8129370383714731687
+    second: BloodLightMove_16
+  - first:
+      213: -5339847002162282956
+    second: BloodLightMove_17
+  - first:
+      213: -5785144092386649321
+    second: BloodLightMove_18
+  - first:
+      213: -7218575910641371674
+    second: BloodLightMove_19
+  - first:
+      213: -97881337948425832
+    second: BloodLightMove_20
+  - first:
+      213: -8419023901585448275
+    second: BloodLightMove_21
+  - first:
+      213: -836964507129595718
+    second: BloodLightMove_22
+  - first:
+      213: -7230600711095201277
+    second: BloodLightMove_23
+  - first:
+      213: -9205140026883870745
+    second: BloodLightMove_24
+  - first:
+      213: 4066511536685860693
+    second: BloodLightMove_25
+  - first:
+      213: 2058791011629953951
+    second: BloodLightMove_26
+  - first:
+      213: -7700597306704838743
+    second: BloodLightMove_27
+  - first:
+      213: 4799980508413889138
+    second: BloodLightMove_28
+  - first:
+      213: -1983532035077028560
+    second: BloodLightMove_29
+  - first:
+      213: -6307961584449086951
+    second: BloodLightMove_30
+  - first:
+      213: -829686219164981882
+    second: BloodLightMove_31
+  - first:
+      213: 5319213688564799674
+    second: BloodLightMove_32
+  - first:
+      213: -6848304617334088236
+    second: BloodLightMove_33
+  - first:
+      213: -568087837291630738
+    second: BloodLightMove_34
+  - first:
+      213: -5009610147694978674
+    second: BloodLightMove_35
+  - first:
+      213: 1381015137952038038
+    second: BloodLightMove_36
+  - first:
+      213: 9214523454959215146
+    second: BloodLightMove_37
+  - first:
+      213: -8946093245338062
+    second: BloodLightMove_38
+  - first:
+      213: 8709714750471211843
+    second: BloodLightMove_39
+  - first:
+      213: 5444710747783260001
+    second: BloodLightMove_40
+  - first:
+      213: -8390920772629643052
+    second: BloodLightMove_41
+  - first:
+      213: -8118085704553128818
+    second: BloodLightMove_42
+  - first:
+      213: 832112230610541362
+    second: BloodLightMove_43
+  - first:
+      213: -2994595859977681539
+    second: BloodLightMove_44
+  - first:
+      213: -2504525835641707064
+    second: BloodLightMove_45
+  - first:
+      213: 7057176192762134438
+    second: BloodLightMove_46
+  - first:
+      213: 5897026639131549458
+    second: BloodLightMove_47
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: BloodLightMove_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1280
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 513428be9a7f185c0800000000000000
+      internalID: -4214815467069357291
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_1
+      rect:
+        serializedVersion: 2
+        x: 575
+        y: 1280
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 50bdf16dd7d7b8c80800000000000000
+      internalID: -8319417907220063483
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_2
+      rect:
+        serializedVersion: 2
+        x: 1150
+        y: 1280
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6d24ffd02de8cbff0800000000000000
+      internalID: -18983265587215658
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_3
+      rect:
+        serializedVersion: 2
+        x: 1725
+        y: 1280
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ecf1c62d287ea6560800000000000000
+      internalID: 7307907894424117198
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 640
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 822b0aaa9f96cb270800000000000000
+      internalID: 8267599536975819304
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_5
+      rect:
+        serializedVersion: 2
+        x: 575
+        y: 640
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 68a61abd1abe484d0800000000000000
+      internalID: -3133120360335971706
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_6
+      rect:
+        serializedVersion: 2
+        x: 1150
+        y: 640
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d6d2c1239993ff3b0800000000000000
+      internalID: -5476595291725746835
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_7
+      rect:
+        serializedVersion: 2
+        x: 1725
+        y: 640
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 02e0d9436731eeb70800000000000000
+      internalID: 8930096509532048928
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_8
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6a1fc9743bc0aa90800000000000000
+      internalID: -7304615169352590738
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_9
+      rect:
+        serializedVersion: 2
+        x: 575
+        y: 0
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c8b8c1883d8da2740800000000000000
+      internalID: 5128149528748002188
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_10
+      rect:
+        serializedVersion: 2
+        x: 1150
+        y: 0
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 922679b14a9a4c650800000000000000
+      internalID: 6252308704999727657
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: BloodLightMove_11
+      rect:
+        serializedVersion: 2
+        x: 1725
+        y: 0
+        width: 575
+        height: 640
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 578a191accca0ebd0800000000000000
+      internalID: -2602890589736163211
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: ccf5ee05e763cd44f9854994347155f8
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":575.0,"y":640.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      BloodLightMove_0: -4214815467069357291
+      BloodLightMove_1: -8319417907220063483
+      BloodLightMove_10: 6252308704999727657
+      BloodLightMove_11: -2602890589736163211
+      BloodLightMove_2: -18983265587215658
+      BloodLightMove_3: 7307907894424117198
+      BloodLightMove_4: 8267599536975819304
+      BloodLightMove_5: -3133120360335971706
+      BloodLightMove_6: -5476595291725746835
+      BloodLightMove_7: 8930096509532048928
+      BloodLightMove_8: -7304615169352590738
+      BloodLightMove_9: 5128149528748002188
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
