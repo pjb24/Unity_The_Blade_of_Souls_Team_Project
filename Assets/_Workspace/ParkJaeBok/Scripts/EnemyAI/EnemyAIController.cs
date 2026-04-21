@@ -26,6 +26,8 @@ public class EnemyAIController : MonoBehaviour
     [SerializeField] private EnemyAnimationBridge _animationBridge; // 애니메이션 브리지 참조입니다.
     [Tooltip("HealthComponent 이벤트를 AI 사망/피격 신호로 변환하는 어댑터입니다.")]
     [SerializeField] private EnemyHealthAdapter _healthAdapter; // 체력 어댑터 참조입니다.
+    [Tooltip("사망 1회 진입/VFX/제거 시퀀스를 담당하는 사망 컨트롤러입니다.")]
+    [SerializeField] private EnemyAIDeathController _deathController; // 사망 처리 컨트롤러 참조입니다.
 
     [Header("Distance Settings")]
     [Tooltip("플레이어를 최초 인식하는 거리입니다.")]
@@ -72,6 +74,7 @@ public class EnemyAIController : MonoBehaviour
     private Coroutine _homeCaptureRoutine; // Home Position 저장 루틴 핸들입니다.
 
     private bool _isDead; // 사망 상태 여부입니다.
+    private bool _isRemovingOrRemoved; // 제거 진행/완료 상태 여부입니다.
 
     /// <summary>
     /// 현재 상태 식별자를 반환합니다.
@@ -126,6 +129,7 @@ public class EnemyAIController : MonoBehaviour
     private void OnEnable()
     {
         SubscribeHealthSignals();
+        SubscribeAttackSignals();
         ResetRuntimeStateOnEnable();
     }
 
@@ -140,6 +144,7 @@ public class EnemyAIController : MonoBehaviour
         }
 
         UnsubscribeHealthSignals();
+        UnsubscribeAttackSignals();
         TearDownRuntime();
     }
 
@@ -197,6 +202,11 @@ public class EnemyAIController : MonoBehaviour
         if (_healthAdapter == null)
         {
             _healthAdapter = GetComponent<EnemyHealthAdapter>();
+        }
+
+        if (_deathController == null)
+        {
+            _deathController = GetComponent<EnemyAIDeathController>();
         }
 
         if (_movementController == null)
@@ -308,6 +318,32 @@ public class EnemyAIController : MonoBehaviour
     }
 
     /// <summary>
+    /// 공격 컨트롤러 이벤트를 구독합니다.
+    /// </summary>
+    private void SubscribeAttackSignals()
+    {
+        if (_attackController == null)
+        {
+            return;
+        }
+
+        _attackController.AttackSequenceCompleted += HandleAttackSequenceCompleted;
+    }
+
+    /// <summary>
+    /// 공격 컨트롤러 이벤트를 해제합니다.
+    /// </summary>
+    private void UnsubscribeAttackSignals()
+    {
+        if (_attackController == null)
+        {
+            return;
+        }
+
+        _attackController.AttackSequenceCompleted -= HandleAttackSequenceCompleted;
+    }
+
+    /// <summary>
     /// 활성화 시 런타임 상태를 초기화하고 HomePosition 저장을 준비합니다.
     /// </summary>
     private void ResetRuntimeStateOnEnable()
@@ -318,11 +354,14 @@ public class EnemyAIController : MonoBehaviour
         }
 
         _isDead = _healthAdapter != null && !_healthAdapter.IsAlive;
+        _isRemovingOrRemoved = false;
         _nextRepathAt = 0f;
 
         _targetDetector?.ClearTarget();
         _attackController?.ResetRuntime();
         _hitReactionController?.ResetRuntime();
+        _deathController?.ResetRuntime();
+        _healthAdapter?.SetCanBeHit(true);
         _movementController?.ForceSyncNow();
 
         if (_homeCaptureRoutine != null)
@@ -354,6 +393,7 @@ public class EnemyAIController : MonoBehaviour
         }
 
         _attackController?.ForceStopAttack();
+        _attackController?.SetTerminalState(true);
         _hitReactionController?.ForceComplete();
         _movementController?.StopMovement();
         _targetDetector?.ClearTarget();
@@ -403,7 +443,7 @@ public class EnemyAIController : MonoBehaviour
     /// </summary>
     private EnemyAIStateId EvaluateNextState()
     {
-        if (_isDead)
+        if (_isDead || _isRemovingOrRemoved)
         {
             return EnemyAIStateId.Death;
         }
@@ -529,11 +569,20 @@ public class EnemyAIController : MonoBehaviour
             return;
         }
 
+        if (_isDead || _isRemovingOrRemoved || (_healthAdapter != null && !_healthAdapter.IsAlive))
+        {
+            TryEnterDeathState();
+            return;
+        }
+
         bool started = _attackController.TryStartAttack(Time.time);
         if (!started)
         {
             Debug.LogWarning($"[EnemyAIController] Attack state entered but attack start failed on {name}. Cooldown or runtime state check failed.");
+            return;
         }
+
+        _healthAdapter?.SetCanBeHit(false);
     }
 
     /// <summary>
@@ -644,8 +693,10 @@ public class EnemyAIController : MonoBehaviour
     private void HandleDied()
     {
         _isDead = true;
+        _healthAdapter?.SetCanBeHit(false);
+        _attackController?.SetTerminalState(true);
         _hitReactionController?.ForceComplete();
-        TryChangeState(EnemyAIStateId.Death, true);
+        TryEnterDeathState();
     }
 
     /// <summary>
@@ -653,7 +704,7 @@ public class EnemyAIController : MonoBehaviour
     /// </summary>
     private void HandleDamaged()
     {
-        if (_isDead)
+        if (_isDead || _isRemovingOrRemoved || (_healthAdapter != null && !_healthAdapter.CanBeHit))
         {
             return;
         }
@@ -668,7 +719,46 @@ public class EnemyAIController : MonoBehaviour
     private void HandleRevived()
     {
         _isDead = false;
+        _isRemovingOrRemoved = false;
+        _attackController?.SetTerminalState(false);
+        _healthAdapter?.SetCanBeHit(true);
         TryChangeState(EnemyAIStateId.Idle, true);
+    }
+
+    /// <summary>
+    /// 공격 종료 시 자폭형 몬스터의 사망 진입을 트리거합니다.
+    /// </summary>
+    private void HandleAttackSequenceCompleted()
+    {
+        if (_isDead || _isRemovingOrRemoved)
+        {
+            return;
+        }
+
+        TryEnterDeathState();
+    }
+
+    /// <summary>
+    /// Death 상태 진입과 사망 시퀀스 시작을 단일 진입점으로 수행합니다.
+    /// </summary>
+    private void TryEnterDeathState()
+    {
+        if (_isRemovingOrRemoved)
+        {
+            return;
+        }
+
+        _isDead = true;
+        _healthAdapter?.SetCanBeHit(false);
+        _attackController?.SetTerminalState(true);
+
+        if (_deathController != null)
+        {
+            _deathController.TryEnterDeath();
+            _isRemovingOrRemoved = _deathController.IsRemovalInProgress || _deathController.IsRemoved;
+        }
+
+        TryChangeState(EnemyAIStateId.Death, true);
     }
 
     /// <summary>
@@ -780,7 +870,10 @@ public class EnemyAIController : MonoBehaviour
         /// </summary>
         public override bool CanEnter()
         {
-            return Controller.CurrentTarget != null;
+            return Controller.CurrentTarget != null
+                && !Controller._isDead
+                && !Controller._isRemovingOrRemoved
+                && (Controller._healthAdapter == null || Controller._healthAdapter.IsAlive);
         }
 
         /// <summary>
@@ -868,7 +961,9 @@ public class EnemyAIController : MonoBehaviour
             Controller.SetMovementEnabled(false);
             Controller.StopMovementNow();
             Controller._targetDetector?.ClearTarget();
+            Controller._attackController?.SetTerminalState(true);
             Controller._attackController?.ForceStopAttack();
+            Controller._healthAdapter?.SetCanBeHit(false);
             Controller.PushAnimationIntent(StateId, false);
             Controller._animationBridge?.TriggerDeathIntent();
         }

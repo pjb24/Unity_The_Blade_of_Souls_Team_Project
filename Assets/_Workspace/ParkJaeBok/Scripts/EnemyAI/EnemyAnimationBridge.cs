@@ -35,6 +35,16 @@ public class EnemyAnimationBridge : MonoBehaviour
     public event Action AttackAnimationFinished;
 
     /// <summary>
+    /// 공격 판정 활성화 이벤트입니다.
+    /// </summary>
+    public event Action AttackActiveEvent;
+
+    /// <summary>
+    /// 공격 종료 이벤트입니다.
+    /// </summary>
+    public event Action AttackEndEvent;
+
+    /// <summary>
     /// 피격 애니메이션 종료 이벤트입니다.
     /// </summary>
     public event Action HitReactionFinished;
@@ -139,10 +149,28 @@ public class EnemyAnimationBridge : MonoBehaviour
     }
 
     /// <summary>
+    /// 애니메이션 이벤트에서 공격 활성화 시점 신호를 전달합니다.
+    /// </summary>
+    public void AnimationEvent_AttackActive()
+    {
+        AttackActiveEvent?.Invoke();
+    }
+
+    /// <summary>
     /// 애니메이션 이벤트에서 공격 종료 시점 신호를 전달합니다.
+    /// </summary>
+    public void AnimationEvent_AttackEnd()
+    {
+        AttackEndEvent?.Invoke();
+        AttackAnimationFinished?.Invoke();
+    }
+
+    /// <summary>
+    /// 기존 공격 종료 이벤트 이름 호환을 위해 동일한 종료 신호를 전달합니다.
     /// </summary>
     public void AnimationEvent_AttackFinished()
     {
+        AttackEndEvent?.Invoke();
         AttackAnimationFinished?.Invoke();
     }
 

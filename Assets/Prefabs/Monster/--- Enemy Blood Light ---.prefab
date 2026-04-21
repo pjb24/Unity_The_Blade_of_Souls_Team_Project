@@ -44,13 +44,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b8cbb45d7c575342aacba6be55e981c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAIController
-  _actorRoot: {fileID: 4683695000234938910}
+  _actorRoot: {fileID: 8110841741010526554}
   _movementController: {fileID: 2503344791120062481}
   _targetDetector: {fileID: 7220516895439285639}
   _attackController: {fileID: 7943379797832441894}
   _hitReactionController: {fileID: 5130184646694947786}
   _animationBridge: {fileID: 2203534509522398615}
   _healthAdapter: {fileID: 5796812335661112131}
+  _deathController: {fileID: 250517741761169262}
   _detectionRange: 8
   _chaseRange: 12
   _attackEnterRange: 3
@@ -111,7 +112,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAttackController
   _attackCooldown: 1.2
   _attackFallbackDuration: 0.6
+  _attackDamage: 100
+  _attackRadius: 3
+  _attackOffset: {x: 0, y: 0}
+  _targetLayerMask:
+    serializedVersion: 2
+    m_Bits: 128
+  _targetTag: Player
+  _statusTag: BloodLight_Suicide
+  _verboseEventLog: 0
+  _maxTargetsPerAttack: 2
   _animationBridge: {fileID: 2203534509522398615}
+  _networkObject: {fileID: 0}
+  _executeOnlyOnServerWhenSpawned: 1
+  _warnWhenNetworkAuthorityUnavailable: 1
 --- !u!114 &5130184646694947786
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -571,6 +585,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealthAdapter
   _healthComponent: {fileID: 6555528832920987762}
+  _hitReceiver: {fileID: 6167536657841687185}
 --- !u!114 &6167536657841687185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -596,6 +611,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8110841741010526554}
   - component: {fileID: 6264113991705990338}
+  - component: {fileID: 250517741761169262}
   m_Layer: 8
   m_Name: --- Enemy Blood Light ---
   m_TagString: Enemy
@@ -652,3 +668,20 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 4
+--- !u!114 &250517741761169262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0519258aed078c54f8c1aedcf9004189, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAIDeathController
+  _deathEffectId: 8
+  _deathVfxSpawnPoint: {fileID: 0}
+  _vfxReleaseDelay: 1.2
+  _bodyRemoveDelay: 1.2
+  _destroyOnRemove: 0
