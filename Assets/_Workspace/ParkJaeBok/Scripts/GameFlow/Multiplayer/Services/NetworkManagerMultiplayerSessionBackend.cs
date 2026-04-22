@@ -16,11 +16,21 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     [Tooltip("Host/Client 자동 스폰에 사용할 공통 Player Prefab입니다.")]
     [SerializeField] private GameObject _playerPrefab; // NetworkManager.NetworkConfig.PlayerPrefab으로 연결할 단일 플레이어 프리팹 참조입니다.
 
+    [Tooltip("씬 배치형 플레이어 스폰 좌표를 해석/적용할 코디네이터입니다. 비어 있으면 활성 씬에서 자동 탐색합니다.")]
+    [SerializeField] private PlayerSpawnCoordinator _playerSpawnCoordinator; // 슬롯 기반 스폰 위치를 조회하고 적용할 코디네이터 참조입니다.
+
     [Tooltip("씬 전환 후 Host/Server 관점에서 로컬 PlayerObject가 사라졌을 때 자동 재스폰을 시도할지 여부입니다.")]
     [SerializeField] private bool _ensureHostPlayerObjectAfterSceneLoad = true; // 씬 전환으로 PlayerObject가 파괴된 경우 Host 로컬 플레이어 재스폰을 시도할지 제어하는 플래그입니다.
 
+    [Tooltip("클라이언트 접속 직후 PlayerObject 준비 지연을 보정하기 위한 서버측 정렬 재시도 횟수입니다.")]
+    [SerializeField] private int _spawnAlignRetryCount = 20; // 접속 직후 PlayerObject 준비 타이밍 레이스를 보정할 스폰 정렬 재시도 횟수입니다.
+
+    [Tooltip("클라이언트 접속 직후 PlayerObject 정렬 재시도 간격(초)입니다.")]
+    [SerializeField] private float _spawnAlignRetryInterval = 0.1f; // 접속 직후 PlayerObject 정렬 재시도 간 대기 시간입니다.
+
     [Tooltip("플레이어 스폰/재스폰 폴백을 허용할 GameFlow 상태 목록입니다. Title/Boot에서는 기본적으로 허용되지 않습니다.")]
-    [SerializeField] private GameFlowState[] _playerSpawnAllowedStates =
+    [SerializeField]
+    private GameFlowState[] _playerSpawnAllowedStates =
      {
          GameFlowState.StageLoading,
          GameFlowState.StagePlaying,
@@ -271,6 +281,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         for (int index = 0; index < connectedClientIds.Length; index++)
         {
             TrySpawnMissingPlayerObject(networkManager, connectedClientIds[index]);
+            TryApplySpawnToExistingPlayerObject(networkManager, connectedClientIds[index]);
         }
     }
 
@@ -298,7 +309,13 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             return;
         }
 
-        GameObject spawnedPlayer = Instantiate(_playerPrefab); // 누락된 PlayerObject를 보충하기 위해 생성하는 플레이어 프리팹 인스턴스입니다.
+        if (clientId == NetworkManager.ServerClientId && TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator))
+        {
+            spawnCoordinator.TrySpawnPlayerObject(networkManager, _playerPrefab, clientId);
+            return;
+        }
+
+        GameObject spawnedPlayer = Instantiate(_playerPrefab); // 스폰 코디네이터가 없을 때 기본 좌표에서 생성하는 플레이어 프리팹 인스턴스입니다.
         if (!spawnedPlayer.TryGetComponent(out NetworkObject networkObject))
         {
             Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] PlayerPrefab에 NetworkObject가 없어 Host 재스폰을 중단합니다.", this);
@@ -306,6 +323,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             return;
         }
 
+        Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] 기본 좌표로 재스폰합니다. clientId={clientId}", this);
         networkObject.SpawnAsPlayerObject(clientId, true);
     }
 
@@ -336,6 +354,17 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             return;
         }
 
+        if (TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator))
+        {
+            if (!spawnCoordinator.TrySpawnSinglePlayer(_playerPrefab))
+            {
+                Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] 싱글플레이 스폰 코디네이터 적용에 실패했습니다.", this);
+            }
+
+            return;
+        }
+
+        Debug.LogWarning("[NetworkManagerMultiplayerSessionBackend] PlayerSpawnCoordinator를 찾지 못해 싱글플레이 플레이어를 기본 좌표로 생성합니다.", this);
         Instantiate(_playerPrefab);
     }
 
@@ -444,6 +473,8 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         }
 
         TrySpawnMissingPlayerObject(networkManager, clientId);
+        TryApplySpawnToExistingPlayerObject(networkManager, clientId);
+        StartCoroutine(AlignClientSpawnWhenReadyRoutine(clientId));
     }
 
     /// <summary>
@@ -452,5 +483,82 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     private void HandleClientDisconnected(ulong _)
     {
 
+    }
+
+    /// <summary>
+    /// 활성 씬의 플레이어 스폰 코디네이터를 해석합니다.
+    /// </summary>
+    private bool TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator)
+    {
+        if (_playerSpawnCoordinator != null && _playerSpawnCoordinator.gameObject.scene == SceneManager.GetActiveScene())
+        {
+            spawnCoordinator = _playerSpawnCoordinator;
+            return true;
+        }
+
+        if (PlayerSpawnCoordinator.TryFindForActiveScene(out spawnCoordinator))
+        {
+            _playerSpawnCoordinator = spawnCoordinator;
+            return true;
+        }
+
+        spawnCoordinator = null;
+        return false;
+    }
+
+    /// <summary>
+    /// 이미 존재하는 PlayerObject를 슬롯 규칙 위치로 서버 권한에서 정렬합니다.
+    /// </summary>
+    private void TryApplySpawnToExistingPlayerObject(NetworkManager networkManager, ulong clientId)
+    {
+        if (networkManager != null && clientId != NetworkManager.ServerClientId)
+        {
+            return;
+        }
+
+        if (!TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator))
+        {
+            Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] PlayerSpawnCoordinator 누락으로 위치 정렬을 건너뜁니다. clientId={clientId}", this);
+            return;
+        }
+
+        if (!spawnCoordinator.TryApplySpawnToExistingPlayerObject(networkManager, clientId))
+        {
+            Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] 서버 권한 위치 정렬 실패. clientId={clientId}", this);
+        }
+    }
+
+    /// <summary>
+    /// 접속 직후 PlayerObject 준비가 지연되는 경우를 대비해 서버 권한 정렬을 재시도합니다.
+    /// </summary>
+    private System.Collections.IEnumerator AlignClientSpawnWhenReadyRoutine(ulong clientId)
+    {
+        int safeRetryCount = Mathf.Max(1, _spawnAlignRetryCount); // 정렬 재시도 횟수의 하한을 보정한 안전 값입니다.
+        float safeRetryInterval = Mathf.Max(0.01f, _spawnAlignRetryInterval); // 정렬 재시도 간격의 하한을 보정한 안전 값입니다.
+
+        for (int retryIndex = 0; retryIndex < safeRetryCount; retryIndex++)
+        {
+            if (!TryResolveNetworkManager(out NetworkManager networkManager, out _) || !networkManager.IsServer)
+            {
+                yield break;
+            }
+
+            if (!networkManager.ConnectedClients.TryGetValue(clientId, out NetworkClient connectedClient))
+            {
+                yield break;
+            }
+
+            if (connectedClient.PlayerObject == null || !connectedClient.PlayerObject.IsSpawned)
+            {
+                TrySpawnMissingPlayerObject(networkManager, clientId);
+                yield return new WaitForSecondsRealtime(safeRetryInterval);
+                continue;
+            }
+
+            TryApplySpawnToExistingPlayerObject(networkManager, clientId);
+            yield break;
+        }
+
+        Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] 재시도 내에 Client 스폰 정렬을 완료하지 못했습니다. clientId={clientId}", this);
     }
 }
