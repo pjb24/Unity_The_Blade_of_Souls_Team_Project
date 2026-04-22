@@ -71,7 +71,7 @@ public class EnemyTargetDetector : MonoBehaviour
             return;
         }
 
-        int hitCount = Physics2D.OverlapCircleNonAlloc(origin, detectionRange, _searchBuffer, _targetLayerMask);
+        int hitCount = FindTargetsInRange(origin, detectionRange);
         if (hitCount <= 0)
         {
             return;
@@ -117,6 +117,19 @@ public class EnemyTargetDetector : MonoBehaviour
 
         _cachedTarget = best;
         _cachedTargetHealth = bestHealth;
+    }
+
+    /// <summary>
+    /// Deprecated API(OverlapCircleNonAlloc) 대신 ContactFilter2D 기반 API로 범위 내 타겟 후보를 버퍼에 채웁니다.
+    /// </summary>
+    private int FindTargetsInRange(Vector2 origin, float detectionRange)
+    {
+        ContactFilter2D targetFilter = new ContactFilter2D(); // 타겟 탐색 레이어 필터 설정입니다.
+        targetFilter.useLayerMask = true;
+        targetFilter.layerMask = _targetLayerMask;
+        targetFilter.useTriggers = Physics2D.queriesHitTriggers;
+
+        return Physics2D.OverlapCircle(origin, detectionRange, targetFilter, _searchBuffer);
     }
 
     /// <summary>
