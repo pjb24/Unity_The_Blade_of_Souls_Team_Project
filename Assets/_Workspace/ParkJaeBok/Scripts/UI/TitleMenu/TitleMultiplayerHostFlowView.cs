@@ -74,9 +74,7 @@ public class TitleMultiplayerHostFlowView : MonoBehaviour
     /// </summary>
     public void ShowStartingHost()
     {
-        SetFailureVisible(false, string.Empty);
-        SetInputBlocked(true);
-        SetStatusVisible(_showStatusWhileBusy, _startingStatusMessage);
+        ShowBusyStatus(_startingStatusMessage);
     }
 
     /// <summary>
@@ -84,14 +82,23 @@ public class TitleMultiplayerHostFlowView : MonoBehaviour
     /// </summary>
     public void ShowJoiningClient(string joiningStatusMessage)
     {
-        SetFailureVisible(false, string.Empty);
-        SetInputBlocked(true);
-
         string safeStatusMessage = string.IsNullOrWhiteSpace(joiningStatusMessage)
             ? "Joining session..."
             : joiningStatusMessage; // Join 진행 상태 UI에 표시할 최종 문구 문자열입니다.
 
-        SetStatusVisible(_showStatusWhileBusy, safeStatusMessage);
+        ShowBusyStatus(safeStatusMessage);
+    }
+
+    /// <summary>
+    /// 싱글플레이 시작 진행 상태 UI를 적용하고 전체 입력을 차단합니다.
+    /// </summary>
+    public void ShowStartingSinglePlayer(string startingStatusMessage)
+    {
+        string safeStatusMessage = string.IsNullOrWhiteSpace(startingStatusMessage)
+            ? "Starting game..."
+            : startingStatusMessage; // 싱글플레이 시작 진행 상태 UI에 표시할 최종 문구 문자열입니다.
+
+        ShowBusyStatus(safeStatusMessage);
     }
 
     /// <summary>
@@ -119,6 +126,16 @@ public class TitleMultiplayerHostFlowView : MonoBehaviour
         }
 
         SetFailureVisible(true, failureMessage);
+    }
+
+    /// <summary>
+    /// 공통 Busy 상태 UI를 적용해 입력을 차단하고 진행 문구를 표시합니다.
+    /// </summary>
+    private void ShowBusyStatus(string statusMessage)
+    {
+        SetFailureVisible(false, string.Empty);
+        SetInputBlocked(true);
+        SetStatusVisible(_showStatusWhileBusy, statusMessage);
     }
 
     /// <summary>

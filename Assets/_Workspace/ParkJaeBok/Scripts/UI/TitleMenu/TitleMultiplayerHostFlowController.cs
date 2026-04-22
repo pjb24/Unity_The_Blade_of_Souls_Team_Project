@@ -16,8 +16,9 @@ public class TitleMultiplayerHostFlowController : MonoBehaviour
         Idle = 0,
         StartingHost = 1,
         JoiningClient = 2,
-        Failed = 3,
-        Succeeded = 4
+        StartingSinglePlayer = 3,
+        Failed = 4,
+        Succeeded = 5
     }
 
     [Serializable]
@@ -38,12 +39,19 @@ public class TitleMultiplayerHostFlowController : MonoBehaviour
     [Tooltip("Client Join 진행 중 상태 텍스트로 표시할 문구입니다.")]
     [SerializeField] private string _joiningStatusMessage = "Joining session..."; // Client Join 요청 진행 중 사용자에게 표시할 상태 문구입니다.
 
+    [Header("Single Player Policy")]
+    [Tooltip("싱글플레이 시작 진행 중 상태 텍스트로 표시할 문구입니다.")]
+    [SerializeField] private string _singlePlayerStartingStatusMessage = "Starting game..."; // 싱글플레이 시작 요청 진행 중 사용자에게 표시할 상태 문구입니다.
+
     [Header("Events")]
     [Tooltip("Host 시작 성공 시 호출할 이벤트입니다.")]
     [SerializeField] private UnityEvent _onHostStartSucceeded; // Host 시작 성공 후 추가 UI 후처리를 연결하기 위한 이벤트입니다.
 
     [Tooltip("Client Join 성공 시 호출할 이벤트입니다.")]
     [SerializeField] private UnityEvent _onClientJoinSucceeded; // Client Join 성공 후 추가 UI 후처리를 연결하기 위한 이벤트입니다.
+
+    [Tooltip("싱글플레이 시작 성공 시 호출할 이벤트입니다.")]
+    [SerializeField] private UnityEvent _onSinglePlayerStartSucceeded; // 싱글플레이 시작 성공 후 추가 UI 후처리를 연결하기 위한 이벤트입니다.
 
     [Tooltip("Host 시작/Client Join 실패 시 실패 사유 문자열과 함께 호출할 이벤트입니다.")]
     [SerializeField] private MultiplayerRequestFailedEvent _onMultiplayerRequestFailed; // 멀티 요청 실패 시 외부 UI/사운드 후처리를 연결하기 위한 이벤트입니다.
@@ -59,7 +67,8 @@ public class TitleMultiplayerHostFlowController : MonoBehaviour
     /// 외부에서 현재 Busy 상태 여부를 조회하기 위한 프로퍼티입니다.
     /// </summary>
     public bool IsBusy => _state == E_MultiplayerRequestFlowState.StartingHost
-        || _state == E_MultiplayerRequestFlowState.JoiningClient;
+        || _state == E_MultiplayerRequestFlowState.JoiningClient
+        || _state == E_MultiplayerRequestFlowState.StartingSinglePlayer;
 
     /// <summary>
     /// 컴포넌트 활성 시 의존성을 자동 보정합니다.
@@ -109,6 +118,52 @@ public class TitleMultiplayerHostFlowController : MonoBehaviour
         }
 
         return await StartClientJoinFlowAsync();
+    }
+
+    /// <summary>
+    /// 타이틀 싱글플레이 시작 요청 공용 진입점입니다.
+    /// 요청 실행 중에는 다른 입력을 차단하고 성공/실패에 따라 상태를 전이합니다.
+    /// </summary>
+    public bool RequestStartSinglePlayer(Func<bool> singlePlayerStartRequest, string requestName)
+    {
+        if (IsBusy)
+        {
+            Debug.LogWarning($"[TitleMultiplayerHostFlowController] 멀티/싱글 요청 진행 중 싱글 시작 재요청을 차단했습니다. state={_state}, request={requestName}", this);
+            return false;
+        }
+
+        if (singlePlayerStartRequest == null)
+        {
+            HandleFailed("SinglePlayerStartRequestMissing", $"[TitleMultiplayerHostFlowController] 싱글 시작 요청 델리게이트가 null이라 시작을 중단합니다. request={requestName}");
+            return false;
+        }
+
+        TransitionTo(E_MultiplayerRequestFlowState.StartingSinglePlayer);
+        _flowView?.ShowStartingSinglePlayer(_singlePlayerStartingStatusMessage);
+
+        bool started;
+        try
+        {
+            started = singlePlayerStartRequest.Invoke();
+        }
+        catch (Exception exception)
+        {
+            HandleFailed($"SinglePlayerException:{exception.GetType().Name}", $"[TitleMultiplayerHostFlowController] 싱글 시작 중 예외가 발생했습니다. request={requestName}, message={exception.Message}");
+            Debug.LogException(exception, this);
+            return false;
+        }
+
+        if (started)
+        {
+            TransitionTo(E_MultiplayerRequestFlowState.Succeeded);
+            _flowView?.ShowSucceeded();
+            _onSinglePlayerStartSucceeded?.Invoke();
+            return true;
+        }
+
+        string safeRequestName = string.IsNullOrWhiteSpace(requestName) ? "UnknownSingleStart" : requestName; // 실패 로그/코드에 사용할 안전한 요청 이름입니다.
+        HandleFailed($"SinglePlayerStartFailed:{safeRequestName}", $"[TitleMultiplayerHostFlowController] 싱글 시작 실패. request={safeRequestName}");
+        return false;
     }
 
     /// <summary>

@@ -380,7 +380,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     public void OnClickSingleContinue()
     {
-        bool started = TryStartContinueUsingLastUsedSlot();
+        bool started = ExecuteSingleStartRequestWithFlow(TryStartContinueUsingLastUsedSlot, "SingleContinue");
         HandleStartResult(started, _onSingleStartSucceeded);
     }
 
@@ -389,7 +389,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     public void OnClickSingleNewGame()
     {
-        bool started = TryStartNewGameUsingSelectedSlot();
+        bool started = ExecuteSingleStartRequestWithFlow(TryStartNewGameUsingSelectedSlot, "SingleNewGame");
         HandleStartResult(started, _onSingleStartSucceeded);
     }
 
@@ -398,7 +398,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     public void OnClickSingleLoadGame()
     {
-        bool started = TryStartLoadGameUsingSelectedSlot();
+        bool started = ExecuteSingleStartRequestWithFlow(TryStartLoadGameUsingSelectedSlot, "SingleLoadGame");
         HandleStartResult(started, _onSingleStartSucceeded);
     }
 
@@ -545,6 +545,20 @@ public class TitlePlayModePresenter : MonoBehaviour
     private void ApplySelectedSlotBeforePlay()
     {
         ApplySlotBeforePlay(Mathf.Max(1, _selectedSlotIndex));
+    }
+
+    /// <summary>
+    /// 싱글플레이 시작 요청을 공용 흐름 제어기로 실행해 Busy 입력 차단과 실패 처리를 일관되게 적용합니다.
+    /// </summary>
+    private bool ExecuteSingleStartRequestWithFlow(System.Func<bool> startRequest, string requestName)
+    {
+        if (_hostFlowController == null)
+        {
+            Debug.LogWarning($"[TitlePlayModePresenter] HostFlowController가 비어 있어 싱글 시작 흐름 제어를 적용하지 못합니다. request={requestName}", this);
+            return startRequest != null && startRequest.Invoke();
+        }
+
+        return _hostFlowController.RequestStartSinglePlayer(startRequest, requestName);
     }
 
     /// <summary>
