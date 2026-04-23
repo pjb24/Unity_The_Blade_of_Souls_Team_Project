@@ -51,6 +51,7 @@ MonoBehaviour:
   _moveInputThreshold: 0.1
   _suspendWhileNonMovementActionRunning: 1
   _warnWhenOwnershipUnavailable: 1
+  _enableOwnershipRouteLog: 0
   _networkObject: {fileID: 0}
 --- !u!114 &2744874651139039573
 MonoBehaviour:
@@ -66,10 +67,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActionContextualAttackController
   _actionController: {fileID: 0}
   _playerMovement: {fileID: 0}
-  _defaultAttackRuleProfile: {fileID: 11400000, guid: 688c3ca3ef76e334a8fdd88b3c0015c5, type: 2}
+  _defaultAttackRuleProfile: {fileID: 11400000, guid: b9532a14d6949ea4f8a9f6fd2dd29e8c, type: 2}
   _enableRuntimeLog: 1
   _listenerRetryInterval: 0.1
   _listenerMaxRetryCount: 30
   _warnWhenOwnershipUnavailable: 1
   _inputManagerAttackRouteName: InputManagerAttack
+  _enableOwnerRouteLog: 0
   _networkObject: {fileID: 0}

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AS_AttackA
   m_EditorClassIdentifier: Assembly-CSharp::AttackSpec
   _attackTypeId: AttackA
-  _baseDamage: 10
+  _baseDamage: 100
   _areaType: 0
   _localOffset: {x: 1.2, y: 0}
   _radius: 1.2

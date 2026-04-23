@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48c37d09f08f43b408b7ae3d890a226a, type: 3}
+  m_Name: EffectDefinition_WalkDust
+  m_EditorClassIdentifier: Assembly-CSharp::EffectDefinition
+  _effectId: 11
+  _prefab: {fileID: 2053761019610083723, guid: b9e089e523e46c344a536784321ae45e, type: 3}
+  _defaultPoolSize: 4
+  _maxPoolSize: 16
+  _defaultPlayMode: 0
+  _autoReturn: 1
+  _maxLifetime: 3
+  _defaultLocalOffset: {x: 0, y: 0, z: 0}
+  _allowFollow: 1
+  _allowAttach: 1
+  _allowDuplicatePlay: 1
+  _priority: 0
+  _fallbackPolicy: 0

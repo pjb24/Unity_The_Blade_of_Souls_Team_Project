@@ -28,18 +28,13 @@ MonoBehaviour:
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
-    AutoCompleteSeconds: 0.45
+    AutoCompleteSeconds: 0
   - ActionType: 4
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
-    AutoCompleteSeconds: 0.25
+    AutoCompleteSeconds: 0
   - ActionType: 5
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0.3
-  - ActionType: 6
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
@@ -49,45 +44,15 @@ MonoBehaviour:
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 8
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0.45
-  - ActionType: 9
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0
-  - ActionType: 13
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0.5
   - ActionType: 14
     Enabled: 1
     Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0.35
-  - ActionType: 15
-    Enabled: 1
-    Priority: 100
     IsInterruptible: 0
     AutoCompleteSeconds: 0
-  - ActionType: 10
+  - ActionType: 15
     Enabled: 1
     Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0
-  - ActionType: 11
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0
-  - ActionType: 12
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
+    IsInterruptible: 0
     AutoCompleteSeconds: 0
   - ActionType: 22
     Enabled: 1
@@ -95,11 +60,6 @@ MonoBehaviour:
     IsInterruptible: 1
     AutoCompleteSeconds: 0
   - ActionType: 23
-    Enabled: 1
-    Priority: 0
-    IsInterruptible: 1
-    AutoCompleteSeconds: 0
-  - ActionType: 24
     Enabled: 1
     Priority: 0
     IsInterruptible: 1

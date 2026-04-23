@@ -15,6 +15,12 @@ public enum E_EffectId
     ProjectileImpact = 7,
     EnemyDeath = 8,
     WorldBurst = 9,
+    EyeEffect = 10,
+    WalkDust = 11,
+    JumpDust = 12,
+    HitEffect = 13,
+    SwordEffect = 14,
+    RecoveryEffect = 15,
 }
 
 /// <summary>

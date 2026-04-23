@@ -192,8 +192,8 @@ public class PlayerMovementActionSync : MonoBehaviour
     /// </summary>
     private bool IsMoveInputActive()
     {
-        Vector2 planarVelocity = _playerMovement.Velocity; // 현재 프레임 이동 동기화 판정에 사용할 이동 속도 벡터
-        return planarVelocity.sqrMagnitude >= _moveInputThreshold * _moveInputThreshold;
+        float horizontalInput = _playerMovement.MoveInput.x; // 현재 프레임 이동 입력 판정에 사용할 수평 입력값
+        return Mathf.Abs(horizontalInput) >= _moveInputThreshold;
     }
 
     /// <summary>
