@@ -1,0 +1,654 @@
+fileFormatVersion: 2
+guid: 2877d70a232193e4d94edc39a2314dd9
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 1537333141803137975
+    second: NPC_Idle_0
+  - first:
+      213: 5856826875125533890
+    second: NPC_Idle_1
+  - first:
+      213: 7912252571063160156
+    second: NPC_Idle_2
+  - first:
+      213: 2400328178270363877
+    second: NPC_Idle_3
+  - first:
+      213: 3640631131214411301
+    second: NPC_Idle_4
+  - first:
+      213: 5498307104985633146
+    second: NPC_Idle_5
+  - first:
+      213: 3555337318537680858
+    second: NPC_Idle_6
+  - first:
+      213: 5621266550913485622
+    second: NPC_Idle_7
+  - first:
+      213: -9177551816475280082
+    second: NPC_Idle_8
+  - first:
+      213: 6489278482469919270
+    second: NPC_Idle_9
+  - first:
+      213: 3777469201922014894
+    second: NPC_Idle_10
+  - first:
+      213: 1395456182465430447
+    second: NPC_Idle_11
+  - first:
+      213: 4483456361097085964
+    second: NPC_Idle_12
+  - first:
+      213: 6547390329187817021
+    second: NPC_Idle_13
+  - first:
+      213: -995644441011522337
+    second: NPC_Idle_14
+  - first:
+      213: 4583580137878817901
+    second: NPC_Idle_15
+  - first:
+      213: 7940500719299636061
+    second: NPC_Idle_16
+  - first:
+      213: 7479229980961507435
+    second: NPC_Idle_17
+  - first:
+      213: 4583172054230456332
+    second: NPC_Idle_18
+  - first:
+      213: 1337194798660729122
+    second: NPC_Idle_19
+  - first:
+      213: -6637972371257969938
+    second: NPC_Idle_20
+  - first:
+      213: -2598996441798264249
+    second: NPC_Idle_21
+  - first:
+      213: -5532832094852479284
+    second: NPC_Idle_22
+  - first:
+      213: -6455481208906007207
+    second: NPC_Idle_23
+  - first:
+      213: -2665813180187709276
+    second: NPC_Idle_24
+  - first:
+      213: 5031213978088712600
+    second: NPC_Idle_25
+  - first:
+      213: 4024207140663137847
+    second: NPC_Idle_26
+  - first:
+      213: -7407755687780348931
+    second: NPC_Idle_27
+  - first:
+      213: -5796092369314467734
+    second: NPC_Idle_28
+  - first:
+      213: -2278746804733542435
+    second: NPC_Idle_29
+  - first:
+      213: -6957900490849868101
+    second: NPC_Idle_30
+  - first:
+      213: -4788466517782515483
+    second: NPC_Idle_31
+  - first:
+      213: 8459278079808643086
+    second: NPC_Idle_32
+  - first:
+      213: 9003542943104197986
+    second: NPC_Idle_33
+  - first:
+      213: 6739254368286535746
+    second: NPC_Idle_34
+  - first:
+      213: 709744904860880742
+    second: NPC_Idle_35
+  - first:
+      213: 5917897420623938370
+    second: NPC_Idle_36
+  - first:
+      213: 6496386418640544704
+    second: NPC_Idle_37
+  - first:
+      213: -2725459457193871250
+    second: NPC_Idle_38
+  - first:
+      213: -3249527483313614214
+    second: NPC_Idle_39
+  - first:
+      213: -4114956734286847784
+    second: NPC_Idle_40
+  - first:
+      213: 729136960525398800
+    second: NPC_Idle_41
+  - first:
+      213: -1252099554098831121
+    second: NPC_Idle_42
+  - first:
+      213: 9011793815472019869
+    second: NPC_Idle_43
+  - first:
+      213: 7901887637703483353
+    second: NPC_Idle_44
+  - first:
+      213: -2747441899535492317
+    second: NPC_Idle_45
+  - first:
+      213: -2097382107441658464
+    second: NPC_Idle_46
+  - first:
+      213: -4418493292671953368
+    second: NPC_Idle_47
+  - first:
+      213: -8814080541441691894
+    second: NPC_Idle_48
+  - first:
+      213: 2246696707974059542
+    second: NPC_Idle_49
+  - first:
+      213: -6966890378576436236
+    second: NPC_Idle_50
+  - first:
+      213: -7642447674663396844
+    second: NPC_Idle_51
+  - first:
+      213: -9084026121392025972
+    second: NPC_Idle_52
+  - first:
+      213: 7182814038570451438
+    second: NPC_Idle_53
+  - first:
+      213: 4009110807489463458
+    second: NPC_Idle_54
+  - first:
+      213: 2561845663238461952
+    second: NPC_Idle_55
+  - first:
+      213: 4393109968930453791
+    second: NPC_Idle_56
+  - first:
+      213: -8455639299927848665
+    second: NPC_Idle_57
+  - first:
+      213: 2688486509956019608
+    second: NPC_Idle_58
+  - first:
+      213: 3025820515139335031
+    second: NPC_Idle_59
+  - first:
+      213: 3489282550932327873
+    second: NPC_Idle_60
+  - first:
+      213: 5920191905153739178
+    second: NPC_Idle_61
+  - first:
+      213: -4528723060193215738
+    second: NPC_Idle_62
+  - first:
+      213: -1713564766703559736
+    second: NPC_Idle_63
+  - first:
+      213: -6066687524225308237
+    second: NPC_Idle_64
+  - first:
+      213: -5368219811662546319
+    second: NPC_Idle_65
+  - first:
+      213: 1276512465205160617
+    second: NPC_Idle_66
+  - first:
+      213: 512404025526360786
+    second: NPC_Idle_67
+  - first:
+      213: -6665523745547223144
+    second: NPC_Idle_68
+  - first:
+      213: -8300276136140854629
+    second: NPC_Idle_69
+  - first:
+      213: 5320424696335576613
+    second: NPC_Idle_70
+  - first:
+      213: -6490762141245045444
+    second: NPC_Idle_71
+  - first:
+      213: 8017679146658369895
+    second: NPC_Idle_72
+  - first:
+      213: 4310925170906360952
+    second: NPC_Idle_73
+  - first:
+      213: -243189941067882371
+    second: NPC_Idle_74
+  - first:
+      213: -4428429199327509482
+    second: NPC_Idle_75
+  - first:
+      213: -7845647697165191051
+    second: NPC_Idle_76
+  - first:
+      213: -694663302714742986
+    second: NPC_Idle_77
+  - first:
+      213: -8721127786527436639
+    second: NPC_Idle_78
+  - first:
+      213: 19533090411637460
+    second: NPC_Idle_79
+  - first:
+      213: 3473177282014756819
+    second: NPC_Idle_80
+  - first:
+      213: -7737506324659427713
+    second: NPC_Idle_81
+  - first:
+      213: 7726328080058350989
+    second: NPC_Idle_82
+  - first:
+      213: -5917667584284134419
+    second: NPC_Idle_83
+  - first:
+      213: 2809110003779405674
+    second: NPC_Idle_84
+  - first:
+      213: -4209743882491548373
+    second: NPC_Idle_85
+  - first:
+      213: 7827798482373559596
+    second: NPC_Idle_86
+  - first:
+      213: 7165725980150089247
+    second: NPC_Idle_87
+  - first:
+      213: 4080163382972307617
+    second: NPC_Idle_88
+  - first:
+      213: 3348502698363434371
+    second: NPC_Idle_89
+  - first:
+      213: -5230449427082533854
+    second: NPC_Idle_90
+  - first:
+      213: -3881382562005240795
+    second: NPC_Idle_91
+  - first:
+      213: 1195611250876160246
+    second: NPC_Idle_92
+  - first:
+      213: -5784421476614546457
+    second: NPC_Idle_93
+  - first:
+      213: 3185121740884082218
+    second: NPC_Idle_94
+  - first:
+      213: 3235395675393925094
+    second: NPC_Idle_95
+  - first:
+      213: 2546817903907975908
+    second: NPC_Idle_96
+  - first:
+      213: -7439571573292444176
+    second: NPC_Idle_97
+  - first:
+      213: -5765513614003958024
+    second: NPC_Idle_98
+  - first:
+      213: 1232399003957988073
+    second: NPC_Idle_99
+  - first:
+      213: 3290946455582960293
+    second: NPC_Idle_100
+  - first:
+      213: 3010070240430214300
+    second: NPC_Idle_101
+  - first:
+      213: -2214885406631333389
+    second: NPC_Idle_102
+  - first:
+      213: -4061338386096927908
+    second: NPC_Idle_103
+  - first:
+      213: 6292745945544834247
+    second: NPC_Idle_104
+  - first:
+      213: 8150637924028611258
+    second: NPC_Idle_105
+  - first:
+      213: 8360817088059940650
+    second: NPC_Idle_106
+  - first:
+      213: -9130360749204055423
+    second: NPC_Idle_107
+  - first:
+      213: -3088162317961262683
+    second: NPC_Idle_108
+  - first:
+      213: -1776960722204443797
+    second: NPC_Idle_109
+  - first:
+      213: 6207392643872426747
+    second: NPC_Idle_110
+  - first:
+      213: -5021279348153144452
+    second: NPC_Idle_111
+  - first:
+      213: -6537557808101490890
+    second: NPC_Idle_112
+  - first:
+      213: 4104509565205558298
+    second: NPC_Idle_113
+  - first:
+      213: 2547470239447578817
+    second: NPC_Idle_114
+  - first:
+      213: 3906133842583701725
+    second: NPC_Idle_115
+  - first:
+      213: 5593380492235681619
+    second: NPC_Idle_116
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: NPC_Idle_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 539
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bb7c9ae854b55510800000000000000
+      internalID: 1537333141803137975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_1
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 539
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2cc81da1301a74150800000000000000
+      internalID: 5856826875125533890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_2
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 539
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c5d046fdac7fdcd60800000000000000
+      internalID: 7912252571063160156
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_3
+      rect:
+        serializedVersion: 2
+        x: 1152
+        y: 539
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e06a2ab2cdaf4120800000000000000
+      internalID: 2400328178270363877
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 526734699be168230800000000000000
+      internalID: 3640631131214411301
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_5
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 0
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a71dca24e29ed4c40800000000000000
+      internalID: 5498307104985633146
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_6
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 0
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad7d0284478175130800000000000000
+      internalID: 3555337318537680858
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: NPC_Idle_7
+      rect:
+        serializedVersion: 2
+        x: 1152
+        y: 0
+        width: 384
+        height: 539
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63bcbf23520c20e40800000000000000
+      internalID: 5621266550913485622
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: ce575763138050d4883d251973a19e66
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":4.0,"y":2.0},"gridSpriteSize":{"x":384.0,"y":539.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      NPC_Idle_0: 1537333141803137975
+      NPC_Idle_1: 5856826875125533890
+      NPC_Idle_2: 7912252571063160156
+      NPC_Idle_3: 2400328178270363877
+      NPC_Idle_4: 3640631131214411301
+      NPC_Idle_5: 5498307104985633146
+      NPC_Idle_6: 3555337318537680858
+      NPC_Idle_7: 5621266550913485622
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
