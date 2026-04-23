@@ -23,6 +23,20 @@ public class AttackExecutor : MonoBehaviour
     [SerializeField] private bool _warnWhenNetworkAuthorityUnavailable = true; // NetworkObject/NetworkManager 미구성으로 권한 판정을 확정할 수 없을 때 경고를 출력할지 여부입니다.
     [SerializeField] private bool _drawGizmos; // 씬 뷰에서 마지막 판정 영역을 Gizmos로 시각화할지 여부입니다.
 
+    [Header("Player SFX")]
+    [Tooltip("플레이어 공격 HitWindow가 열릴 때 공격 SFX를 재생할지 여부입니다.")]
+    [SerializeField] private bool _playPlayerAttackSfxOnHitWindowOpen = true; // 플레이어 공격 판정 시작 시점에 SFX를 재생할지 여부입니다.
+    [Tooltip("공격 SFX를 재생할 플레이어 태그 이름입니다.")]
+    [SerializeField] private string _playerTagForAttackSfx = "Player"; // 플레이어 오브젝트만 공격 SFX를 재생하기 위한 태그 필터입니다.
+    [Tooltip("기본 플레이어 공격 액션에서 재생할 SFX SoundId입니다.")]
+    [SerializeField] private E_SoundId _playerAttackSfx = E_SoundId.SFX_Player_Attack_01; // 기본 공격에 사용할 SFX SoundId입니다.
+    [Tooltip("플레이어 1단 콤보 공격 액션에서 재생할 SFX SoundId입니다.")]
+    [SerializeField] private E_SoundId _playerAttackCombo1Sfx = E_SoundId.SFX_Player_Attack_02; // 1단 콤보 공격에 사용할 SFX SoundId입니다.
+    [Tooltip("플레이어 2단 이상 콤보 공격 액션에서 재생할 SFX SoundId입니다. None이면 기본 공격 SFX를 사용합니다.")]
+    [SerializeField] private E_SoundId _playerAttackCombo2OrHigherSfx = E_SoundId.None; // 2단 이상 콤보 공격에 사용할 SFX SoundId입니다.
+    [Tooltip("같은 공격 실행에서 SFX가 중복 재생되는 것을 막기 위한 최소 간격입니다.")]
+    [SerializeField] private float _playerAttackSfxMinInterval = 0.05f; // 공격 SFX 중복 재생 방지를 위한 최소 시간 간격입니다.
+
     private readonly Dictionary<E_ActionType, AttackSpec> _specMap = new Dictionary<E_ActionType, AttackSpec>(); // 런타임 빠른 조회를 위한 액션-스펙 딕셔너리입니다.
     private readonly HashSet<int> _hitTargetsInCurrentSwing = new HashSet<int>(); // 현재 공격 실행에서 이미 타격한 타겟 InstanceId 집합입니다.
     private readonly List<HitReceiver> _targetBuffer = new List<HitReceiver>(); // 타겟 탐지 결과를 임시 보관하는 버퍼 목록입니다.
@@ -34,6 +48,8 @@ public class AttackExecutor : MonoBehaviour
     private Vector2 _lastGizmoBoxSize = Vector2.one; // 마지막 박스 크기(Gizmos 표시용)입니다.
     private float _lastGizmoRadius = 0.5f; // 마지막 원형 반경(Gizmos 표시용)입니다.
     private E_AttackAreaType _lastGizmoAreaType = E_AttackAreaType.Circle; // 마지막 판정 도형 타입(Gizmos 표시용)입니다.
+    private int _lastAttackSfxExecutionId = -1; // 마지막으로 공격 SFX를 재생한 액션 실행 ID입니다.
+    private float _nextPlayerAttackSfxPlayableTime; // 다음 플레이어 공격 SFX 재생이 가능한 시간입니다.
 
     /// <summary>
     /// 의존성 보정과 액션-공격 매핑 초기화를 수행합니다.
@@ -218,7 +234,103 @@ public class AttackExecutor : MonoBehaviour
             return;
         }
 
+        TryPlayPlayerAttackSfxForCurrentAction();
         TryExecuteCurrentActionAttack();
+    }
+
+    /// <summary>
+    /// 플레이어 공격 HitWindow가 열릴 때 현재 액션에 맞는 공격 SFX 재생을 시도합니다.
+    /// </summary>
+    private void TryPlayPlayerAttackSfxForCurrentAction()
+    {
+        if (_playPlayerAttackSfxOnHitWindowOpen == false)
+        {
+            return;
+        }
+
+        if (!TryResolveActionController())
+        {
+            return;
+        }
+
+        if (_actionController.Runtime.IsRunning == false)
+        {
+            return;
+        }
+
+        if (IsPlayerAttackSfxTarget() == false)
+        {
+            return;
+        }
+
+        int executionId = _actionController.Runtime.ExecutionId;
+        if (_lastAttackSfxExecutionId == executionId)
+        {
+            return;
+        }
+
+        if (Time.unscaledTime < _nextPlayerAttackSfxPlayableTime)
+        {
+            return;
+        }
+
+        E_SoundId soundId = ResolvePlayerAttackSfxId(_actionController.Runtime.ActionType);
+        if (soundId == E_SoundId.None)
+        {
+            return;
+        }
+
+        AudioManager audioManager = AudioManager.Instance;
+        if (audioManager == null)
+        {
+            Debug.LogWarning($"[AttackExecutor] AudioManager not found. Player attack SFX skipped. actor={name}");
+            return;
+        }
+
+        _lastAttackSfxExecutionId = executionId;
+        _nextPlayerAttackSfxPlayableTime = Time.unscaledTime + Mathf.Max(0f, _playerAttackSfxMinInterval);
+        audioManager.PlaySfx(soundId, transform);
+    }
+
+    /// <summary>
+    /// 이 AttackExecutor가 플레이어 공격 SFX 재생 대상인지 검사합니다.
+    /// </summary>
+    private bool IsPlayerAttackSfxTarget()
+    {
+        if (string.IsNullOrWhiteSpace(_playerTagForAttackSfx))
+        {
+            return true;
+        }
+
+        if (CompareTag(_playerTagForAttackSfx))
+        {
+            return true;
+        }
+
+        Transform root = transform.root;
+        return root != null && root.CompareTag(_playerTagForAttackSfx);
+    }
+
+    /// <summary>
+    /// 현재 공격 액션 타입에 대응하는 플레이어 공격 SFX SoundId를 반환합니다.
+    /// </summary>
+    private E_SoundId ResolvePlayerAttackSfxId(E_ActionType actionType)
+    {
+        switch (actionType)
+        {
+            case E_ActionType.AttackCombo1:
+                return _playerAttackCombo1Sfx != E_SoundId.None ? _playerAttackCombo1Sfx : _playerAttackSfx;
+            case E_ActionType.AttackCombo2:
+            case E_ActionType.AttackCombo3:
+                return _playerAttackCombo2OrHigherSfx != E_SoundId.None ? _playerAttackCombo2OrHigherSfx : _playerAttackSfx;
+            case E_ActionType.Attack:
+            case E_ActionType.AttackAir:
+            case E_ActionType.AttackDash:
+            case E_ActionType.AttackWall:
+                return _playerAttackSfx;
+            default:
+                return E_SoundId.None;
+        }
     }
 
     /// <summary>

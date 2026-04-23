@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d96f3597985294946b23dd7c147ccb13, type: 3}
-  m_Name: MC_Cancel
+  m_Name: ActionMarkerCommand_HitStart
   m_EditorClassIdentifier: Assembly-CSharp::ActionMarkerCommandObject
-  _commandType: 1
+  _commandType: 4
   _cancelReason: Animation marker cancel

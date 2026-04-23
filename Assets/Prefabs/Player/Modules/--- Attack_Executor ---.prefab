@@ -45,12 +45,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttackExecutor
   _actionController: {fileID: 0}
+  _networkObject: {fileID: 0}
   _actionMaps:
   - _actionType: 22
-    _attackSpec: {fileID: 11400000, guid: fd749f841859701429727c8062f5b5c6, type: 2}
+    _attackSpec: {fileID: 11400000, guid: ee1aa2fe861beb74fadc506d595ae62f, type: 2}
   - _actionType: 23
-    _attackSpec: {fileID: 11400000, guid: 5ec7c5dcc93b2cb459c939f91a3e5ee0, type: 2}
-  - _actionType: 24
-    _attackSpec: {fileID: 11400000, guid: df3af438924914848925d8fbb009eeda, type: 2}
+    _attackSpec: {fileID: 11400000, guid: a31f17bc6593d174f8c08e9b79bb3f95, type: 2}
   _autoExecuteOnHitWindowOpen: 1
+  _executeOnlyOnServerWhenSpawned: 1
+  _warnWhenNetworkAuthorityUnavailable: 1
   _drawGizmos: 1

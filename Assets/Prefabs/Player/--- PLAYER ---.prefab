@@ -626,8 +626,12 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 126503336672774226}
     - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
-      propertyPath: _actionMaps.Array.size
-      value: 2
+      propertyPath: _playerAttackCombo1Sfx
+      value: 2005
+      objectReference: {fileID: 0}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _playerAttackCombo2OrHigherSfx
+      value: 2006
       objectReference: {fileID: 0}
     - target: {fileID: 2904827519901548356, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: m_LocalPosition.x

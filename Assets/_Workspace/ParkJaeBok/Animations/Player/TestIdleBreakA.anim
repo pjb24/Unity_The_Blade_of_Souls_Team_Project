@@ -84,32 +84,4 @@ AnimationClip:
   m_EulerEditorCurves: []
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
-  m_Events:
-  - time: 0.083333336
-    functionName: ReceiveMarker
-    data: 
-    objectReferenceParameter: {fileID: 11400000, guid: 61fd8dac25e35414e80ddf7b1d56d319, type: 2}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
-  - time: 0.083333336
-    functionName: ReceiveMarker
-    data: 
-    objectReferenceParameter: {fileID: 11400000, guid: 5c46cd4d1f2d4244fb47c944a24368c7, type: 2}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
-  - time: 0.33333334
-    functionName: ReceiveMarker
-    data: 
-    objectReferenceParameter: {fileID: 11400000, guid: fb05ceec471768f478fbd6f4fc2d66cb, type: 2}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
-  - time: 0.33333334
-    functionName: ReceiveMarker
-    data: 
-    objectReferenceParameter: {fileID: 11400000, guid: 3a991a9cbe6260043baf8460757b5ff3, type: 2}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
+  m_Events: []
