@@ -181,7 +181,7 @@ public class PooledRangedProjectile : MonoBehaviour
     /// </summary>
     private void TryApplyHitToTarget(GameObject targetObject)
     {
-        HitReceiver receiver = targetObject.GetComponentInParent<HitReceiver>();
+        HitReceiver receiver = FindHitReceiverFromTargetHierarchy(targetObject);
         if (receiver == null)
         {
             Debug.LogWarning($"[PooledRangedProjectile] Hit target has no HitReceiver on {targetObject.name}.");
@@ -198,6 +198,64 @@ public class PooledRangedProjectile : MonoBehaviour
             statusTag: _statusTag,
             requestTime: Time.time);
         receiver.ReceiveHit(request);
+    }
+
+    /// <summary>
+    /// 타겟 기준으로 자신/부모/자식/형제 계층을 순차 탐색하여 HitReceiver를 찾습니다.
+    /// </summary>
+    private HitReceiver FindHitReceiverFromTargetHierarchy(GameObject targetObject)
+    {
+        if (targetObject == null)
+        {
+            return null;
+        }
+
+        HitReceiver selfReceiver = targetObject.GetComponent<HitReceiver>();
+        if (selfReceiver != null)
+        {
+            return selfReceiver;
+        }
+
+        HitReceiver parentReceiver = targetObject.GetComponentInParent<HitReceiver>();
+        if (parentReceiver != null)
+        {
+            return parentReceiver;
+        }
+
+        HitReceiver childReceiver = targetObject.GetComponentInChildren<HitReceiver>(true);
+        if (childReceiver != null)
+        {
+            return childReceiver;
+        }
+
+        Transform parentTransform = targetObject.transform.parent;
+        if (parentTransform == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < parentTransform.childCount; i++)
+        {
+            Transform sibling = parentTransform.GetChild(i);
+            if (sibling == null || sibling.gameObject == targetObject)
+            {
+                continue;
+            }
+
+            HitReceiver siblingReceiver = sibling.GetComponent<HitReceiver>();
+            if (siblingReceiver != null)
+            {
+                return siblingReceiver;
+            }
+
+            HitReceiver siblingChildReceiver = sibling.GetComponentInChildren<HitReceiver>(true);
+            if (siblingChildReceiver != null)
+            {
+                return siblingChildReceiver;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

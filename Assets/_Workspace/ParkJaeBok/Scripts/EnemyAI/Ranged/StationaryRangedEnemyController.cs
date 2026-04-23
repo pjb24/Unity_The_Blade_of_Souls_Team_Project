@@ -45,6 +45,10 @@ public class StationaryRangedEnemyController : MonoBehaviour
     [SerializeField] private float _attackCooldown = 1.2f; // 실제 발사 시점부터 적용할 쿨다운 시간입니다.
     [Tooltip("애니메이션 이벤트 누락 시 공격 실패로 종료할 타임아웃(초)입니다.")]
     [SerializeField] private float _attackTimeout = 1f; // 이벤트 누락 감지용 최대 대기 시간입니다.
+    [Tooltip("공격 시작 시 SetActive(false), 공격 종료 시 SetActive(true)로 토글할 첫 번째 오브젝트입니다.")]
+    [SerializeField] private GameObject _toggleOffWhileAttackingObjectA; // 공격 중 숨길 첫 번째 오브젝트입니다.
+    [Tooltip("공격 시작 시 SetActive(false), 공격 종료 시 SetActive(true)로 토글할 두 번째 오브젝트입니다.")]
+    [SerializeField] private GameObject _toggleOffWhileAttackingObjectB; // 공격 중 숨길 두 번째 오브젝트입니다.
 
     [Header("Distance Optimization")]
     [Tooltip("거리 계산 주기입니다. 0이면 매 프레임 계산합니다.")]
@@ -63,6 +67,10 @@ public class StationaryRangedEnemyController : MonoBehaviour
     [SerializeField] private string _hitTriggerParameter = "HitTrigger"; // 피격 연출 시작 Trigger 파라미터 이름입니다.
     [Tooltip("사망 상태 진입을 전달할 Trigger 파라미터 이름입니다.")]
     [SerializeField] private string _dieTriggerParameter = "DieTrigger"; // 사망 연출 시작 Trigger 파라미터 이름입니다.
+    [Tooltip("공격 애니메이션 상태 식별에 사용할 Animator State Tag 이름입니다.")]
+    [SerializeField] private string _attackStateTag = "Attack"; // 공격 애니메이션 상태 판정용 태그 이름입니다.
+    [Tooltip("공격 애니메이션 상태를 조회할 Animator Layer 인덱스입니다.")]
+    [SerializeField] private int _attackAnimationLayerIndex; // 공격 애니메이션 판정 대상 레이어 인덱스입니다.
 
     [Header("Debug")]
     [Tooltip("현재 상태입니다.")]
@@ -86,6 +94,14 @@ public class StationaryRangedEnemyController : MonoBehaviour
     private float _hitStaggerReleaseAt; // 피격 경직 종료 시각입니다.
     [Tooltip("현재 피격 상태 유지 여부입니다.")]
     private bool _isHitStateActive; // 피격 상태 유지 플래그입니다.
+    [Tooltip("공격 토글 오브젝트의 마지막 적용 활성 상태입니다.")]
+    private bool _isAttackToggleObjectsActive = true; // SetActive 중복 호출 방지용 마지막 상태 캐시입니다.
+    [Tooltip("현재 공격 사이클에서 발사 방향을 고정했는지 여부입니다.")]
+    private bool _hasLockedAttackDirection; // 공격 시작 시 캡처한 발사 방향 유효성 플래그입니다.
+    [Tooltip("공격 시작 시점 기준으로 고정한 발사 방향(Vector2 정규화)입니다.")]
+    private Vector2 _lockedAttackDirection = Vector2.right; // 공격 시작 시점 타겟 기준 고정 발사 방향입니다.
+    [Tooltip("공격 시작 시점에 저장한 타겟 월드 좌표입니다.")]
+    private Vector2 _lockedTargetPosition; // 공격 시작 시점 타겟 좌표 스냅샷입니다.
 
     [Tooltip("런타임 ProjectileSpawn 서비스 인터페이스입니다.")]
     private IProjectileSpawnService _projectileSpawnService; // 투사체 생성 요청 인터페이스입니다.
@@ -115,6 +131,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
     {
         SubscribeHealthSignals();
         _isDead = _healthAdapter != null && !_healthAdapter.IsAlive;
+        ForceAttackToggleObjectsActive(true);
     }
 
     /// <summary>
@@ -123,6 +140,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeHealthSignals();
+        ForceAttackToggleObjectsActive(true);
     }
 
     /// <summary>
@@ -158,6 +176,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
     private void Update()
     {
         SyncAnimatorState();
+        SyncAttackToggleObjectsByAnimation();
 
         if (_isDead)
         {
@@ -179,8 +198,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
         if (_isAttacking && Time.time >= _attackTimeoutAt)
         {
             Debug.LogWarning($"[StationaryRangedEnemyController] Attack timeout on {name}. AnimationEvent OnFireProjectile missing; cycle failed.");
-            _isAttacking = false;
-            _isWaitingForFireEvent = false;
+            EndAttackCycle(applyCooldown: false);
         }
 
         switch (_currentState)
@@ -218,6 +236,17 @@ public class StationaryRangedEnemyController : MonoBehaviour
     {
         Transform target = _targetDetector != null ? _targetDetector.CurrentTarget : null;
 
+        // 0) 이미 공격 애니메이션 이벤트 대기 중이면 타겟 이탈 여부와 무관하게 발사 이벤트를 기다립니다.
+        if (_isAttacking)
+        {
+            if (target != null)
+            {
+                UpdateVisualFacing(target.position);
+            }
+
+            return;
+        }
+
         // 1) 타겟 유효성 검사
         if (!IsTargetValidForDetection(target))
         {
@@ -246,14 +275,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
             return;
         }
 
-        // 4) 현재 공격 중 여부 검사 (_isAttacking)
-        if (_isAttacking)
-        {
-            UpdateVisualFacing(target.position);
-            return;
-        }
-
-        // 5) 쿨다운 검사
+        // 4) 쿨다운 검사
         bool isCooldownFinished = Time.time >= _nextAttackAllowedAt;
         if (!isCooldownFinished)
         {
@@ -261,7 +283,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
             return;
         }
 
-        // 6) 공격 시작
+        // 5) 공격 시작
         if (isWithinEnterRange)
         {
             StartAttackCycle();
@@ -274,9 +296,14 @@ public class StationaryRangedEnemyController : MonoBehaviour
     /// </summary>
     private void StartAttackCycle()
     {
-        _isAttacking = true;
-        _isWaitingForFireEvent = true;
-        _attackTimeoutAt = Time.time + _attackTimeout;
+        if (!TryLockAttackDirection())
+        {
+            Debug.LogWarning($"[StationaryRangedEnemyController] Failed to lock attack direction on {name}. Attack cycle failed.");
+            EndAttackCycle(applyCooldown: false);
+            return;
+        }
+
+        BeginAttackCycle();
 
         if (_animator != null)
         {
@@ -285,7 +312,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
         else
         {
             Debug.LogWarning($"[StationaryRangedEnemyController] Missing Animator on {name}. Attack cycle failed.");
-            StopAttackAsFailedCycle();
+            EndAttackCycle(applyCooldown: false);
         }
     }
 
@@ -300,17 +327,21 @@ public class StationaryRangedEnemyController : MonoBehaviour
             return;
         }
 
-        Transform target = _targetDetector != null ? _targetDetector.CurrentTarget : null;
-        if (target == null)
+        Vector2 firePosition = (_firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position);
+        if (!TryResolveTargetPositionOnFire(out Vector2 targetPosition, out bool usedFallbackTargetPosition))
         {
-            Debug.LogWarning($"[StationaryRangedEnemyController] OnFireProjectile failed: target is null on {name}.");
+            Debug.LogWarning($"[StationaryRangedEnemyController] OnFireProjectile failed: no live target and no locked fallback target on {name}.");
             StopAttackAsFailedCycle();
             return;
         }
 
-        Vector2 firePosition = (_firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position);
-        Vector2 targetPosition = target.position;
-        Vector2 direction = (targetPosition - firePosition).normalized;
+        Vector2 direction = targetPosition - firePosition;
+        if (direction.sqrMagnitude <= Mathf.Epsilon)
+        {
+            direction = _hasLockedAttackDirection ? _lockedAttackDirection : Vector2.right;
+        }
+
+        direction = direction.normalized;
 
         if (_projectileSpawnService == null)
         {
@@ -327,9 +358,12 @@ public class StationaryRangedEnemyController : MonoBehaviour
             _projectileSpeed,
             _projectileLifetime);
 
-        _isAttacking = false;
-        _isWaitingForFireEvent = false;
-        _nextAttackAllowedAt = Time.time + _attackCooldown;
+        if (usedFallbackTargetPosition)
+        {
+            Debug.Log($"[StationaryRangedEnemyController] OnFireProjectile fallback used locked target position on {name}.");
+        }
+
+        EndAttackCycle(applyCooldown: true);
     }
 
     /// <summary>
@@ -337,8 +371,151 @@ public class StationaryRangedEnemyController : MonoBehaviour
     /// </summary>
     private void StopAttackAsFailedCycle()
     {
+        EndAttackCycle(applyCooldown: false);
+    }
+
+    /// <summary>
+    /// 공격 사이클 시작 상태를 초기화하고 공격 중 토글 오브젝트를 비활성화합니다.
+    /// </summary>
+    private void BeginAttackCycle()
+    {
+        _isAttacking = true;
+        _isWaitingForFireEvent = true;
+        _attackTimeoutAt = Time.time + _attackTimeout;
+    }
+
+    /// <summary>
+    /// 공격 사이클을 종료하고 공격 중 토글 오브젝트를 활성화합니다.
+    /// </summary>
+    private void EndAttackCycle(bool applyCooldown)
+    {
         _isAttacking = false;
         _isWaitingForFireEvent = false;
+        _hasLockedAttackDirection = false;
+        _lockedAttackDirection = Vector2.right;
+        _lockedTargetPosition = Vector2.zero;
+
+        if (applyCooldown)
+        {
+            _nextAttackAllowedAt = Time.time + _attackCooldown;
+        }
+    }
+
+    /// <summary>
+    /// 공격 상태에 맞춰 지정된 토글 오브젝트 2개의 활성 상태를 일괄 전환합니다.
+    /// </summary>
+    private void SetAttackToggleObjectsActive(bool isActive)
+    {
+        if (_toggleOffWhileAttackingObjectA != null)
+        {
+            _toggleOffWhileAttackingObjectA.SetActive(isActive);
+        }
+
+        if (_toggleOffWhileAttackingObjectB != null)
+        {
+            _toggleOffWhileAttackingObjectB.SetActive(isActive);
+        }
+    }
+
+    /// <summary>
+    /// 공격 토글 오브젝트의 활성 상태를 강제로 적용하고 캐시 상태를 동기화합니다.
+    /// </summary>
+    private void ForceAttackToggleObjectsActive(bool isActive)
+    {
+        _isAttackToggleObjectsActive = isActive;
+        SetAttackToggleObjectsActive(isActive);
+    }
+
+    /// <summary>
+    /// 공격 애니메이션 재생 여부를 기준으로 토글 오브젝트 활성 상태를 동기화합니다.
+    /// </summary>
+    private void SyncAttackToggleObjectsByAnimation()
+    {
+        bool shouldBeActive = !IsAttackAnimationPlaying();
+        if (_isAttackToggleObjectsActive == shouldBeActive)
+        {
+            return;
+        }
+
+        _isAttackToggleObjectsActive = shouldBeActive;
+        SetAttackToggleObjectsActive(shouldBeActive);
+    }
+
+    /// <summary>
+    /// 현재/다음 Animator 상태를 검사해 공격 애니메이션 진행 중인지 판정합니다.
+    /// </summary>
+    private bool IsAttackAnimationPlaying()
+    {
+        if (_animator == null)
+        {
+            return false;
+        }
+
+        int layerIndex = Mathf.Clamp(_attackAnimationLayerIndex, 0, _animator.layerCount - 1);
+        AnimatorStateInfo currentState = _animator.GetCurrentAnimatorStateInfo(layerIndex);
+        if (currentState.IsTag(_attackStateTag))
+        {
+            return true;
+        }
+
+        if (_animator.IsInTransition(layerIndex))
+        {
+            AnimatorStateInfo nextState = _animator.GetNextAnimatorStateInfo(layerIndex);
+            return nextState.IsTag(_attackStateTag);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 공격 시작 시점의 타겟 좌표를 스냅샷으로 저장하고 발사 방향을 고정합니다.
+    /// </summary>
+    private bool TryLockAttackDirection()
+    {
+        Transform target = _targetDetector != null ? _targetDetector.CurrentTarget : null;
+        if (target == null)
+        {
+            _hasLockedAttackDirection = false;
+            return false;
+        }
+
+        Vector2 firePosition = (_firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position);
+        _lockedTargetPosition = target.position;
+        Vector2 lockedDirection = _lockedTargetPosition - firePosition;
+        if (lockedDirection.sqrMagnitude <= Mathf.Epsilon)
+        {
+            lockedDirection = Vector2.right;
+        }
+
+        _lockedAttackDirection = lockedDirection.normalized;
+        _hasLockedAttackDirection = true;
+        return true;
+    }
+
+    /// <summary>
+    /// 발사 이벤트 시점에 타겟을 재탐지하고, 실패하면 공격 시작 시점에 저장한 타겟 좌표를 대체 목표로 반환합니다.
+    /// </summary>
+    private bool TryResolveTargetPositionOnFire(out Vector2 targetPosition, out bool usedFallbackTargetPosition)
+    {
+        targetPosition = Vector2.zero;
+        usedFallbackTargetPosition = false;
+
+        TickTargetDetection();
+        Transform liveTarget = _targetDetector != null ? _targetDetector.CurrentTarget : null;
+        if (IsTargetValidForDetection(liveTarget))
+        {
+            targetPosition = liveTarget.position;
+            return true;
+        }
+
+        if (_hasLockedAttackDirection)
+        {
+            targetPosition = _lockedTargetPosition;
+            usedFallbackTargetPosition = true;
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -405,6 +582,8 @@ public class StationaryRangedEnemyController : MonoBehaviour
             _animator = GetComponentInChildren<Animator>();
         }
 
+        BindAnimationEventRelay();
+
         if (_healthAdapter == null)
         {
             _healthAdapter = GetComponent<EnemyHealthAdapter>();
@@ -438,6 +617,25 @@ public class StationaryRangedEnemyController : MonoBehaviour
                 Debug.LogWarning($"[StationaryRangedEnemyController] Could not find PooledProjectileSpawnService in scene on {name}. Please assign _projectileSpawnServiceSource.");
             }
         }
+    }
+
+    /// <summary>
+    /// Animator가 다른 오브젝트에 있어도 애니메이션 이벤트가 본 컨트롤러로 전달되도록 Relay를 연결합니다.
+    /// </summary>
+    private void BindAnimationEventRelay()
+    {
+        if (_animator == null)
+        {
+            return;
+        }
+
+        StationaryRangedEnemyAnimationEventRelay relay = _animator.GetComponent<StationaryRangedEnemyAnimationEventRelay>();
+        if (relay == null)
+        {
+            relay = _animator.gameObject.AddComponent<StationaryRangedEnemyAnimationEventRelay>();
+        }
+
+        relay.BindController(this);
     }
 
     /// <summary>
@@ -520,6 +718,18 @@ public class StationaryRangedEnemyController : MonoBehaviour
         {
             _dieTriggerParameter = "DieTrigger";
             Debug.LogWarning($"[StationaryRangedEnemyController] Die trigger parameter is empty on {name}. Auto corrected to DieTrigger.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_attackStateTag))
+        {
+            _attackStateTag = "Attack";
+            Debug.LogWarning($"[StationaryRangedEnemyController] Attack state tag is empty on {name}. Auto corrected to Attack.");
+        }
+
+        if (_attackAnimationLayerIndex < 0)
+        {
+            _attackAnimationLayerIndex = 0;
+            Debug.LogWarning($"[StationaryRangedEnemyController] Attack animation layer index must be >= 0 on {name}. Auto corrected to 0.");
         }
     }
 
