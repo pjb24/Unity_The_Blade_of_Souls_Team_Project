@@ -1,0 +1,516 @@
+fileFormatVersion: 2
+guid: fe885abb2874d734081ac2f5bf289931
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -232239599010538659
+    second: Boss1_Cultist_0
+  - first:
+      213: -4547971376649949075
+    second: Boss1_Cultist_1
+  - first:
+      213: -7767407791450542895
+    second: Boss1_Cultist_2
+  - first:
+      213: 2658297000310534913
+    second: Boss1_Cultist_3
+  - first:
+      213: -1366560698900400843
+    second: Boss1_Cultist_4
+  - first:
+      213: 5403706041456293102
+    second: Boss1_Cultist_5
+  - first:
+      213: -7981296033866041939
+    second: Boss1_Cultist_6
+  - first:
+      213: -7495967797943105825
+    second: Boss1_Cultist_7
+  - first:
+      213: 2382028500569239769
+    second: Boss1_Cultist_8
+  - first:
+      213: -7615902649515633519
+    second: Boss1_Cultist_9
+  - first:
+      213: 5590827232389628435
+    second: Boss1_Cultist_10
+  - first:
+      213: -5532652381107288669
+    second: Boss1_Cultist_11
+  - first:
+      213: -5402769851145447888
+    second: Boss1_Cultist_12
+  - first:
+      213: 1940867448761260311
+    second: Boss1_Cultist_13
+  - first:
+      213: -2227405214841926797
+    second: Boss1_Cultist_14
+  - first:
+      213: -6009757574976914039
+    second: Boss1_Cultist_15
+  - first:
+      213: -3576451897730773902
+    second: Boss1_Cultist_16
+  - first:
+      213: -9116698311582645520
+    second: Boss1_Cultist_17
+  - first:
+      213: 6810106312468029227
+    second: Boss1_Cultist_18
+  - first:
+      213: -4615876686283783188
+    second: Boss1_Cultist_19
+  - first:
+      213: -132366175437843406
+    second: Boss1_Cultist_20
+  - first:
+      213: 7098060481599065485
+    second: Boss1_Cultist_21
+  - first:
+      213: 9051531448249169191
+    second: Boss1_Cultist_22
+  - first:
+      213: 493227176126960346
+    second: Boss1_Cultist_23
+  - first:
+      213: -2243765132752334711
+    second: Boss1_Cultist_24
+  - first:
+      213: 5352072293318609195
+    second: Boss1_Cultist_25
+  - first:
+      213: -5531890217172012976
+    second: Boss1_Cultist_26
+  - first:
+      213: 3658211100825786242
+    second: Boss1_Cultist_27
+  - first:
+      213: 361982977425442624
+    second: Boss1_Cultist_28
+  - first:
+      213: -830932230403736695
+    second: Boss1_Cultist_29
+  - first:
+      213: -7449826299476153013
+    second: Boss1_Cultist_30
+  - first:
+      213: -7104647893800005887
+    second: Boss1_Cultist_31
+  - first:
+      213: 470363678621759481
+    second: Boss1_Cultist_32
+  - first:
+      213: 3937075092492790846
+    second: Boss1_Cultist_33
+  - first:
+      213: -8976802853397319429
+    second: Boss1_Cultist_34
+  - first:
+      213: -2811725770776937583
+    second: Boss1_Cultist_35
+  - first:
+      213: -1694007074151511353
+    second: Boss1_Cultist_36
+  - first:
+      213: 7368480606834649509
+    second: Boss1_Cultist_37
+  - first:
+      213: 5947468045569428852
+    second: Boss1_Cultist_38
+  - first:
+      213: -3864986182477533610
+    second: Boss1_Cultist_39
+  - first:
+      213: 907830818496859400
+    second: Boss1_Cultist_40
+  - first:
+      213: -8903296744379388176
+    second: Boss1_Cultist_41
+  - first:
+      213: -8179758352788077162
+    second: Boss1_Cultist_42
+  - first:
+      213: -6777587784229156471
+    second: Boss1_Cultist_43
+  - first:
+      213: 464559751964635534
+    second: Boss1_Cultist_44
+  - first:
+      213: 8924534367848278589
+    second: Boss1_Cultist_45
+  - first:
+      213: -7549599427751737995
+    second: Boss1_Cultist_46
+  - first:
+      213: -3966211065336899622
+    second: Boss1_Cultist_47
+  - first:
+      213: 3292044608323743617
+    second: Boss1_Cultist_48
+  - first:
+      213: 7356587169065077031
+    second: Boss1_Cultist_49
+  - first:
+      213: 7286692751383551452
+    second: Boss1_Cultist_50
+  - first:
+      213: 1368347817265952546
+    second: Boss1_Cultist_51
+  - first:
+      213: 2565483124370977172
+    second: Boss1_Cultist_52
+  - first:
+      213: -5312350682355989897
+    second: Boss1_Cultist_53
+  - first:
+      213: 6850749594511372075
+    second: Boss1_Cultist_54
+  - first:
+      213: 9184659771453236659
+    second: Boss1_Cultist_55
+  - first:
+      213: -8046690037878427517
+    second: Boss1_Cultist_56
+  - first:
+      213: 5146307794692567015
+    second: Boss1_Cultist_57
+  - first:
+      213: 6131556000463032685
+    second: Boss1_Cultist_58
+  - first:
+      213: -2072435110207361274
+    second: Boss1_Cultist_59
+  - first:
+      213: -8599619039944308732
+    second: Boss1_Cultist_60
+  - first:
+      213: 3010896390803563032
+    second: Boss1_Cultist_61
+  - first:
+      213: -3595292699472836893
+    second: Boss1_Cultist_62
+  - first:
+      213: 2281152717507537969
+    second: Boss1_Cultist_63
+  - first:
+      213: 654286734422813626
+    second: Boss1_Cultist_64
+  - first:
+      213: -7371189266857684452
+    second: Boss1_Cultist_65
+  - first:
+      213: 7425307217491818452
+    second: Boss1_Cultist_66
+  - first:
+      213: -1436416948755712219
+    second: Boss1_Cultist_67
+  - first:
+      213: 6788953522061349841
+    second: Boss1_Cultist_68
+  - first:
+      213: 8342176804409161392
+    second: Boss1_Cultist_69
+  - first:
+      213: 6297622005742113901
+    second: Boss1_Cultist_70
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Boss1_Cultist_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 561
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5b923ea05be6ccf0800000000000000
+      internalID: -232239599010538659
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_1
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 561
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d60b22e012c52e0c0800000000000000
+      internalID: -4547971376649949075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_2
+      rect:
+        serializedVersion: 2
+        x: 700
+        y: 561
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1dc2df464cf943490800000000000000
+      internalID: -7767407791450542895
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_3
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 561
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 103fefa990b24e420800000000000000
+      internalID: 2658297000310534913
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5353802e840090de0800000000000000
+      internalID: -1366560698900400843
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_5
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 0
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ee472afb302ddfa40800000000000000
+      internalID: 5403706041456293102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_6
+      rect:
+        serializedVersion: 2
+        x: 700
+        y: 0
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da53e2e3b8dbc3190800000000000000
+      internalID: -7981296033866041939
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Boss1_Cultist_7
+      rect:
+        serializedVersion: 2
+        x: 1050
+        y: 0
+        width: 350
+        height: 561
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd685dbc009f8f790800000000000000
+      internalID: -7495967797943105825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5cede8047a4fb4449b8f262514797888
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":4.0,"y":2.0},"gridSpriteSize":{"x":350.0,"y":561.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      Boss1_Cultist_0: -232239599010538659
+      Boss1_Cultist_1: -4547971376649949075
+      Boss1_Cultist_2: -7767407791450542895
+      Boss1_Cultist_3: 2658297000310534913
+      Boss1_Cultist_4: -1366560698900400843
+      Boss1_Cultist_5: 5403706041456293102
+      Boss1_Cultist_6: -7981296033866041939
+      Boss1_Cultist_7: -7495967797943105825
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
