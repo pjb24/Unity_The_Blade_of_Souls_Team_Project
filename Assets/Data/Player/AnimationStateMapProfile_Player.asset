@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 19cf6d8b129913342ba9f826950f9ae2, type: 3}
-  m_Name: TestAnimationStateMapProfile
+  m_Name: AnimationStateMapProfile_Player
   m_EditorClassIdentifier: Assembly-CSharp::AnimationStateMapProfile
   _stateMaps:
   - ActionType: 1
@@ -18,70 +18,38 @@ MonoBehaviour:
     LayerIndex: 0
     IsOneShot: 0
   - ActionType: 2
-    StateName: Run
+    StateName: Player_Move
     LayerIndex: 0
     IsOneShot: 0
   - ActionType: 3
-    StateName: TestJump
+    StateName: Player_Jump
     LayerIndex: 0
     IsOneShot: 1
   - ActionType: 4
-    StateName: TestLand
+    StateName: Player_Land
     LayerIndex: 0
     IsOneShot: 1
   - ActionType: 5
-    StateName: TestDash
+    StateName: Player_Dash
     LayerIndex: 0
     IsOneShot: 1
-  - ActionType: 6
-    StateName: TestFalling
-    LayerIndex: 0
-    IsOneShot: 0
   - ActionType: 7
-    StateName: TestWallSlide
+    StateName: Player_Wall_Slide
     LayerIndex: 0
     IsOneShot: 0
-  - ActionType: 8
-    StateName: TestWallJump
-    LayerIndex: 0
-    IsOneShot: 1
-  - ActionType: 9
-    StateName: TestSlide
-    LayerIndex: 0
-    IsOneShot: 0
-  - ActionType: 13
-    StateName: TestAttack
-    LayerIndex: 0
-    IsOneShot: 1
   - ActionType: 14
-    StateName: TestHit
+    StateName: Player_Hit
     LayerIndex: 0
     IsOneShot: 1
   - ActionType: 15
-    StateName: TestDie
+    StateName: Player_Die
     LayerIndex: 0
-    IsOneShot: 1
-  - ActionType: 10
-    StateName: TestIdleBreakA
-    LayerIndex: 0
-    IsOneShot: 1
-  - ActionType: 11
-    StateName: TestIdleBreakB
-    LayerIndex: 0
-    IsOneShot: 1
-  - ActionType: 12
-    StateName: TestIdleBreakC
-    LayerIndex: 0
-    IsOneShot: 1
+    IsOneShot: 0
   - ActionType: 22
-    StateName: TestIdleBreakA
+    StateName: Player_Attack_1
     LayerIndex: 0
     IsOneShot: 1
   - ActionType: 23
-    StateName: TestSlide
-    LayerIndex: 0
-    IsOneShot: 1
-  - ActionType: 24
-    StateName: TestJump
+    StateName: Player_Attack_2
     LayerIndex: 0
     IsOneShot: 1

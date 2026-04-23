@@ -111,7 +111,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0.1562692, y: -0.42415994}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -121,7 +121,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.85, y: 2}
+  m_Size: {x: 1.6090224, y: 4.3365974}
   m_EdgeRadius: 0
 --- !u!114 &1249389477860502122
 MonoBehaviour:
@@ -214,6 +214,10 @@ MonoBehaviour:
   _verboseLogging: 1
   _ownerClientId: 0
   _isNetworkSpawned: 0
+  _alignClientOwnerOnLocalSpawn: 1
+  _clientAlignRetryCount: 20
+  _clientAlignRetryInterval: 0.1
+  _realignOwnerOnSceneLoaded: 1
 --- !u!114 &5803603064675024090
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -294,7 +298,7 @@ MonoBehaviour:
   _enableActionStateSync: 1
   _actionStateSendInterval: 0.033
   _replicateAllActionTypes: 1
-  _additionalReplicatedActions: 0d0000001600000017000000180000001d0000001e0000001f000000
+  _additionalReplicatedActions: 1600000017000000
   _warnMissingActionController: 1
   _enableFacingDirectionSync: 1
   _facingDirectionSendInterval: 0.05
@@ -621,6 +625,10 @@ PrefabInstance:
       propertyPath: _actionController
       value: 
       objectReference: {fileID: 126503336672774226}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _actionMaps.Array.size
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2904827519901548356, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -760,6 +768,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6731959234957534330}
     m_Modifications:
+    - target: {fileID: 2810271321016041438, guid: e8724c814373fff4097368dee9de6678, type: 3}
+      propertyPath: _hitReceiver
+      value: 
+      objectReference: {fileID: 6974837436053950746}
     - target: {fileID: 4391109432192289971, guid: e8724c814373fff4097368dee9de6678, type: 3}
       propertyPath: m_Name
       value: --- Player_VFX_Emitter ---

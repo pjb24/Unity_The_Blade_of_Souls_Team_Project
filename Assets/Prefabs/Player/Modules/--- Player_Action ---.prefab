@@ -48,7 +48,7 @@ Animator:
   m_GameObject: {fileID: 8950158379528443017}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 2549a7cb0ad2a0b40bc5d46f8a362b3e, type: 2}
+  m_Controller: {fileID: 9100000, guid: 1ba941b56fdb1ee4ab28aa57b59c0cee, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -89,7 +89,7 @@ MonoBehaviour:
   _autoStartDefaultAction: 1
   _defaultActionType: 1
   _actionRuleProfile: {fileID: 11400000, guid: 8293c9662c365364abaac593afeb75ca, type: 2}
-  _interruptPolicyProfile: {fileID: 11400000, guid: 976730be0bd8f884cabdc35694bbd0df, type: 2}
+  _interruptPolicyProfile: {fileID: 11400000, guid: 8d15b0a49a1b0a44da0aaf02297260a5, type: 2}
   _ignoreMarkerEndActions: 03000000040000000500000006000000070000000800000009000000
 --- !u!114 &7944331432045131538
 MonoBehaviour:
@@ -105,7 +105,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActionAnimationPresenter
   _actionController: {fileID: 6523384298162873578}
   _animator: {fileID: 2296496678976890849}
-  _stateMapProfile: {fileID: 11400000, guid: 03c99499c56a2124a91c6f9d256baa0e, type: 2}
+  _stateMapProfile: {fileID: 11400000, guid: b34c110ac811d5944af84ae3df3c28cb, type: 2}
   _playDefaultOnActionEnd: 1
   _defaultPresentationAction: 1
   _skipDefaultOnEndActions: 
@@ -168,7 +168,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 951963981, guid: 00d4410ab06c91e44a06cb1c4b2ad7fa, type: 3}
+  m_Sprite: {fileID: -6904695267742895399, guid: b460e905236970444b292d3f4e88e460, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -204,6 +204,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActionHitBridge
   _hitReceiver: {fileID: 0}
   _actionController: {fileID: 6523384298162873578}
-  _hitBridgeProfile: {fileID: 11400000, guid: c92af34bda017414bae2a11749e8be4a, type: 2}
+  _hitBridgeProfile: {fileID: 11400000, guid: 395ae8a9b5041ca4081df3da1832b540, type: 2}
   _retryInterval: 0.1
   _maxRetryCount: 30

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a77fd995f9cba9b4d85188b41d35a35e, type: 3}
+  m_Name: EffectCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::EffectCatalog
+  _definitions:
+  - {fileID: 11400000, guid: a0c7ce283c974714aa86f2de0e0b9ed7, type: 2}
+  - {fileID: 11400000, guid: 9ff3c6da86aa6be40b99d75726b2ae4f, type: 2}
+  - {fileID: 11400000, guid: fc757dd644928b84bba7afc600d39683, type: 2}
+  - {fileID: 11400000, guid: e4f96cb6510d4634bbfc7b894c2dc521, type: 2}
+  - {fileID: 11400000, guid: 7b304b2f68b14c14c928c9b0a3d71c0b, type: 2}
+  - {fileID: 11400000, guid: df1c7b464fb79de448b4b0f98c2fe06d, type: 2}

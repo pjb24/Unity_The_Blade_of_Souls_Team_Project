@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AS_AttackB
   m_EditorClassIdentifier: Assembly-CSharp::AttackSpec
   _attackTypeId: AttackB
-  _baseDamage: 14
+  _baseDamage: 100
   _areaType: 1
   _localOffset: {x: 1.5, y: 0}
   _radius: 1.5
@@ -23,6 +23,6 @@ MonoBehaviour:
     m_Bits: 256
   _requireTargetTag: 0
   _targetTag: Enemy
-  _maxTargets: 3
+  _maxTargets: 1
   _statusTag: AttackB
   _allowMultiHitPerSwing: 0

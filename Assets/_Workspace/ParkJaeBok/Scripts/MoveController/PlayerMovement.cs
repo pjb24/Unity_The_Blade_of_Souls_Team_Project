@@ -29,6 +29,7 @@ public class PlayerMovement : MonoBehaviour
     public MovementController Controller { get; private set; }
     // 현재 프레임에서 계산된 최종 속도 벡터이다.
     [HideInInspector] public Vector2 Velocity;
+    public Vector2 MoveInput => _moveInput;
 
     //input
     // 매 프레임 수집한 이동 입력값으로, 가속 계산과 방향 전환 판정의 원본 데이터이다.
