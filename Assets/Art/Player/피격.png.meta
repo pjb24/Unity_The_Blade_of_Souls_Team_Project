@@ -169,7 +169,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uD53C\uACA9_0"
+      name: "\uD53C\uACA9_005"
       rect:
         serializedVersion: 2
         x: 0
@@ -177,7 +177,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.57515293, y: 0.6048834}
+      pivot: {x: 0.3948544, y: 0.5756751}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -191,7 +191,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_1"
+      name: "\uD53C\uACA9_004"
       rect:
         serializedVersion: 2
         x: 476
@@ -199,7 +199,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.57552457, y: 0.6048837}
+      pivot: {x: 0.40841842, y: 0.5221279}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -213,7 +213,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_2"
+      name: "\uD53C\uACA9_003"
       rect:
         serializedVersion: 2
         x: 952
@@ -221,7 +221,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.58057976, y: 0.6048834}
+      pivot: {x: 0.3914859, y: 0.5269954}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -235,7 +235,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_3"
+      name: "\uD53C\uACA9_002"
       rect:
         serializedVersion: 2
         x: 1428
@@ -243,7 +243,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.57926387, y: 0.6053447}
+      pivot: {x: 0.42095256, y: 0.51772094}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -257,7 +257,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_4"
+      name: "\uD53C\uACA9_001"
       rect:
         serializedVersion: 2
         x: 1904
@@ -265,7 +265,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.582856, y: 0.6052473}
+      pivot: {x: 0.41135183, y: 0.51762354}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -279,7 +279,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_5"
+      name: "\uD53C\uACA9_000"
       rect:
         serializedVersion: 2
         x: 2380
@@ -287,7 +287,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.59358793, y: 0.6027971}
+      pivot: {x: 0.42208377, y: 0.5151733}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -301,7 +301,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_6"
+      name: "\uD53C\uACA9_011"
       rect:
         serializedVersion: 2
         x: 0
@@ -309,7 +309,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.607244, y: 0.60355085}
+      pivot: {x: 0.37417525, y: 0.53539896}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -323,7 +323,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_7"
+      name: "\uD53C\uACA9_010"
       rect:
         serializedVersion: 2
         x: 476
@@ -331,7 +331,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.6345225, y: 0.59851414}
+      pivot: {x: 0.34868333, y: 0.5254942}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -345,7 +345,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_8"
+      name: "\uD53C\uACA9_009"
       rect:
         serializedVersion: 2
         x: 952
@@ -353,7 +353,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.63839185, y: 0.59851414}
+      pivot: {x: 0.34375745, y: 0.51575845}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -367,15 +367,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_9"
+      name: "\uD53C\uACA9_008"
       rect:
         serializedVersion: 2
         x: 1428
-        y: 860
+        y: 862
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.65193444, y: 0.59637254}
+      pivot: {x: 0.35290244, y: 0.51848483}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -389,7 +389,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_10"
+      name: "\uD53C\uACA9_007"
       rect:
         serializedVersion: 2
         x: 1904
@@ -397,7 +397,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.6538691, y: 0.6006558}
+      pivot: {x: 0.36802918, y: 0.5032962}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -411,7 +411,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_11"
+      name: "\uD53C\uACA9_006"
       rect:
         serializedVersion: 2
         x: 2380
@@ -419,7 +419,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.6341958, y: 0.5942309}
+      pivot: {x: 0.39233142, y: 0.5309471}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -433,7 +433,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_12"
+      name: "\uD53C\uACA9_017"
       rect:
         serializedVersion: 2
         x: 0
@@ -441,7 +441,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.62212604, y: 0.59884405}
+      pivot: {x: 0.45062262, y: 0.5063525}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -455,15 +455,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_13"
+      name: "\uD53C\uACA9_016"
       rect:
         serializedVersion: 2
-        x: 476
+        x: 478
         y: 430
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.59511817, y: 0.5847235}
+      pivot: {x: 0.44560215, y: 0.51657176}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -477,7 +477,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_14"
+      name: "\uD53C\uACA9_015"
       rect:
         serializedVersion: 2
         x: 952
@@ -485,7 +485,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.5757482, y: 0.5823699}
+      pivot: {x: 0.42183447, y: 0.51908624}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -499,7 +499,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_15"
+      name: "\uD53C\uACA9_014"
       rect:
         serializedVersion: 2
         x: 1428
@@ -507,7 +507,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.5593703, y: 0.56824934}
+      pivot: {x: 0.4186491, y: 0.51956946}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -521,7 +521,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_16"
+      name: "\uD53C\uACA9_013"
       rect:
         serializedVersion: 2
         x: 1904
@@ -529,7 +529,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.5472443, y: 0.5706029}
+      pivot: {x: 0.38013825, y: 0.53165907}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -543,15 +543,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_17"
+      name: "\uD53C\uACA9_012"
       rect:
         serializedVersion: 2
         x: 2380
-        y: 430
+        y: 432
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.53299284, y: 0.565896}
+      pivot: {x: 0.3790786, y: 0.5464239}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -565,7 +565,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_18"
+      name: "\uD53C\uACA9_023"
       rect:
         serializedVersion: 2
         x: 0
@@ -573,7 +573,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.51385814, y: 0.56824934}
+      pivot: {x: 0.37753484, y: 0.5195695}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -587,7 +587,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_19"
+      name: "\uD53C\uACA9_022"
       rect:
         serializedVersion: 2
         x: 476
@@ -595,7 +595,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.5287401, y: 0.5706027}
+      pivot: {x: 0.41000688, y: 0.51705503}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -609,7 +609,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_20"
+      name: "\uD53C\uACA9_021"
       rect:
         serializedVersion: 2
         x: 952
@@ -617,7 +617,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.5387404, y: 0.58001643}
+      pivot: {x: 0.42440438, y: 0.50699705}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -631,7 +631,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_21"
+      name: "\uD53C\uACA9_020"
       rect:
         serializedVersion: 2
         x: 1428
@@ -639,7 +639,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.55448824, y: 0.58001643}
+      pivot: {x: 0.41816494, y: 0.48752522}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -653,7 +653,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_22"
+      name: "\uD53C\uACA9_019"
       rect:
         serializedVersion: 2
         x: 1904
@@ -661,7 +661,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.56236255, y: 0.58001643}
+      pivot: {x: 0.43483394, y: 0.5021291}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -675,7 +675,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uD53C\uACA9_23"
+      name: "\uD53C\uACA9_018"
       rect:
         serializedVersion: 2
         x: 2380
@@ -683,7 +683,7 @@ TextureImporter:
         width: 476
         height: 430
       alignment: 9
-      pivot: {x: 0.5923626, y: 0.5870767}
+      pivot: {x: 0.44284597, y: 0.51405716}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -712,30 +712,30 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":6.0,"y":4.0},"gridSpriteSize":{"x":476.0,"y":430.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      "\uD53C\uACA9_0": -6904695267742895399
-      "\uD53C\uACA9_1": 8477032759218521772
-      "\uD53C\uACA9_10": 7819995274705543111
-      "\uD53C\uACA9_11": 1936088092243949602
-      "\uD53C\uACA9_12": -6391834321399120902
-      "\uD53C\uACA9_13": 5571991005446709145
-      "\uD53C\uACA9_14": -631334075231641713
-      "\uD53C\uACA9_15": -6597117638356255607
-      "\uD53C\uACA9_16": 435159798223481018
-      "\uD53C\uACA9_17": 6996947720772877504
-      "\uD53C\uACA9_18": 6991646200820288735
-      "\uD53C\uACA9_19": -8901862183585482940
-      "\uD53C\uACA9_2": 6616272056836668617
-      "\uD53C\uACA9_20": -5362222129137482845
-      "\uD53C\uACA9_21": -8822331905377094952
-      "\uD53C\uACA9_22": -8899190640833160919
-      "\uD53C\uACA9_23": -1407900129314632818
-      "\uD53C\uACA9_3": -2791213124827643579
-      "\uD53C\uACA9_4": -1883828020273966051
-      "\uD53C\uACA9_5": 2037106258338197286
-      "\uD53C\uACA9_6": -6608953304564886393
-      "\uD53C\uACA9_7": 1430415264834205091
-      "\uD53C\uACA9_8": 5000241121604503218
-      "\uD53C\uACA9_9": -8890393625980260165
+      "\uD53C\uACA9_000": 2037106258338197286
+      "\uD53C\uACA9_001": -1883828020273966051
+      "\uD53C\uACA9_002": -2791213124827643579
+      "\uD53C\uACA9_003": 6616272056836668617
+      "\uD53C\uACA9_004": 8477032759218521772
+      "\uD53C\uACA9_005": -6904695267742895399
+      "\uD53C\uACA9_006": 1936088092243949602
+      "\uD53C\uACA9_007": 7819995274705543111
+      "\uD53C\uACA9_008": -8890393625980260165
+      "\uD53C\uACA9_009": 5000241121604503218
+      "\uD53C\uACA9_010": 1430415264834205091
+      "\uD53C\uACA9_011": -6608953304564886393
+      "\uD53C\uACA9_012": 6996947720772877504
+      "\uD53C\uACA9_013": 435159798223481018
+      "\uD53C\uACA9_014": -6597117638356255607
+      "\uD53C\uACA9_015": -631334075231641713
+      "\uD53C\uACA9_016": 5571991005446709145
+      "\uD53C\uACA9_017": -6391834321399120902
+      "\uD53C\uACA9_018": -1407900129314632818
+      "\uD53C\uACA9_019": -8899190640833160919
+      "\uD53C\uACA9_020": -8822331905377094952
+      "\uD53C\uACA9_021": -5362222129137482845
+      "\uD53C\uACA9_022": -8901862183585482940
+      "\uD53C\uACA9_023": 6991646200820288735
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

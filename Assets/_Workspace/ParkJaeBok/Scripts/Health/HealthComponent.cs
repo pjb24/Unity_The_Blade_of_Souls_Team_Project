@@ -10,6 +10,9 @@ public class HealthComponent : MonoBehaviour
     [SerializeField] private float _initialCurrentHealth = 100f; // 시작 현재 체력 값
     [SerializeField] private bool _allowHealWhenDead = false; // 사망 중 회복 허용 여부
 
+    [Header("Debug")]
+    [SerializeField] private float _debugCurrentHealth = 0f;
+
     private HealthCore _healthCore; // 내부 체력 코어 인스턴스
 
     /// <summary>
@@ -41,6 +44,8 @@ public class HealthComponent : MonoBehaviour
         }
 
         _healthCore = new HealthCore(safeMaxHealth, safeCurrentHealth, _allowHealWhenDead);
+
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
     }
 
     /// <summary>
@@ -100,7 +105,11 @@ public class HealthComponent : MonoBehaviour
             return new DamageResult(0f, 0f, 0f, true, true, false, true);
         }
 
-        return _healthCore.ApplyDamage(context);
+        DamageResult result = _healthCore.ApplyDamage(context);
+
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
+
+        return result;
     }
 
     /// <summary>
@@ -114,7 +123,11 @@ public class HealthComponent : MonoBehaviour
             return new HealResult(0f, 0f, 0f, true, true, false, true);
         }
 
-        return _healthCore.ApplyHeal(context);
+        HealResult result = _healthCore.ApplyHeal(context);
+
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
+
+        return result;
     }
 
     /// <summary>

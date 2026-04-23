@@ -187,7 +187,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uC810\uD504_0"
+      name: "\uC810\uD504_005"
       rect:
         serializedVersion: 2
         x: 0
@@ -195,7 +195,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.561058, y: 0.547652}
+      pivot: {x: 0.44991282, y: 0.38938493}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -209,7 +209,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_1"
+      name: "\uC810\uD504_004"
       rect:
         serializedVersion: 2
         x: 564
@@ -217,7 +217,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.55151755, y: 0.5258113}
+      pivot: {x: 0.44037232, y: 0.3858057}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -231,7 +231,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_2"
+      name: "\uC810\uD504_003"
       rect:
         serializedVersion: 2
         x: 1128
@@ -239,7 +239,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.54770136, y: 0.50992733}
+      pivot: {x: 0.4365559, y: 0.45514253}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -253,7 +253,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_3"
+      name: "\uC810\uD504_002"
       rect:
         serializedVersion: 2
         x: 1692
@@ -261,7 +261,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5496095, y: 0.48213044}
+      pivot: {x: 0.43846357, y: 0.48213044}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -275,7 +275,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_4"
+      name: "\uC810\uD504_001"
       rect:
         serializedVersion: 2
         x: 2256
@@ -283,7 +283,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5381613, y: 0.39079663}
+      pivot: {x: 0.4211664, y: 0.4942789}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -297,7 +297,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_5"
+      name: "\uC810\uD504_000"
       rect:
         serializedVersion: 2
         x: 2820
@@ -305,7 +305,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5400689, y: 0.37292707}
+      pivot: {x: 0.42307407, y: 0.51293224}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -319,7 +319,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_6"
+      name: "\uC810\uD504_011"
       rect:
         serializedVersion: 2
         x: 0
@@ -327,7 +327,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.532437, y: 0.37292728}
+      pivot: {x: 0.43299124, y: 0.53119415}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -341,7 +341,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_7"
+      name: "\uC810\uD504_010"
       rect:
         serializedVersion: 2
         x: 564
@@ -349,7 +349,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.53434503, y: 0.3669706}
+      pivot: {x: 0.4465988, y: 0.48262727}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -363,7 +363,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_8"
+      name: "\uC810\uD504_009"
       rect:
         serializedVersion: 2
         x: 1128
@@ -371,7 +371,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5419772, y: 0.37888372}
+      pivot: {x: 0.454231, y: 0.36670935}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -385,7 +385,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_9"
+      name: "\uC810\uD504_008"
       rect:
         serializedVersion: 2
         x: 1692
@@ -393,7 +393,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.53816104, y: 0.39873886}
+      pivot: {x: 0.4445647, y: 0.36830303}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -407,7 +407,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_10"
+      name: "\uC810\uD504_007"
       rect:
         serializedVersion: 2
         x: 2256
@@ -415,7 +415,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5496095, y: 0.5416956}
+      pivot: {x: 0.45601314, y: 0.37125412}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -429,7 +429,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_11"
+      name: "\uC810\uD504_006"
       rect:
         serializedVersion: 2
         x: 2820
@@ -437,7 +437,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5648739, y: 0.6032465}
+      pivot: {x: 0.47127798, y: 0.3962819}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -451,7 +451,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_12"
+      name: "\uC810\uD504_017"
       rect:
         serializedVersion: 2
         x: 0
@@ -459,7 +459,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.56296605, y: 0.6628118}
+      pivot: {x: 0.4108726, y: 0.65063745}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -473,7 +473,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_13"
+      name: "\uC810\uD504_016"
       rect:
         serializedVersion: 2
         x: 564
@@ -481,7 +481,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.562966, y: 0.6727394}
+      pivot: {x: 0.43427163, y: 0.65447795}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -495,7 +495,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_14"
+      name: "\uC810\uD504_015"
       rect:
         serializedVersion: 2
         x: 1128
@@ -503,7 +503,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5648739, y: 0.6866379}
+      pivot: {x: 0.43032968, y: 0.6501147}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -517,7 +517,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_15"
+      name: "\uC810\uD504_014"
       rect:
         serializedVersion: 2
         x: 1692
@@ -525,7 +525,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5648739, y: 0.6886234}
+      pivot: {x: 0.41863018, y: 0.67036176}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -539,7 +539,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_16"
+      name: "\uC810\uD504_013"
       rect:
         serializedVersion: 2
         x: 2256
@@ -547,7 +547,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5705982, y: 0.6925945}
+      pivot: {x: 0.4243545, y: 0.61954826}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -561,7 +561,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_17"
+      name: "\uC810\uD504_012"
       rect:
         serializedVersion: 2
         x: 2820
@@ -569,7 +569,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.566782, y: 0.6925945}
+      pivot: {x: 0.41468844, y: 0.63780975}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -583,7 +583,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_18"
+      name: "\uC810\uD504_023"
       rect:
         serializedVersion: 2
         x: 0
@@ -591,7 +591,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5648741, y: 0.68266696}
+      pivot: {x: 0.44202936, y: 0.46961543}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -605,7 +605,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_19"
+      name: "\uC810\uD504_022"
       rect:
         serializedVersion: 2
         x: 564
@@ -613,7 +613,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5705982, y: 0.66678286}
+      pivot: {x: 0.436054, y: 0.53286475}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -627,7 +627,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_20"
+      name: "\uC810\uD504_021"
       rect:
         serializedVersion: 2
         x: 1128
@@ -635,7 +635,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5591498, y: 0.6409713}
+      pivot: {x: 0.42460558, y: 0.57401234}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -649,7 +649,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_21"
+      name: "\uC810\uD504_020"
       rect:
         serializedVersion: 2
         x: 1692
@@ -657,7 +657,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5572417, y: 0.59927547}
+      pivot: {x: 0.44609642, y: 0.617537}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -671,7 +671,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_22"
+      name: "\uC810\uD504_019"
       rect:
         serializedVersion: 2
         x: 2256
@@ -679,7 +679,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5553338, y: 0.5615508}
+      pivot: {x: 0.42078936, y: 0.64677143}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -693,7 +693,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_23"
+      name: "\uC810\uD504_018"
       rect:
         serializedVersion: 2
         x: 2820
@@ -701,7 +701,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.54770136, y: 0.49801445}
+      pivot: {x: 0.4073071, y: 0.65628153}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -715,7 +715,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_24"
+      name: "\uC810\uD504_029"
       rect:
         serializedVersion: 2
         x: 0
@@ -723,7 +723,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.54197735, y: 0.4265362}
+      pivot: {x: 0.44838145, y: 0.3778389}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -737,7 +737,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_25"
+      name: "\uC810\uD504_028"
       rect:
         serializedVersion: 2
         x: 564
@@ -745,7 +745,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.53434503, y: 0.39476803}
+      pivot: {x: 0.45244852, y: 0.3643322}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -759,7 +759,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_26"
+      name: "\uC810\uD504_027"
       rect:
         serializedVersion: 2
         x: 1128
@@ -767,7 +767,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5419772, y: 0.37888396}
+      pivot: {x: 0.454231, y: 0.3606224}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -781,7 +781,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_27"
+      name: "\uC810\uD504_026"
       rect:
         serializedVersion: 2
         x: 1692
@@ -789,7 +789,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.53816104, y: 0.37292743}
+      pivot: {x: 0.4445647, y: 0.34857884}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -803,15 +803,15 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_28"
+      name: "\uC810\uD504_025"
       rect:
         serializedVersion: 2
-        x: 2256
+        x: 2259
         y: 1
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.5438852, y: 0.37491292}
+      pivot: {x: 0.45613822, y: 0.38708743}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -825,7 +825,7 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "\uC810\uD504_29"
+      name: "\uC810\uD504_024"
       rect:
         serializedVersion: 2
         x: 2820
@@ -833,7 +833,7 @@ TextureImporter:
         width: 564
         height: 542
       alignment: 9
-      pivot: {x: 0.54770136, y: 0.4106521}
+      pivot: {x: 0.44825518, y: 0.41673946}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -862,36 +862,36 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":6.0,"y":5.0},"gridSpriteSize":{"x":564.0,"y":542.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      "\uC810\uD504_0": -5992330308029668325
-      "\uC810\uD504_1": -1604284588361098461
-      "\uC810\uD504_10": -4603970745706394895
-      "\uC810\uD504_11": -2003533388209750893
-      "\uC810\uD504_12": -9210247284018274318
-      "\uC810\uD504_13": 5264171364207075881
-      "\uC810\uD504_14": 3278684084493771110
-      "\uC810\uD504_15": 785317494796089712
-      "\uC810\uD504_16": -1401972803046774724
-      "\uC810\uD504_17": -8357667642604590971
-      "\uC810\uD504_18": 1002158162682041240
-      "\uC810\uD504_19": -6694087570468444657
-      "\uC810\uD504_2": 4453741185248825560
-      "\uC810\uD504_20": 2734080948073578848
-      "\uC810\uD504_21": 8620655318168596396
-      "\uC810\uD504_22": -8822394900331059149
-      "\uC810\uD504_23": 8841963405417249407
-      "\uC810\uD504_24": 6030038297958219386
-      "\uC810\uD504_25": -8648484468688040021
-      "\uC810\uD504_26": 7108933477838600298
-      "\uC810\uD504_27": 1986884822552607795
-      "\uC810\uD504_28": 699110247868683415
-      "\uC810\uD504_29": 4713193607236862981
-      "\uC810\uD504_3": 2051189405793304390
-      "\uC810\uD504_4": -4962264618037893694
-      "\uC810\uD504_5": 2110447596101002100
-      "\uC810\uD504_6": 6895239442144241958
-      "\uC810\uD504_7": 8495314184946157179
-      "\uC810\uD504_8": 1541104212116554981
-      "\uC810\uD504_9": 9044920198540931763
+      "\uC810\uD504_000": 2110447596101002100
+      "\uC810\uD504_001": -4962264618037893694
+      "\uC810\uD504_002": 2051189405793304390
+      "\uC810\uD504_003": 4453741185248825560
+      "\uC810\uD504_004": -1604284588361098461
+      "\uC810\uD504_005": -5992330308029668325
+      "\uC810\uD504_006": -2003533388209750893
+      "\uC810\uD504_007": -4603970745706394895
+      "\uC810\uD504_008": 9044920198540931763
+      "\uC810\uD504_009": 1541104212116554981
+      "\uC810\uD504_010": 8495314184946157179
+      "\uC810\uD504_011": 6895239442144241958
+      "\uC810\uD504_012": -8357667642604590971
+      "\uC810\uD504_013": -1401972803046774724
+      "\uC810\uD504_014": 785317494796089712
+      "\uC810\uD504_015": 3278684084493771110
+      "\uC810\uD504_016": 5264171364207075881
+      "\uC810\uD504_017": -9210247284018274318
+      "\uC810\uD504_018": 8841963405417249407
+      "\uC810\uD504_019": -8822394900331059149
+      "\uC810\uD504_020": 8620655318168596396
+      "\uC810\uD504_021": 2734080948073578848
+      "\uC810\uD504_022": -6694087570468444657
+      "\uC810\uD504_023": 1002158162682041240
+      "\uC810\uD504_024": 4713193607236862981
+      "\uC810\uD504_025": 699110247868683415
+      "\uC810\uD504_026": 1986884822552607795
+      "\uC810\uD504_027": 7108933477838600298
+      "\uC810\uD504_028": -8648484468688040021
+      "\uC810\uD504_029": 6030038297958219386
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

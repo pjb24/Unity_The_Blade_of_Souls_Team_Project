@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 170
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -103,12 +103,12 @@ TextureImporter:
       name: "\uBCBD\uC5D0\uBD99\uC740\uAC70_0"
       rect:
         serializedVersion: 2
-        x: 204
-        y: 140
-        width: 490
-        height: 720
+        x: 267
+        y: 141
+        width: 487
+        height: 718
       alignment: 9
-      pivot: {x: 0.49475452, y: 0.5749665}
+      pivot: {x: 0.5184722, y: 0.5769653}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -133,7 +133,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       "\uBCBD\uC5D0\uBD99\uC740\uAC70_0": -7828667251242269622
   mipmapLimitGroupName: 
