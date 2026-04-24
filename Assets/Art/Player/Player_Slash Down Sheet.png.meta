@@ -66,7 +66,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 125
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -128,133 +128,133 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: 272532d417f34236_0
+      name: Player_Slash Down Sheet_05
       rect:
         serializedVersion: 2
-        x: 25
-        y: 69
-        width: 429
-        height: 510
+        x: 61
+        y: 26
+        width: 386
+        height: 487
       alignment: 9
-      pivot: {x: 0.669383, y: 0.021881912}
+      pivot: {x: 0.64763314, y: 0.11415526}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: 3c7f98a77b0484490800000000000000
-      internalID: -7761882800993994813
+      spriteID: 5ad28248b3c7ec34797242fd98544c39
+      internalID: 281947848
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: 272532d417f34236_1
+      name: Player_Slash Down Sheet_04
       rect:
         serializedVersion: 2
-        x: 535
-        y: 67
-        width: 518
-        height: 504
-      alignment: 9
-      pivot: {x: 0.6808653, y: 0.024825852}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 5513cd846e92ea1e0800000000000000
-      internalID: -2184762700186504875
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: 272532d417f34236_2
-      rect:
-        serializedVersion: 2
-        x: 1152
-        y: 66
-        width: 361
-        height: 538
-      alignment: 9
-      pivot: {x: 0.5075132, y: 0.032224067}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 22928e82f1f2f81a0800000000000000
-      internalID: -6805168701056734942
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: 272532d417f34236_3
-      rect:
-        serializedVersion: 2
-        x: 1600
-        y: 68
-        width: 531
-        height: 462
-      alignment: 9
-      pivot: {x: 0.58786833, y: 0.029480724}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: cee801b9f840ae3b0800000000000000
-      internalID: -5482564581541769492
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: 272532d417f34236_4
-      rect:
-        serializedVersion: 2
-        x: 2161
-        y: 70
+        x: 589
+        y: 71
         width: 428
         height: 464
       alignment: 9
-      pivot: {x: 0.5297447, y: 0.024320569}
+      pivot: {x: 0.5460371, y: 0.01703634}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: ee724fd87deee7fe0800000000000000
-      internalID: -1189250642012264466
+      spriteID: a69a003feab988a4b84b1350fba40dd1
+      internalID: 1865018836
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: 272532d417f34236_5
+      name: Player_Slash Down Sheet_03
       rect:
         serializedVersion: 2
-        x: 2732
-        y: 28
-        width: 384
-        height: 487
+        x: 1070
+        y: 70
+        width: 507
+        height: 463
       alignment: 9
-      pivot: {x: 0.4235522, y: 0.10734716}
+      pivot: {x: 0.46425653, y: 0.021479942}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: -1
+      tessellationDetail: 0
       bones: []
-      spriteID: ad3ae1b1cc0b3c580800000000000000
-      internalID: -8808002055531748390
+      spriteID: 2c92d78846e1c3a46a63616240da0a38
+      internalID: 439004676
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Player_Slash Down Sheet_02
+      rect:
+        serializedVersion: 2
+        x: 1664
+        y: 68
+        width: 362
+        height: 538
+      alignment: 9
+      pivot: {x: 0.5713676, y: 0.01888885}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b335f787cbe814141a1124efe926b0c0
+      internalID: -414506864
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Player_Slash Down Sheet_01
+      rect:
+        serializedVersion: 2
+        x: 2124
+        y: 69
+        width: 519
+        height: 503
+      alignment: 9
+      pivot: {x: 0.38890755, y: 0.017166214}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fd4f8b71b81e620459dc6c15d34d4f6c
+      internalID: 1222983860
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Player_Slash Down Sheet_00
+      rect:
+        serializedVersion: 2
+        x: 2724
+        y: 68
+        width: 431
+        height: 512
+      alignment: 9
+      pivot: {x: 0.3264585, y: 0.017604023}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 120d2285608091a45bdc83b667bfbd54
+      internalID: 1169338148
       vertices: []
       indices: 
       edges: []
@@ -271,14 +271,18 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      272532d417f34236_0: -7761882800993994813
-      272532d417f34236_1: -2184762700186504875
-      272532d417f34236_2: -6805168701056734942
-      272532d417f34236_3: -5482564581541769492
-      272532d417f34236_4: -1189250642012264466
-      272532d417f34236_5: -8808002055531748390
+      0: 1169338148
+      Player_Slash Down Sheet_00: 1169338148
+      Player_Slash Down Sheet_01: 1222983860
+      Player_Slash Down Sheet_02: -414506864
+      Player_Slash Down Sheet_03: 439004676
+      Player_Slash Down Sheet_04: 1865018836
+      Player_Slash Down Sheet_05: 281947848
+      Player_Slash Down Sheet_2: 1179914510
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
