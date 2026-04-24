@@ -45,33 +45,39 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SfxOrchestrator
   _rules:
-  - _eventType: 100
+  - _eventType: 200
     _subTypeKey: 
-    _soundId: 2000
+    _soundId: 2010
     _globalMinInterval: 0
     _perEmitterMinInterval: 0
     _maxRequestsPerSecond: 0
-  - _eventType: 101
+  - _eventType: 201
+    _subTypeKey: 
+    _soundId: 2012
+    _globalMinInterval: 0
+    _perEmitterMinInterval: 0
+    _maxRequestsPerSecond: 0
+  - _eventType: 202
+    _subTypeKey: 
+    _soundId: 2011
+    _globalMinInterval: 0
+    _perEmitterMinInterval: 0
+    _maxRequestsPerSecond: 0
+  - _eventType: 203
+    _subTypeKey: 
+    _soundId: 2009
+    _globalMinInterval: 0
+    _perEmitterMinInterval: 0
+    _maxRequestsPerSecond: 0
+  - _eventType: 204
+    _subTypeKey: 
+    _soundId: 2013
+    _globalMinInterval: 0
+    _perEmitterMinInterval: 0
+    _maxRequestsPerSecond: 0
+  - _eventType: 300
     _subTypeKey: 
     _soundId: 2001
-    _globalMinInterval: 0
-    _perEmitterMinInterval: 0
-    _maxRequestsPerSecond: 0
-  - _eventType: 102
-    _subTypeKey: 
-    _soundId: 2002
-    _globalMinInterval: 0
-    _perEmitterMinInterval: 0
-    _maxRequestsPerSecond: 0
-  - _eventType: 103
-    _subTypeKey: 
-    _soundId: 2003
-    _globalMinInterval: 0
-    _perEmitterMinInterval: 0
-    _maxRequestsPerSecond: 0
-  - _eventType: 105
-    _subTypeKey: 
-    _soundId: 2004
     _globalMinInterval: 0
     _perEmitterMinInterval: 0
     _maxRequestsPerSecond: 0

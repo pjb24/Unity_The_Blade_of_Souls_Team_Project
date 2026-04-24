@@ -69,6 +69,7 @@ public class AudioManager : MonoBehaviour
 
     private readonly List<AudioSource> _sfxSources = new List<AudioSource>(); // SFX 재생을 담당하는 AudioSource 풀
     private readonly Dictionary<AudioSource, float> _sfxBaseVolumeBySource = new Dictionary<AudioSource, float>(); // 각 SFX Source의 원본 볼륨 캐시
+    private readonly Dictionary<AudioSource, ActiveSfxPlayback> _activeSfxBySource = new Dictionary<AudioSource, ActiveSfxPlayback>(); // 각 AudioSource에서 현재 재생 중인 SFX 메타데이터 캐시
     private readonly Dictionary<SfxCooldownKey, float> _sfxCooldownUntil = new Dictionary<SfxCooldownKey, float>(); // SoundId + 발신자 단위 다음 재생 가능 시간
 
     private readonly AudioSource[] _bgmSources = new AudioSource[2]; // 크로스페이드를 위한 BGM 2채널
@@ -89,6 +90,20 @@ public class AudioManager : MonoBehaviour
         {
             SoundId = soundId;
             EmitterKey = emitterKey;
+        }
+    }
+
+    private readonly struct ActiveSfxPlayback
+    {
+        public readonly E_SoundId SoundId; // 현재 AudioSource에 할당된 사운드 ID
+        public readonly int EmitterKey; // 현재 AudioSource에 할당된 발신자 식별 키
+        public readonly bool IsLoop; // 현재 AudioSource가 루프 재생 중인지 여부
+
+        public ActiveSfxPlayback(E_SoundId soundId, int emitterKey, bool isLoop)
+        {
+            SoundId = soundId;
+            EmitterKey = emitterKey;
+            IsLoop = isLoop;
         }
     }
 
@@ -391,6 +406,16 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 지정한 SoundId의 루프 SFX를 즉시 정지한다. emitterTransform을 전달하면 같은 발신자의 재생만 정지한다.
+    /// </summary>
+    public void StopSfx(E_SoundId soundId, Transform emitterTransform = null)
+    {
+        int emitterKey = emitterTransform != null ? emitterTransform.GetInstanceID() : int.MinValue;
+        bool restrictByEmitter = emitterTransform != null;
+        StopSfxInternal(soundId, emitterKey, restrictByEmitter);
+    }
+
+    /// <summary>
     /// SFX 재생 준비(쿨다운/피치/볼륨/위치 적용)를 수행하고 재생한다.
     /// </summary>
     private void PlaySfxInternal(E_SoundId soundId, bool useWorldPosition, Vector3 worldPosition, int emitterKey)
@@ -413,6 +438,7 @@ public class AudioManager : MonoBehaviour
 
         AudioSource source = GetAvailableSfxSource();
         ConfigureSfxSourceSpatialSettings(source);
+        _activeSfxBySource.Remove(source);
 
         if (useWorldPosition)
         {
@@ -429,13 +455,68 @@ public class AudioManager : MonoBehaviour
         source.pitch = entry.GetFinalPitch();
 
         _sfxBaseVolumeBySource[source] = entry.Volume;
+        _activeSfxBySource[source] = new ActiveSfxPlayback(soundId, emitterKey, entry.Loop);
         source.volume = CalculateSfxVolume(entry.Volume);
         source.Play();
 
         if (_sfxSources.Contains(source) == false)
         {
             float destroyDelay = GetTemporarySfxDestroyDelay(source.clip, source.pitch);
+            _activeSfxBySource.Remove(source);
             Destroy(source.gameObject, destroyDelay);
+        }
+    }
+
+    /// <summary>
+    /// 조건에 맞는 루프 SFX를 즉시 정지하고 상태 캐시를 정리한다.
+    /// </summary>
+    private void StopSfxInternal(E_SoundId soundId, int emitterKey, bool restrictByEmitter)
+    {
+        List<AudioSource> sourcesToStop = new List<AudioSource>();
+
+        foreach (KeyValuePair<AudioSource, ActiveSfxPlayback> pair in _activeSfxBySource)
+        {
+            AudioSource source = pair.Key;
+            ActiveSfxPlayback playback = pair.Value;
+
+            if (source == null)
+            {
+                continue;
+            }
+
+            if (!source.isPlaying)
+            {
+                continue;
+            }
+
+            if (!playback.IsLoop)
+            {
+                continue;
+            }
+
+            if (playback.SoundId != soundId)
+            {
+                continue;
+            }
+
+            if (restrictByEmitter && playback.EmitterKey != emitterKey)
+            {
+                continue;
+            }
+
+            sourcesToStop.Add(source);
+        }
+
+        for (int i = 0; i < sourcesToStop.Count; i++)
+        {
+            AudioSource source = sourcesToStop[i];
+            source.Stop();
+            _activeSfxBySource.Remove(source);
+
+            if (_sfxSources.Contains(source) == false && source.gameObject != null)
+            {
+                Destroy(source.gameObject);
+            }
         }
     }
 

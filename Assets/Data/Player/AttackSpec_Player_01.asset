@@ -15,7 +15,7 @@ MonoBehaviour:
   _attackTypeId: Attack_Player_01
   _baseDamage: 100
   _areaType: 0
-  _localOffset: {x: 1, y: 0}
+  _localOffset: {x: 1, y: 2}
   _radius: 1.5
   _boxSize: {x: 2.5, y: 1.2}
   _targetLayerMask:

@@ -55,3 +55,9 @@ MonoBehaviour:
   _executeOnlyOnServerWhenSpawned: 1
   _warnWhenNetworkAuthorityUnavailable: 1
   _drawGizmos: 1
+  _playPlayerAttackSfxOnHitWindowOpen: 1
+  _playerTagForAttackSfx: Player
+  _playerAttackSfx: 2005
+  _playerAttackCombo1Sfx: 2005
+  _playerAttackCombo2OrHigherSfx: 2006
+  _playerAttackSfxMinInterval: 0.005

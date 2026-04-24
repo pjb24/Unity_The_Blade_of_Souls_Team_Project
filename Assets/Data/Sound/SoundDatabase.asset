@@ -15,7 +15,7 @@ MonoBehaviour:
   _entries:
   - _soundId: 1000
     _clip: {fileID: 8300000, guid: 80e2889bff67bcd41bc5a6271cdfc28d, type: 3}
-    _volume: 1
+    _volume: 0
     _basePitch: 1
     _loop: 1
     _useRandomPitch: 0
@@ -24,7 +24,7 @@ MonoBehaviour:
     _cooldownSeconds: 0
   - _soundId: 1001
     _clip: {fileID: 8300000, guid: d7c6f5f42acf5f644b7bef1c1c4a315d, type: 3}
-    _volume: 1
+    _volume: 0
     _basePitch: 1
     _loop: 1
     _useRandomPitch: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     _cooldownSeconds: 0
   - _soundId: 1002
     _clip: {fileID: 8300000, guid: 013fb6214f15c1340affe0a25af98bdd, type: 3}
-    _volume: 1
+    _volume: 0
     _basePitch: 1
     _loop: 1
     _useRandomPitch: 0
@@ -71,7 +71,7 @@ MonoBehaviour:
     _clip: {fileID: 8300000, guid: 0eb4b9a72b0d9cc4da99b01350c5ca91, type: 3}
     _volume: 1
     _basePitch: 1
-    _loop: 0
+    _loop: 1
     _useRandomPitch: 0
     _randomPitchOffsetMin: 0
     _randomPitchOffsetMax: 0
@@ -96,6 +96,15 @@ MonoBehaviour:
     _cooldownSeconds: 0
   - _soundId: 2013
     _clip: {fileID: 8300000, guid: 6ced37fbb3e2cc84f821149828769279, type: 3}
+    _volume: 1
+    _basePitch: 1
+    _loop: 0
+    _useRandomPitch: 0
+    _randomPitchOffsetMin: 0
+    _randomPitchOffsetMax: 0
+    _cooldownSeconds: 0
+  - _soundId: 2001
+    _clip: {fileID: 8300000, guid: 912ebf89e88aa414eaa504bb171bafa9, type: 3}
     _volume: 1
     _basePitch: 1
     _loop: 0
