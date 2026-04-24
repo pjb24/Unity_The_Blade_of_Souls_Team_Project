@@ -6,6 +6,7 @@ using UnityEngine;
 [System.Serializable]
 public struct AnimationStateMapData
 {
+    public string Name; // 인스펙터에서 표시될 이름
     public E_ActionType ActionType; // 매핑 대상 액션 타입
     public string StateName; // Animator 상태 이름
     public int LayerIndex; // 재생할 Animator 레이어 인덱스

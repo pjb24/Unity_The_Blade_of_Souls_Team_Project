@@ -6,6 +6,7 @@ using UnityEngine;
 [System.Serializable]
 public struct ActionRuleData
 {
+    public string Name; // 인스펙터에서 표시될 이름
     public E_ActionType ActionType; // 규칙이 적용될 액션 타입
     public bool Enabled; // 현재 프로필에서 액션 허용 여부
     public int Priority; // 액션 우선순위(높을수록 우선)

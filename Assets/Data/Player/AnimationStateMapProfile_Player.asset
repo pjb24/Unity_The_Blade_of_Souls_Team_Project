@@ -13,43 +13,53 @@ MonoBehaviour:
   m_Name: AnimationStateMapProfile_Player
   m_EditorClassIdentifier: Assembly-CSharp::AnimationStateMapProfile
   _stateMaps:
-  - ActionType: 1
+  - Name: Idle
+    ActionType: 1
     StateName: Player_Idle
     LayerIndex: 0
     IsOneShot: 0
-  - ActionType: 2
+  - Name: Move
+    ActionType: 2
     StateName: Player_Move
     LayerIndex: 0
     IsOneShot: 0
-  - ActionType: 3
+  - Name: Jump
+    ActionType: 3
     StateName: Player_Jump
     LayerIndex: 0
     IsOneShot: 1
-  - ActionType: 4
+  - Name: Land
+    ActionType: 4
     StateName: Player_Land
     LayerIndex: 0
     IsOneShot: 1
-  - ActionType: 5
+  - Name: Dash
+    ActionType: 5
     StateName: Player_Dash
     LayerIndex: 0
     IsOneShot: 1
-  - ActionType: 7
+  - Name: Wall Slide
+    ActionType: 7
     StateName: Player_Wall_Slide
     LayerIndex: 0
     IsOneShot: 0
-  - ActionType: 14
+  - Name: Hit
+    ActionType: 14
     StateName: Player_Hit
     LayerIndex: 0
     IsOneShot: 1
-  - ActionType: 15
+  - Name: Die
+    ActionType: 15
     StateName: Player_Die
     LayerIndex: 0
     IsOneShot: 0
-  - ActionType: 22
+  - Name: Attack Combo 1
+    ActionType: 22
     StateName: Player_Attack_1
     LayerIndex: 0
     IsOneShot: 1
-  - ActionType: 23
+  - Name: Attack Combo 2
+    ActionType: 23
     StateName: Player_Attack_2
     LayerIndex: 0
     IsOneShot: 1

@@ -31,9 +31,9 @@ MonoBehaviour:
     Priority: 1
     RequiredFlags: 0
     ExcludedFlags: 0
-    AllowedCurrentActions: 
-    RequireComboWindowOpen: 1
-    RequireHitWindowOpen: 1
+    AllowedCurrentActions: 16000000
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
     BlockAttack: 0
-    BufferWhenBlocked: 0
+    BufferWhenBlocked: 1
     OutputActionType: 23

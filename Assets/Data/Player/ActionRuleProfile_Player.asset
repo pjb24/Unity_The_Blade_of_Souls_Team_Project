@@ -14,52 +14,62 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ActionRuleProfile
   _actorType: 0
   _rules:
-  - ActionType: 1
+  - Name: Idle
+    ActionType: 1
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 2
+  - Name: Move
+    ActionType: 2
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 3
+  - Name: Jump
+    ActionType: 3
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 4
+  - Name: Land
+    ActionType: 4
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 5
+  - Name: Dash
+    ActionType: 5
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 7
+  - Name: Wall Slide
+    ActionType: 7
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 14
+  - Name: Hit
+    ActionType: 14
     Enabled: 1
     Priority: 0
     IsInterruptible: 0
     AutoCompleteSeconds: 0
-  - ActionType: 15
+  - Name: Die
+    ActionType: 15
     Enabled: 1
     Priority: 0
     IsInterruptible: 0
     AutoCompleteSeconds: 0
-  - ActionType: 22
+  - Name: Attack Combo 1
+    ActionType: 22
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
     AutoCompleteSeconds: 0
-  - ActionType: 23
+  - Name: Attack Combo 2
+    ActionType: 23
     Enabled: 1
     Priority: 0
     IsInterruptible: 1
