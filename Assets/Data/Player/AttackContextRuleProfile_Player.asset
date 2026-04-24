@@ -28,12 +28,12 @@ MonoBehaviour:
     OutputActionType: 22
   - Name: Attack_02
     Enabled: 1
-    Priority: 0
+    Priority: 1
     RequiredFlags: 0
     ExcludedFlags: 0
-    AllowedCurrentActions: 16000000
+    AllowedCurrentActions: 
     RequireComboWindowOpen: 1
-    RequireHitWindowOpen: 0
+    RequireHitWindowOpen: 1
     BlockAttack: 0
     BufferWhenBlocked: 0
-    OutputActionType: 0
+    OutputActionType: 23

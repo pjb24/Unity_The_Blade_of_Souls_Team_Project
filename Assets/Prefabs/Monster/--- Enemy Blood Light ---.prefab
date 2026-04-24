@@ -423,6 +423,56 @@ MonoBehaviour:
   _agentStoppingDistance: 0.1
   _positionSyncTolerance: 0.2
   _pathPendingWarningThreshold: 1
+--- !u!1 &1739494397006232081
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7498456555703604724}
+  - component: {fileID: 4980482905137620564}
+  m_Layer: 8
+  m_Name: VFX
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7498456555703604724
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1739494397006232081}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6681292927764506049}
+  m_Father: {fileID: 8110841741010526554}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4980482905137620564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1739494397006232081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65c3e068b28033c4493b3846f2fc3fb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitVfxEmitter
+  _hitReceiver: {fileID: 6167536657841687185}
+  _networkRelay: {fileID: 7825359416188931697}
+  _hitVfxAnchor: {fileID: 1459479109767149152}
+  _hitVfxEffectId: 13
+  _verboseFallbackLog: 1
 --- !u!1 &2965535810200964619
 GameObject:
   m_ObjectHideFlags: 0
@@ -472,6 +522,37 @@ MonoBehaviour:
     m_Bits: 128
   _targetTag: Player
   _searchBufferSize: 16
+--- !u!1 &4832923009593702700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1459479109767149152}
+  m_Layer: 8
+  m_Name: HitAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 5132851093641282708, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1459479109767149152
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4832923009593702700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6681292927764506049}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4980881513801949177
 GameObject:
   m_ObjectHideFlags: 0
@@ -572,6 +653,7 @@ MonoBehaviour:
   _initialMaxHealth: 100
   _initialCurrentHealth: 100
   _allowHealWhenDead: 0
+  _debugCurrentHealth: 0
 --- !u!114 &5796812335661112131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -612,6 +694,8 @@ GameObject:
   - component: {fileID: 8110841741010526554}
   - component: {fileID: 6264113991705990338}
   - component: {fileID: 250517741761169262}
+  - component: {fileID: 128880914658158548}
+  - component: {fileID: 7825359416188931697}
   m_Layer: 8
   m_Name: --- Enemy Blood Light ---
   m_TagString: Enemy
@@ -639,6 +723,7 @@ Transform:
   - {fileID: 1372826033936494513}
   - {fileID: 6264506084425754969}
   - {fileID: 7557058277745234408}
+  - {fileID: 7498456555703604724}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &6264113991705990338
@@ -685,3 +770,75 @@ MonoBehaviour:
   _vfxReleaseDelay: 1.2
   _bodyRemoveDelay: 1.2
   _destroyOnRemove: 0
+--- !u!114 &128880914658158548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3398352874
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &7825359416188931697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3068dfe7c498f84385b11b2912ae7bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitVfxNetworkRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+  _emitter: {fileID: 4980482905137620564}
+  _verboseFallbackLog: 1
+--- !u!1 &8655521624143222774
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6681292927764506049}
+  m_Layer: 8
+  m_Name: Anchors
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6681292927764506049
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8655521624143222774}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1459479109767149152}
+  m_Father: {fileID: 7498456555703604724}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
