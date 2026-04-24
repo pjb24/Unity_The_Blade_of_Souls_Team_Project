@@ -94,21 +94,14 @@ AnimationClip:
   - time: 0.25
     functionName: ReceiveMarker
     data: 
-    objectReferenceParameter: {fileID: 11400000, guid: f6a7dcb807f3b784488e5e0610832eee, type: 2}
+    objectReferenceParameter: {fileID: 11400000, guid: 38315959327849645bd87f4d0d02b899, type: 2}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
   - time: 0.25
     functionName: ReceiveMarker
     data: 
-    objectReferenceParameter: {fileID: 11400000, guid: 38315959327849645bd87f4d0d02b899, type: 2}
-    floatParameter: 0
-    intParameter: 0
-    messageOptions: 0
-  - time: 0.5833333
-    functionName: ReceiveMarker
-    data: 
-    objectReferenceParameter: {fileID: 11400000, guid: f2ce087178a7720488c03ae85f55da9c, type: 2}
+    objectReferenceParameter: {fileID: 11400000, guid: f6a7dcb807f3b784488e5e0610832eee, type: 2}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
@@ -116,6 +109,13 @@ AnimationClip:
     functionName: ReceiveMarker
     data: 
     objectReferenceParameter: {fileID: 11400000, guid: 56ef6017669219842b6b6f4908d48c12, type: 2}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 0.5833333
+    functionName: ReceiveMarker
+    data: 
+    objectReferenceParameter: {fileID: 11400000, guid: f2ce087178a7720488c03ae85f55da9c, type: 2}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0

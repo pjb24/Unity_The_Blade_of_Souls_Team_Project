@@ -9,6 +9,11 @@ public class PlayerMovement : MonoBehaviour
     /// </summary>
     public event Action<bool> FacingDirectionChanged;
 
+    /// <summary>
+    /// 실제 점프(일반 점프/공중 점프/벽 점프)가 시작될 때마다 통지되는 이벤트입니다.
+    /// </summary>
+    public event Action<Vector3> JumpExecuted;
+
     [Header("References")]
     // 캐릭터 이동에 사용되는 모든 수치 데이터(속도, 가속, 점프값)를 담는다.
     public PlayerMovementStats MoveStats;
@@ -741,6 +746,7 @@ public class PlayerMovement : MonoBehaviour
         _jumpBufferTimer = 0f;
         _numberOfAirJumpsUsed += numberOfAirJumpsUsed;
         Velocity.y = MoveStats.InitialJumpVelocity;
+        NotifyJumpExecuted();
 
         IsDashing = false;
         _isAirDashing = false;
@@ -1065,6 +1071,7 @@ public class PlayerMovement : MonoBehaviour
 
         Velocity.y = MoveStats.InitialWallJumpVelocity;
         Velocity.x = calculatedBaseX;
+        NotifyJumpExecuted();
 
         if (MoveStats.InheritPlatformMomentum && _platformMomentumRetentionTimer > 0f)
         {
@@ -1745,6 +1752,14 @@ public class PlayerMovement : MonoBehaviour
         Debug.DrawLine(topRight, bottomRight, color, duration);
         Debug.DrawLine(bottomRight, bottomLeft, color, duration);
         Debug.DrawLine(bottomLeft, topLeft, color, duration);
+    }
+
+    /// <summary>
+    /// 점프 시작 위치를 외부 리스너에 전달합니다.
+    /// </summary>
+    private void NotifyJumpExecuted()
+    {
+        JumpExecuted?.Invoke(transform.position);
     }
 
     #endregion

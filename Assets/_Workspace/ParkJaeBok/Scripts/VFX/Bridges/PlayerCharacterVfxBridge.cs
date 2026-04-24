@@ -1,156 +1,140 @@
 using UnityEngine;
 
 /// <summary>
-/// 플레이어 행동(버프/이동/점프/피격/공격) 이벤트를 수집해 요구된 VFX를 재생/정지하는 통합 브리지입니다.
+/// 플레이어 행동(버프/이동/점프/피격/공격) 이벤트를 수집해 CharacterVfxController 요청으로 변환하는 브리지입니다.
 /// </summary>
 public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitListener
 {
     [Header("Dependencies")]
     [Tooltip("행동 이벤트를 구독할 ActionController 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
-    [SerializeField] private ActionController _actionController; // 행동 이벤트를 구독할 ActionController 참조입니다.
-    [Tooltip("이동/점프 상태를 조회할 PlayerMovement 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
+    [SerializeField] private ActionController _actionController; // 액션 이벤트를 수신할 ActionController 참조입니다.
+    [Tooltip("지면 상태를 조회할 PlayerMovement 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
     [SerializeField] private PlayerMovement _playerMovement; // 이동/점프 상태를 조회할 PlayerMovement 참조입니다.
     [Tooltip("피격 결과 이벤트를 구독할 HitReceiver 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
-    [SerializeField] private HitReceiver _hitReceiver; // 피격 결과 이벤트를 구독할 HitReceiver 참조입니다.
+    [SerializeField] private HitReceiver _hitReceiver; // 피격 이벤트를 수신할 HitReceiver 참조입니다.
+    [Tooltip("실제 VFX 재생/정지를 수행할 CharacterVfxController 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
+    [SerializeField] private CharacterVfxController _vfxController; // VFX 실행을 담당하는 캐릭터 단위 컨트롤러 참조입니다.
+    [Tooltip("멀티플레이 동기화를 담당할 CharacterVfxNetworkSync 참조입니다. 비어 있으면 로컬 전용으로 동작합니다.")]
+    [SerializeField] private CharacterVfxNetworkSync _networkSync; // VFX 상태/이벤트의 네트워크 복제를 담당하는 동기화 컴포넌트 참조입니다.
 
-    [Header("Spawn / Attach Points")]
-    [Tooltip("혼안 버프 EyeEffect를 Attach할 눈 위치 기준 Transform입니다. 비어 있으면 본인 Transform을 사용합니다.")]
-    [SerializeField] private Transform _eyeAttachPoint; // 혼안 버프 EyeEffect 부착 위치 기준 Transform입니다.
-    [Tooltip("WalkDust/JumpDust를 생성할 발 위치 기준 Transform입니다. 비어 있으면 본인 Transform을 사용합니다.")]
-    [SerializeField] private Transform _footSpawnPoint; // 이동/점프 먼지 생성 위치 기준 Transform입니다.
-    [Tooltip("피격 VFX(HitEffect)를 생성할 기본 위치 기준 Transform입니다. 비어 있으면 본인 Transform을 사용합니다.")]
-    [SerializeField] private Transform _hitSpawnPoint; // 피격 이펙트 기본 생성 위치 기준 Transform입니다.
-    [Tooltip("SwordEffect를 Attach할 검 끝 위치 기준 Transform입니다. 비어 있으면 본인 Transform을 사용합니다.")]
-    [SerializeField] private Transform _swordAttachPoint; // 검 궤적 이펙트 부착 위치 기준 Transform입니다.
+    [Header("Spawn / Resolve")]
+    [Tooltip("피격 VFX 위치 계산 시 HitRequest.HitPoint가 유효하면 우선 사용할지 여부입니다.")]
+    [SerializeField] private bool _useHitPointForHitEffect = true; // 피격 이펙트 위치 계산에서 HitPoint 우선 적용 여부입니다.
+    [Tooltip("WalkDust 활성 상태를 갱신할지 여부입니다.")]
+    [SerializeField] private bool _syncWalkDustByGroundState = true; // 지면 상태를 기반으로 WalkDust를 자동 제어할지 여부입니다.
+    [Tooltip("PlayerMovement의 실제 점프 수행 이벤트를 구독해 JumpDust를 재생할지 여부입니다.")]
+    [SerializeField] private bool _useMovementJumpEvent = true; // 실제 점프 수행 이벤트 기반 JumpDust 재생 경로 활성 여부입니다.
 
-    [Header("Effect Ids")]
-    [Tooltip("혼안 버프 시작 시 부착할 EyeEffect 이펙트 ID입니다.")]
-    [SerializeField] private E_EffectId _eyeEffectId = E_EffectId.EyeEffect; // 혼안 버프 시작 시 재생할 눈 이펙트 ID입니다.
-    [Tooltip("지면 이동 중 주기적으로 생성할 WalkDust 이펙트 ID입니다.")]
-    [SerializeField] private E_EffectId _walkDustEffectId = E_EffectId.WalkDust; // 지면 이동 중 생성할 먼지 이펙트 ID입니다.
-    [Tooltip("점프 시작 순간에 생성할 JumpDust 이펙트 ID입니다.")]
-    [SerializeField] private E_EffectId _jumpDustEffectId = E_EffectId.JumpDust; // 점프 시작 시 생성할 먼지 이펙트 ID입니다.
-    [Tooltip("피격 수락 시 생성할 HitEffect 이펙트 ID입니다.")]
-    [SerializeField] private E_EffectId _hitEffectId = E_EffectId.HitEffect; // 피격 시 생성할 이펙트 ID입니다.
-    [Tooltip("공격 수행 중 Attach할 SwordEffect 이펙트 ID입니다.")]
-    [SerializeField] private E_EffectId _swordEffectId = E_EffectId.SwordEffect; // 공격 시 부착할 검 궤적 이펙트 ID입니다.
-
-    [Header("WalkDust")]
-    [Tooltip("지면 이동 중 WalkDust 생성 간격(초)입니다.")]
-    [SerializeField] private float _walkDustInterval = 0.12f; // WalkDust 반복 생성 간격(초)입니다.
-    [Tooltip("WalkDust를 생성할 최소 수평 속도 절대값입니다.")]
-    [SerializeField] private float _walkDustMinSpeed = 0.3f; // WalkDust 생성 판정 최소 수평 속도입니다.
-
-    [Header("JumpDust")]
-    [Tooltip("지면 이탈 시 점프 시작으로 판정할 최소 상승 속도입니다.")]
-    [SerializeField] private float _jumpDustMinUpwardVelocity = 0.1f; // 점프 시작 판정 최소 상승 속도입니다.
-
-    [Header("HitEffect")]
-    [Tooltip("true면 HitRequest.HitPoint가 유효할 때 해당 좌표를 우선 사용합니다.")]
-    [SerializeField] private bool _useHitPointForHitEffect = true; // 피격 VFX 생성 시 HitPoint 우선 사용 여부입니다.
-
-    [Header("SwordEffect")]
+    [Header("Action Mapping")]
     [Tooltip("SwordEffect를 시작/종료할 공격 액션 타입 목록입니다.")]
-    [SerializeField] private E_ActionType[] _swordEffectActionTypes = { E_ActionType.Attack, E_ActionType.AttackCombo1, E_ActionType.AttackCombo2, E_ActionType.AttackCombo3, E_ActionType.AttackAir, E_ActionType.AttackDash, E_ActionType.AttackWall }; // 검 궤적 이펙트를 재생할 액션 타입 목록입니다.
+    [SerializeField]
+    private E_ActionType[] _swordEffectActionTypes =
+    {
+        E_ActionType.Attack,
+        E_ActionType.AttackCombo1,
+        E_ActionType.AttackCombo2,
+        E_ActionType.AttackCombo3,
+        E_ActionType.AttackAir,
+        E_ActionType.AttackDash,
+        E_ActionType.AttackWall
+    }; // 검 궤적 VFX를 시작/종료할 액션 타입 목록입니다.
 
-    private EffectHandle _eyeEffectHandle; // 현재 부착 중인 EyeEffect 핸들입니다.
-    private EffectHandle _swordEffectHandle; // 현재 부착 중인 SwordEffect 핸들입니다.
-    private bool _isActionListenerRegistered; // ActionController 리스너 등록 여부입니다.
-    private bool _isHitListenerRegistered; // HitReceiver 리스너 등록 여부입니다.
-    private bool _wasGroundedLastFrame; // 직전 프레임 지면 접촉 상태입니다.
-    private float _walkDustTimer; // WalkDust 반복 생성을 제어하는 누적 타이머입니다.
+    [Tooltip("점프 성공으로 간주해 JumpDust를 재생할 액션 타입 목록입니다.")]
+    [SerializeField]
+    private E_ActionType[] _jumpStartActionTypes =
+    {
+        E_ActionType.Jump,
+        E_ActionType.WallJump
+    }; // 실제 점프 성공 시점으로 사용하는 액션 타입 목록입니다.
+
+    private bool _isActionListenerRegistered; // ActionController 리스너 등록 여부를 추적하는 플래그입니다.
+    private bool _isHitListenerRegistered; // HitReceiver 리스너 등록 여부를 추적하는 플래그입니다.
+    private bool _hasGroundState; // WalkDust 초기화 여부를 추적하는 플래그입니다.
+    private bool _lastGroundedState; // 직전 프레임 지면 접촉 상태를 캐시하는 값입니다.
+    private bool _isJumpEventRegistered; // PlayerMovement 점프 이벤트 구독 상태를 추적하는 플래그입니다.
 
     /// <summary>
-    /// 의존성 참조를 보정하고 초기 상태를 캐시합니다.
+    /// 에디터 값 변경 시 핵심 참조 누락을 점검합니다.
     /// </summary>
-    private void Awake()
+    private void OnValidate()
     {
-        ValidateSettings();
-        TryResolveDependencies();
-        _wasGroundedLastFrame = IsGroundedNow();
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController 참조가 비어 있습니다. target={name}", this);
+        }
     }
 
     /// <summary>
-    /// 활성화 시 액션/피격 리스너를 등록하고 반복 타이머를 초기화합니다.
+    /// 의존성 참조를 보정하고 설정 누락 경고를 점검합니다.
+    /// </summary>
+    private void Awake()
+    {
+        TryResolveDependencies();
+        ValidateDependencies();
+    }
+
+    /// <summary>
+    /// 활성화 시 리스너 등록 및 WalkDust 초기 상태를 동기화합니다.
     /// </summary>
     private void OnEnable()
     {
         TryResolveDependencies();
         RegisterActionListener();
         RegisterHitListener();
-        _walkDustTimer = 0f;
-        _wasGroundedLastFrame = IsGroundedNow();
+        RegisterJumpEventListener();
+        RefreshWalkDustState(forceApply: true);
     }
 
     /// <summary>
-    /// 비활성화 시 액션/피격 리스너를 해제하고 지속형 이펙트를 정리합니다.
+    /// 비활성화 시 리스너를 해제하고 SwordEffect가 남지 않도록 정리합니다.
     /// </summary>
     private void OnDisable()
     {
         UnregisterActionListener();
         UnregisterHitListener();
+        UnregisterJumpEventListener();
         StopSwordEffect();
-        StopEyeEffect();
+        SetWalkDustActive(false);
     }
 
     /// <summary>
-    /// 매 프레임 이동/점프 상태를 검사해 WalkDust와 JumpDust를 생성합니다.
+    /// 매 프레임 Grounded 상태를 조회해 WalkDust 활성 상태를 갱신합니다.
     /// </summary>
     private void Update()
     {
-        HandleWalkDust();
-        HandleJumpDust();
+        RefreshWalkDustState(forceApply: false);
     }
 
     /// <summary>
-    /// 혼안 버프 시작 시 EyeEffect를 눈 위치에 Attach하여 재생합니다.
+    /// 버프 시작 시 EyeEffect를 활성화합니다.
     /// </summary>
     public void OnEyeBuffStart()
     {
-        if (EffectService.Instance == null)
-        {
-            Debug.LogWarning($"[PlayerCharacterVfxBridge] EffectService가 없어 EyeEffect를 재생하지 못했습니다. target={name}", this);
-            return;
-        }
-
-        StopEyeEffect();
-
-        Transform attachTarget = _eyeAttachPoint != null ? _eyeAttachPoint : transform;
-
-        EffectRequest request = new EffectRequest();
-        request.EffectId = _eyeEffectId;
-        request.PlayMode = E_EffectPlayMode.Attach;
-        request.AttachTarget = attachTarget;
-        request.Owner = gameObject;
-        request.AutoReturnOverrideEnabled = true;
-        request.AutoReturn = false;
-        request.LifetimeOverride = 0f;
-        request.LocalOffset = Vector3.zero;
-        request.IgnoreDuplicateGuard = false;
-        request.FacingDirection = E_EffectFacingDirection.UsePrefab;
-
-        _eyeEffectHandle = EffectService.Instance.Play(request);
+        SetEyeEffectActive(true);
     }
 
     /// <summary>
-    /// 혼안 버프 종료 시 현재 부착된 EyeEffect를 정지합니다.
+    /// 버프 종료 시 EyeEffect를 비활성화합니다.
     /// </summary>
     public void OnEyeBuffEnd()
     {
-        StopEyeEffect();
+        SetEyeEffectActive(false);
     }
 
     /// <summary>
-    /// 액션 시작 이벤트를 수신해 SwordEffect 대상 액션이면 검 궤적 이펙트를 시작합니다.
+    /// 액션 시작 이벤트를 수신해 SwordEffect와 JumpDust를 필요한 경우 시작합니다.
     /// </summary>
     public void OnActionStarted(ActionRuntime runtime)
     {
-        if (IsSwordAction(runtime.ActionType) == false)
+        if (IsSwordAction(runtime.ActionType))
         {
-            return;
+            StartSwordEffect();
         }
 
-        PlaySwordEffect();
+        if (!_useMovementJumpEvent && IsJumpStartAction(runtime.ActionType))
+        {
+            PlayJumpDust();
+        }
     }
 
     /// <summary>
@@ -158,67 +142,177 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     /// </summary>
     public void OnActionPhaseChanged(ActionRuntime runtime, E_ActionPhase previousPhase, E_ActionPhase currentPhase)
     {
-        // 단계 변경 자체에는 별도 처리 없이 시작/완료/취소 이벤트만 사용합니다.
+        // 단계 변경 자체에는 별도 VFX를 연결하지 않고 시작/완료/취소 이벤트를 사용합니다.
     }
 
     /// <summary>
-    /// 액션 완료 이벤트를 수신해 SwordEffect 대상 액션이면 검 궤적 이펙트를 정지합니다.
+    /// 액션 완료 이벤트를 수신해 SwordEffect 대상 액션이면 종료합니다.
     /// </summary>
     public void OnActionCompleted(ActionRuntime runtime)
     {
-        if (IsSwordAction(runtime.ActionType) == false)
+        if (IsSwordAction(runtime.ActionType))
         {
-            return;
+            StopSwordEffect();
         }
-
-        StopSwordEffect();
     }
 
     /// <summary>
-    /// 액션 취소 이벤트를 수신해 SwordEffect 대상 액션이면 검 궤적 이펙트를 정지합니다.
+    /// 액션 취소 이벤트를 수신해 SwordEffect 대상 액션이면 종료합니다.
     /// </summary>
     public void OnActionCancelled(ActionRuntime runtime, string reason)
     {
-        if (IsSwordAction(runtime.ActionType) == false)
+        if (IsSwordAction(runtime.ActionType))
         {
-            return;
+            StopSwordEffect();
         }
-
-        StopSwordEffect();
     }
 
     /// <summary>
-    /// 피격 처리 결과를 수신해 수락된 경우 HitEffect를 지정 위치에 생성합니다.
+    /// 피격 처리 결과를 수신해 실제 수락된 피격에 대해서만 HitEffect를 재생합니다.
     /// </summary>
     public void OnHitResolved(HitRequest request, HitResult result)
     {
-        if (result.IsAccepted == false)
+        if (!result.IsAccepted)
         {
             return;
         }
 
-        if (EffectService.Instance == null)
-        {
-            Debug.LogWarning($"[PlayerCharacterVfxBridge] EffectService가 없어 HitEffect를 재생하지 못했습니다. target={name}", this);
-            return;
-        }
-
-        Vector3 spawnPosition = ResolveHitSpawnPosition(request);
-        EffectService.Instance.Play(_hitEffectId, spawnPosition);
+        Vector3 hitPosition = ResolveHitSpawnPosition(request);
+        PlayHitEffect(hitPosition);
     }
 
     /// <summary>
-    /// 설정값의 최소 제약을 보정합니다.
+    /// EyeEffect 활성 상태 변경 요청을 처리합니다.
     /// </summary>
-    private void ValidateSettings()
+    public void SetEyeEffectActive(bool isActive)
     {
-        _walkDustInterval = Mathf.Max(0.01f, _walkDustInterval);
-        _walkDustMinSpeed = Mathf.Max(0f, _walkDustMinSpeed);
-        _jumpDustMinUpwardVelocity = Mathf.Max(0f, _jumpDustMinUpwardVelocity);
+        if (_networkSync != null)
+        {
+            _networkSync.RequestSetEyeEffectActive(isActive);
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 EyeEffect를 제어할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.SetEyeEffectActive(isActive);
     }
 
     /// <summary>
-    /// 비어 있는 의존성 참조를 같은 오브젝트에서 자동 보정합니다.
+    /// WalkDust 활성 상태 변경 요청을 처리합니다.
+    /// </summary>
+    public void SetWalkDustActive(bool isActive)
+    {
+        if (_networkSync != null)
+        {
+            _networkSync.RequestSetWalkDustActive(isActive);
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 WalkDust를 제어할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.SetWalkDustActive(isActive);
+    }
+
+    /// <summary>
+    /// JumpDust 재생 요청을 처리합니다.
+    /// </summary>
+    public void PlayJumpDust()
+    {
+        Vector3 spawnPosition = ResolveFootSpawnPosition();
+
+        if (_networkSync != null)
+        {
+            _networkSync.RequestPlayJumpDust(spawnPosition);
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 JumpDust를 재생할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.PlayJumpDustAt(spawnPosition);
+    }
+
+    /// <summary>
+    /// 기본 Hit 위치 기준 HitEffect 재생 요청을 처리합니다.
+    /// </summary>
+    public void PlayHitEffect()
+    {
+        PlayHitEffect(ResolveFallbackHitPosition());
+    }
+
+    /// <summary>
+    /// 지정 좌표 기준 HitEffect 재생 요청을 처리합니다.
+    /// </summary>
+    public void PlayHitEffect(Vector3 worldPosition)
+    {
+        if (_networkSync != null)
+        {
+            _networkSync.RequestPlayHitEffect(worldPosition);
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 HitEffect를 재생할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.PlayHitEffectAt(worldPosition);
+    }
+
+    /// <summary>
+    /// SwordEffect 시작 요청을 처리합니다.
+    /// </summary>
+    public void StartSwordEffect()
+    {
+        if (_networkSync != null)
+        {
+            _networkSync.RequestStartSwordEffect();
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 SwordEffect를 시작할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.StartSwordEffect();
+    }
+
+    /// <summary>
+    /// SwordEffect 종료 요청을 처리합니다.
+    /// </summary>
+    public void StopSwordEffect()
+    {
+        if (_networkSync != null)
+        {
+            _networkSync.RequestStopSwordEffect();
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 SwordEffect를 종료할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.StopSwordEffect();
+    }
+
+    /// <summary>
+    /// 의존성 참조가 비어 있으면 같은 오브젝트에서 자동 탐색합니다.
     /// </summary>
     private void TryResolveDependencies()
     {
@@ -236,6 +330,42 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
         {
             _hitReceiver = GetComponent<HitReceiver>();
         }
+
+        if (_vfxController == null)
+        {
+            _vfxController = GetComponent<CharacterVfxController>();
+        }
+
+        if (_networkSync == null)
+        {
+            _networkSync = GetComponent<CharacterVfxNetworkSync>();
+        }
+    }
+
+    /// <summary>
+    /// 실행에 필요한 핵심 참조 누락 시 경고 로그를 남깁니다.
+    /// </summary>
+    private void ValidateDependencies()
+    {
+        if (_actionController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] ActionController 참조가 없습니다. target={name}", this);
+        }
+
+        if (_playerMovement == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] PlayerMovement 참조가 없습니다. target={name}", this);
+        }
+
+        if (_hitReceiver == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] HitReceiver 참조가 없습니다. target={name}", this);
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController 참조가 없습니다. target={name}", this);
+        }
     }
 
     /// <summary>
@@ -243,12 +373,7 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     /// </summary>
     private void RegisterActionListener()
     {
-        if (_isActionListenerRegistered)
-        {
-            return;
-        }
-
-        if (_actionController == null)
+        if (_isActionListenerRegistered || _actionController == null)
         {
             return;
         }
@@ -262,7 +387,7 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     /// </summary>
     private void UnregisterActionListener()
     {
-        if (_isActionListenerRegistered == false)
+        if (!_isActionListenerRegistered)
         {
             return;
         }
@@ -280,12 +405,7 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     /// </summary>
     private void RegisterHitListener()
     {
-        if (_isHitListenerRegistered)
-        {
-            return;
-        }
-
-        if (_hitReceiver == null)
+        if (_isHitListenerRegistered || _hitReceiver == null)
         {
             return;
         }
@@ -295,11 +415,63 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     }
 
     /// <summary>
+    /// PlayerMovement의 실제 점프 수행 이벤트를 구독합니다.
+    /// </summary>
+    private void RegisterJumpEventListener()
+    {
+        if (!_useMovementJumpEvent || _isJumpEventRegistered || _playerMovement == null)
+        {
+            return;
+        }
+
+        _playerMovement.JumpExecuted += HandleJumpExecuted;
+        _isJumpEventRegistered = true;
+    }
+
+    /// <summary>
+    /// PlayerMovement의 점프 이벤트 구독을 해제합니다.
+    /// </summary>
+    private void UnregisterJumpEventListener()
+    {
+        if (!_isJumpEventRegistered)
+        {
+            return;
+        }
+
+        if (_playerMovement != null)
+        {
+            _playerMovement.JumpExecuted -= HandleJumpExecuted;
+        }
+
+        _isJumpEventRegistered = false;
+    }
+
+    /// <summary>
+    /// 실제 점프 수행 이벤트를 수신해 JumpDust를 재생합니다.
+    /// </summary>
+    private void HandleJumpExecuted(Vector3 jumpWorldPosition)
+    {
+        if (_networkSync != null)
+        {
+            _networkSync.RequestPlayJumpDust(jumpWorldPosition);
+            return;
+        }
+
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 JumpDust를 재생할 수 없습니다. target={name}", this);
+            return;
+        }
+
+        _vfxController.PlayJumpDustAt(jumpWorldPosition);
+    }
+
+    /// <summary>
     /// HitReceiver 리스너를 안전하게 해제합니다.
     /// </summary>
     private void UnregisterHitListener()
     {
-        if (_isHitListenerRegistered == false)
+        if (!_isHitListenerRegistered)
         {
             return;
         }
@@ -313,55 +485,34 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     }
 
     /// <summary>
-    /// 지면 이동 상태에서 일정 간격으로 WalkDust를 생성합니다.
+    /// 지면 상태를 기반으로 WalkDust 활성 상태를 전환합니다.
     /// </summary>
-    private void HandleWalkDust()
+    private void RefreshWalkDustState(bool forceApply)
     {
-        if (EffectService.Instance == null || _playerMovement == null || _playerMovement.Controller == null)
+        if (!_syncWalkDustByGroundState)
         {
             return;
         }
 
-        bool isGrounded = _playerMovement.Controller.IsGrounded();
-        float horizontalSpeed = Mathf.Abs(_playerMovement.Velocity.x);
-
-        if (isGrounded == false || horizontalSpeed < _walkDustMinSpeed)
+        if (_playerMovement == null || _playerMovement.Controller == null)
         {
-            _walkDustTimer = 0f;
+            if (forceApply)
+            {
+                Debug.LogWarning($"[PlayerCharacterVfxBridge] PlayerMovement 또는 Controller가 없어 WalkDust 상태를 갱신할 수 없습니다. target={name}", this);
+            }
+
             return;
         }
 
-        _walkDustTimer += Time.deltaTime;
-        if (_walkDustTimer < _walkDustInterval)
-        {
-            return;
-        }
-
-        _walkDustTimer = 0f;
-        Vector3 spawnPosition = _footSpawnPoint != null ? _footSpawnPoint.position : transform.position;
-        EffectService.Instance.Play(_walkDustEffectId, spawnPosition);
-    }
-
-    /// <summary>
-    /// 지면 이탈 시 상승 속도를 확인해 점프 시작으로 판정되면 JumpDust를 1회 생성합니다.
-    /// </summary>
-    private void HandleJumpDust()
-    {
-        if (EffectService.Instance == null || _playerMovement == null || _playerMovement.Controller == null)
+        bool groundedNow = _playerMovement.Controller.IsGrounded();
+        if (!forceApply && _hasGroundState && groundedNow == _lastGroundedState)
         {
             return;
         }
 
-        bool isGrounded = _playerMovement.Controller.IsGrounded();
-        float upwardVelocity = _playerMovement.Velocity.y;
-
-        if (_wasGroundedLastFrame && isGrounded == false && upwardVelocity >= _jumpDustMinUpwardVelocity)
-        {
-            Vector3 spawnPosition = _footSpawnPoint != null ? _footSpawnPoint.position : transform.position;
-            EffectService.Instance.Play(_jumpDustEffectId, spawnPosition);
-        }
-
-        _wasGroundedLastFrame = isGrounded;
+        _hasGroundState = true;
+        _lastGroundedState = groundedNow;
+        SetWalkDustActive(groundedNow);
     }
 
     /// <summary>
@@ -386,72 +537,24 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
     }
 
     /// <summary>
-    /// SwordEffect를 검 끝 위치에 Attach 모드로 시작합니다.
+    /// 점프 성공으로 간주하는 액션인지 설정 목록 기준으로 판정합니다.
     /// </summary>
-    private void PlaySwordEffect()
+    private bool IsJumpStartAction(E_ActionType actionType)
     {
-        if (EffectService.Instance == null)
+        if (_jumpStartActionTypes == null || _jumpStartActionTypes.Length == 0)
         {
-            Debug.LogWarning($"[PlayerCharacterVfxBridge] EffectService가 없어 SwordEffect를 재생하지 못했습니다. target={name}", this);
-            return;
+            return actionType == E_ActionType.Jump;
         }
 
-        StopSwordEffect();
-
-        Transform attachTarget = _swordAttachPoint != null ? _swordAttachPoint : transform;
-
-        EffectRequest request = new EffectRequest();
-        request.EffectId = _swordEffectId;
-        request.PlayMode = E_EffectPlayMode.Attach;
-        request.AttachTarget = attachTarget;
-        request.Owner = gameObject;
-        request.AutoReturnOverrideEnabled = true;
-        request.AutoReturn = false;
-        request.LifetimeOverride = 0f;
-        request.LocalOffset = Vector3.zero;
-        request.IgnoreDuplicateGuard = false;
-        request.FacingDirection = E_EffectFacingDirection.UsePrefab;
-
-        _swordEffectHandle = EffectService.Instance.Play(request);
-    }
-
-    /// <summary>
-    /// 현재 재생 중인 SwordEffect를 정지합니다.
-    /// </summary>
-    private void StopSwordEffect()
-    {
-        if (_swordEffectHandle == null || _swordEffectHandle.IsValid == false)
+        for (int index = 0; index < _jumpStartActionTypes.Length; index++)
         {
-            return;
+            if (_jumpStartActionTypes[index] == actionType)
+            {
+                return true;
+            }
         }
 
-        _swordEffectHandle.Stop();
-    }
-
-    /// <summary>
-    /// 현재 재생 중인 EyeEffect를 정지합니다.
-    /// </summary>
-    private void StopEyeEffect()
-    {
-        if (_eyeEffectHandle == null || _eyeEffectHandle.IsValid == false)
-        {
-            return;
-        }
-
-        _eyeEffectHandle.Stop();
-    }
-
-    /// <summary>
-    /// 현재 프레임의 지면 접촉 상태를 안전하게 반환합니다.
-    /// </summary>
-    private bool IsGroundedNow()
-    {
-        if (_playerMovement == null || _playerMovement.Controller == null)
-        {
-            return false;
-        }
-
-        return _playerMovement.Controller.IsGrounded();
+        return false;
     }
 
     /// <summary>
@@ -464,12 +567,35 @@ public class PlayerCharacterVfxBridge : MonoBehaviour, IActionListener, IHitList
             return request.HitPoint;
         }
 
-        if (_hitSpawnPoint != null)
+        return ResolveFallbackHitPosition();
+    }
+
+    /// <summary>
+    /// 발 기준 위치를 사용해 JumpDust 스폰 좌표를 계산합니다.
+    /// </summary>
+    private Vector3 ResolveFootSpawnPosition()
+    {
+        if (_vfxController == null)
         {
-            return _hitSpawnPoint.position;
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 Foot 위치를 transform으로 폴백합니다. target={name}", this);
+            return transform.position;
         }
 
-        return transform.position;
+        return _vfxController.GetFootVfxWorldPosition();
+    }
+
+    /// <summary>
+    /// 기본 HitEffect 위치를 계산합니다.
+    /// </summary>
+    private Vector3 ResolveFallbackHitPosition()
+    {
+        if (_vfxController == null)
+        {
+            Debug.LogWarning($"[PlayerCharacterVfxBridge] CharacterVfxController가 없어 Hit 위치를 transform으로 폴백합니다. target={name}", this);
+            return transform.position;
+        }
+
+        return _vfxController.GetHitVfxWorldPosition();
     }
 
     /// <summary>
