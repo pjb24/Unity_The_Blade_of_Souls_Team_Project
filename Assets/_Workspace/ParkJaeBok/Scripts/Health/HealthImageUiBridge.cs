@@ -15,8 +15,26 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
     [SerializeField] private HealthComponent _targetHealth; // 현재 UI가 구독 중인 로컬 플레이어 HealthComponent 참조입니다.
 
     [Header("UI")]
-    [Tooltip("체력을 표시할 슬롯 Image 배열입니다. 인덱스가 낮을수록 앞 슬롯으로 취급합니다.")]
+    [Tooltip("체력이 채워진 슬롯에 사용할 Sprite입니다.")]
+    [SerializeField] private Sprite _filledHealthSprite; // 채워진 체력 슬롯 표시용 Sprite 참조입니다.
+
+    [Tooltip("체력이 비어 있는 슬롯에 사용할 Sprite입니다.")]
+    [SerializeField] private Sprite _emptyHealthSprite; // 비어 있는 체력 슬롯 표시용 Sprite 참조입니다.
+
+    [Tooltip("체력을 표시할 공용 슬롯 Image 배열입니다. 싱글/멀티(Host/Client) 모두 이 배열을 사용합니다.")]
     [SerializeField] private Image[] _healthImages = new Image[5]; // 체력 표시를 담당하는 Image 슬롯 배열입니다.
+
+    [Tooltip("멀티플레이 Host에서 채워진 슬롯에 사용할 Sprite입니다. 비어 있으면 기본 Filled Sprite를 사용합니다.")]
+    [SerializeField] private Sprite _multiplayerHostFilledHealthSprite; // 멀티플레이 Host 채움 슬롯 Sprite 참조입니다.
+
+    [Tooltip("멀티플레이 Host에서 비어 있는 슬롯에 사용할 Sprite입니다. 비어 있으면 기본 Empty Sprite를 사용합니다.")]
+    [SerializeField] private Sprite _multiplayerHostEmptyHealthSprite; // 멀티플레이 Host 비움 슬롯 Sprite 참조입니다.
+
+    [Tooltip("멀티플레이 Client에서 채워진 슬롯에 사용할 Sprite입니다. 비어 있으면 기본 Filled Sprite를 사용합니다.")]
+    [SerializeField] private Sprite _multiplayerClientFilledHealthSprite; // 멀티플레이 Client 채움 슬롯 Sprite 참조입니다.
+
+    [Tooltip("멀티플레이 Client에서 비어 있는 슬롯에 사용할 Sprite입니다. 비어 있으면 기본 Empty Sprite를 사용합니다.")]
+    [SerializeField] private Sprite _multiplayerClientEmptyHealthSprite; // 멀티플레이 Client 비움 슬롯 Sprite 참조입니다.
 
     [Tooltip("UI 체력 슬롯 수입니다. 배열 길이보다 크면 배열 길이까지만 사용됩니다.")]
     [SerializeField] private int _slotCount = 5; // 체력 UI 슬롯 수입니다.
@@ -30,6 +48,13 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
 
     private Coroutine _registerCoroutine; // 리스너 등록 지연 처리 코루틴 핸들입니다.
     private bool _isRegistered; // Target HealthComponent에 리스너 등록되어 있는지 추적하는 플래그입니다.
+    private bool _hasWarnedMissingFilledSprite; // Filled Sprite 누락 경고 중복 출력을 방지하는 플래그입니다.
+    private bool _hasWarnedMissingEmptySprite; // Empty Sprite 누락 경고 중복 출력을 방지하는 플래그입니다.
+    private bool _hasWarnedDefaultImageArrayMissing; // 기본 슬롯 Image 배열 누락 경고 중복 출력을 방지하는 플래그입니다.
+    private bool _hasWarnedMissingHostFilledSprite; // Host Filled Sprite 폴백 경고 중복 출력을 방지하는 플래그입니다.
+    private bool _hasWarnedMissingHostEmptySprite; // Host Empty Sprite 폴백 경고 중복 출력을 방지하는 플래그입니다.
+    private bool _hasWarnedMissingClientFilledSprite; // Client Filled Sprite 폴백 경고 중복 출력을 방지하는 플래그입니다.
+    private bool _hasWarnedMissingClientEmptySprite; // Client Empty Sprite 폴백 경고 중복 출력을 방지하는 플래그입니다.
 
     /// <summary>
     /// 현재 UI가 구독 중인 HealthComponent를 외부에서 조회합니다.
@@ -113,7 +138,7 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 사망 이벤트를 받아 모든 슬롯을 비활성화합니다.
+    /// 사망 이벤트를 받아 모든 슬롯을 비어 있는 상태 Sprite로 갱신합니다.
     /// </summary>
     public void OnDied()
     {
@@ -288,6 +313,20 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
             int configuredLength = _healthImages == null ? 0 : _healthImages.Length;
             Debug.LogWarning($"[HealthImageUiBridge] Health image array length({configuredLength}) is smaller than slot count({_slotCount}) on {name}.", this);
         }
+
+        if (_filledHealthSprite == null)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] Filled health sprite is missing on {name}. Filled slot rendering will fallback to existing Image sprite.", this);
+            _hasWarnedMissingFilledSprite = true;
+        }
+
+        if (_emptyHealthSprite == null)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] Empty health sprite is missing on {name}. Empty slot rendering will fallback to existing Image sprite.", this);
+            _hasWarnedMissingEmptySprite = true;
+        }
+
+        ValidateModeSpriteConfiguration();
     }
 
     /// <summary>
@@ -312,6 +351,12 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
     {
         if (_healthImages == null || _healthImages.Length == 0)
         {
+            if (!_hasWarnedDefaultImageArrayMissing)
+            {
+                Debug.LogWarning($"[HealthImageUiBridge] Default health image array is missing/empty on {name}. Slot rendering will be skipped.", this);
+                _hasWarnedDefaultImageArrayMissing = true;
+            }
+
             return;
         }
 
@@ -335,10 +380,15 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 계산된 슬롯 수만큼 이미지를 활성화하고 나머지를 비활성화합니다.
+    /// 계산된 슬롯 수를 기준으로 모든 슬롯 Image를 활성화한 뒤 Sprite를 교체합니다.
     /// </summary>
     private void SetFilledSlots(int filledSlots)
     {
+        if (_healthImages == null || _healthImages.Length == 0)
+        {
+            return;
+        }
+
         int safeSlotCount = Mathf.Clamp(_slotCount, 0, _healthImages.Length);
         int clampedFilledSlots = Mathf.Clamp(filledSlots, 0, safeSlotCount);
 
@@ -350,8 +400,184 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
                 continue;
             }
 
-            bool shouldEnable = slotIndex < clampedFilledSlots;
-            healthImage.enabled = shouldEnable;
+            bool isFilledSlot = slotIndex < clampedFilledSlots;
+            healthImage.enabled = true;
+
+            Sprite resolvedSprite = ResolveSlotSprite(isFilledSlot); // 현재 슬롯 상태에 적용할 목표 Sprite입니다.
+            if (resolvedSprite != null)
+            {
+                healthImage.sprite = resolvedSprite;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 슬롯 상태(채움/비움)에 맞는 Sprite를 반환하고 누락 시 경고를 출력합니다.
+    /// </summary>
+    private Sprite ResolveSlotSprite(bool isFilledSlot)
+    {
+        if (isFilledSlot)
+        {
+            if (TryResolveModeFilledSprite(out Sprite modeFilledSprite))
+            {
+                return modeFilledSprite;
+            }
+
+            if (!_hasWarnedMissingFilledSprite)
+            {
+                Debug.LogWarning($"[HealthImageUiBridge] Filled health sprite is missing on {name}. Using existing Image sprite as fallback.", this);
+                _hasWarnedMissingFilledSprite = true;
+            }
+
+            return null;
+        }
+
+        if (TryResolveModeEmptySprite(out Sprite modeEmptySprite))
+        {
+            return modeEmptySprite;
+        }
+
+        if (!_hasWarnedMissingEmptySprite)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] Empty health sprite is missing on {name}. Using existing Image sprite as fallback.", this);
+            _hasWarnedMissingEmptySprite = true;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 현재 플레이 모드에 맞는 채움 슬롯 Sprite를 해석합니다.
+    /// </summary>
+    private bool TryResolveModeFilledSprite(out Sprite resolvedSprite)
+    {
+        resolvedSprite = null;
+
+        E_GamePlayMode playMode = ResolveCurrentPlayMode(); // 현재 런타임 플레이 모드 스냅샷입니다.
+        if (playMode == E_GamePlayMode.MultiplayerHost)
+        {
+            if (_multiplayerHostFilledHealthSprite != null)
+            {
+                resolvedSprite = _multiplayerHostFilledHealthSprite;
+                return true;
+            }
+
+            if (!_hasWarnedMissingHostFilledSprite)
+            {
+                Debug.LogWarning($"[HealthImageUiBridge] MultiplayerHost filled sprite is missing on {name}. Fallback to default filled sprite.", this);
+                _hasWarnedMissingHostFilledSprite = true;
+            }
+        }
+        else if (playMode == E_GamePlayMode.MultiplayerClient)
+        {
+            if (_multiplayerClientFilledHealthSprite != null)
+            {
+                resolvedSprite = _multiplayerClientFilledHealthSprite;
+                return true;
+            }
+
+            if (!_hasWarnedMissingClientFilledSprite)
+            {
+                Debug.LogWarning($"[HealthImageUiBridge] MultiplayerClient filled sprite is missing on {name}. Fallback to default filled sprite.", this);
+                _hasWarnedMissingClientFilledSprite = true;
+            }
+        }
+
+        if (_filledHealthSprite == null)
+        {
+            return false;
+        }
+
+        resolvedSprite = _filledHealthSprite;
+        return true;
+    }
+
+    /// <summary>
+    /// 현재 플레이 모드에 맞는 비움 슬롯 Sprite를 해석합니다.
+    /// </summary>
+    private bool TryResolveModeEmptySprite(out Sprite resolvedSprite)
+    {
+        resolvedSprite = null;
+
+        E_GamePlayMode playMode = ResolveCurrentPlayMode(); // 현재 런타임 플레이 모드 스냅샷입니다.
+        if (playMode == E_GamePlayMode.MultiplayerHost)
+        {
+            if (_multiplayerHostEmptyHealthSprite != null)
+            {
+                resolvedSprite = _multiplayerHostEmptyHealthSprite;
+                return true;
+            }
+
+            if (!_hasWarnedMissingHostEmptySprite)
+            {
+                Debug.LogWarning($"[HealthImageUiBridge] MultiplayerHost empty sprite is missing on {name}. Fallback to default empty sprite.", this);
+                _hasWarnedMissingHostEmptySprite = true;
+            }
+        }
+        else if (playMode == E_GamePlayMode.MultiplayerClient)
+        {
+            if (_multiplayerClientEmptyHealthSprite != null)
+            {
+                resolvedSprite = _multiplayerClientEmptyHealthSprite;
+                return true;
+            }
+
+            if (!_hasWarnedMissingClientEmptySprite)
+            {
+                Debug.LogWarning($"[HealthImageUiBridge] MultiplayerClient empty sprite is missing on {name}. Fallback to default empty sprite.", this);
+                _hasWarnedMissingClientEmptySprite = true;
+            }
+        }
+
+        if (_emptyHealthSprite == null)
+        {
+            return false;
+        }
+
+        resolvedSprite = _emptyHealthSprite;
+        return true;
+    }
+
+    /// <summary>
+    /// 플레이 모드 판별을 위해 GameFlowController 상태를 조회합니다.
+    /// </summary>
+    private E_GamePlayMode ResolveCurrentPlayMode()
+    {
+        GameFlowController controller = GameFlowController.Instance != null
+            ? GameFlowController.Instance
+            : FindAnyObjectByType<GameFlowController>(); // 싱글톤 미초기화 시 fallback 탐색 결과입니다.
+
+        if (controller == null)
+        {
+            return E_GamePlayMode.SinglePlayer;
+        }
+
+        return controller.CurrentPlayMode;
+    }
+
+    /// <summary>
+    /// 플레이 모드별 Sprite 구성을 검사하고 누락 시 경고를 출력합니다.
+    /// </summary>
+    private void ValidateModeSpriteConfiguration()
+    {
+        if (_multiplayerHostFilledHealthSprite == null)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] MultiplayerHost filled sprite is not assigned on {name}. Default filled sprite fallback can be used.", this);
+        }
+
+        if (_multiplayerHostEmptyHealthSprite == null)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] MultiplayerHost empty sprite is not assigned on {name}. Default empty sprite fallback can be used.", this);
+        }
+
+        if (_multiplayerClientFilledHealthSprite == null)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] MultiplayerClient filled sprite is not assigned on {name}. Default filled sprite fallback can be used.", this);
+        }
+
+        if (_multiplayerClientEmptyHealthSprite == null)
+        {
+            Debug.LogWarning($"[HealthImageUiBridge] MultiplayerClient empty sprite is not assigned on {name}. Default empty sprite fallback can be used.", this);
         }
     }
 

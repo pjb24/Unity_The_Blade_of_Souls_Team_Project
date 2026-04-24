@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: PlayerVisualSet
   m_EditorClassIdentifier: Assembly-CSharp::PlayerVisualSet
   _variantYColor: {r: 1, g: 1, b: 1, a: 1}
-  _variantYAnimatorController: {fileID: 9100000, guid: 2549a7cb0ad2a0b40bc5d46f8a362b3e, type: 2}
+  _variantYAnimatorController: {fileID: 9100000, guid: 1ba941b56fdb1ee4ab28aa57b59c0cee, type: 2}
   _variantZColor: {r: 0.7, g: 0.85, b: 1, a: 1}
-  _variantZAnimatorController: {fileID: 9100000, guid: 2549a7cb0ad2a0b40bc5d46f8a362b3e, type: 2}
+  _variantZAnimatorController: {fileID: 9100000, guid: 1ba941b56fdb1ee4ab28aa57b59c0cee, type: 2}
