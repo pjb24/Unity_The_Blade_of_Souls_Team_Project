@@ -68,10 +68,14 @@ MonoBehaviour:
   _actionController: {fileID: 0}
   _playerMovement: {fileID: 0}
   _defaultAttackRuleProfile: {fileID: 11400000, guid: b9532a14d6949ea4f8a9f6fd2dd29e8c, type: 2}
+  _comboLinkProfile: {fileID: 11400000, guid: 601b31203ea0e364788f34d37291838a, type: 2}
   _enableRuntimeLog: 1
   _listenerRetryInterval: 0.1
   _listenerMaxRetryCount: 30
   _warnWhenOwnershipUnavailable: 1
   _inputManagerAttackRouteName: InputManagerAttack
   _enableOwnerRouteLog: 0
+  _hasQueuedComboInput: 0
+  _queuedComboSourceAction: 0
+  _queuedComboInputTime: 0
   _networkObject: {fileID: 0}

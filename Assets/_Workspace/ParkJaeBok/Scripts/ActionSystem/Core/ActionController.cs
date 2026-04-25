@@ -27,6 +27,9 @@ public class ActionController : MonoBehaviour
     private readonly ActionRuntime _runtime = new ActionRuntime(); // 현재 액션 런타임 상태
     private bool _isComboInputWindowOpen; // 현재 Combo 입력 허용 구간이 열린 상태인지 여부
     private bool _isHitWindowOpen; // 현재 공격 Hit 판정 허용 구간이 열린 상태인지 여부
+    private bool _isDispatchingListenerCallbacks; // 리스너 콜백 전파 중인지 여부(재진입 요청 지연 처리용)
+    private bool _hasDeferredActionRequest; // 콜백 전파 중 지연된 액션 요청이 존재하는지 여부
+    private E_ActionType _deferredActionType = E_ActionType.None; // 콜백 전파 종료 후 재시도할 지연 액션 타입
 
     public System.Action<bool> OnComboInputWindowChanged; // Combo 입력 허용 구간 상태 변경 알림 이벤트
     public System.Action<bool> OnHitWindowChanged; // Hit 판정 허용 구간 상태 변경 알림 이벤트
@@ -112,6 +115,12 @@ public class ActionController : MonoBehaviour
     /// </summary>
     public bool RequestAction(E_ActionType actionType)
     {
+        if (_isDispatchingListenerCallbacks)
+        {
+            QueueDeferredActionRequest(actionType);
+            return true;
+        }
+
         if (!IsActionEnabled(actionType))
         {
             Debug.LogWarning($"[ActionController] Action {actionType} is disabled for actorType {_actorType}.");
@@ -143,6 +152,42 @@ public class ActionController : MonoBehaviour
 
         TryScheduleAutoComplete(_runtime.ExecutionId, actionType);
         return true;
+    }
+
+    /// <summary>
+    /// 리스너 콜백 전파 중 발생한 액션 요청을 단일 슬롯에 저장합니다.
+    /// </summary>
+    private void QueueDeferredActionRequest(E_ActionType actionType)
+    {
+        if (_hasDeferredActionRequest && _deferredActionType != actionType)
+        {
+            Debug.LogWarning($"[ActionController] Deferred action request overwritten: {_deferredActionType} -> {actionType}");
+        }
+
+        _deferredActionType = actionType;
+        _hasDeferredActionRequest = true;
+        Debug.Log($"[ActionController] Request deferred during listener dispatch: {actionType}");
+    }
+
+    /// <summary>
+    /// 콜백 전파가 끝난 뒤 지연된 액션 요청이 있으면 재실행합니다.
+    /// </summary>
+    private void FlushDeferredActionRequest()
+    {
+        if (!_hasDeferredActionRequest)
+        {
+            return;
+        }
+
+        E_ActionType deferredActionType = _deferredActionType; // 전파 종료 후 재실행할 지연 액션 타입 스냅샷
+        _hasDeferredActionRequest = false;
+        _deferredActionType = E_ActionType.None;
+
+        bool accepted = RequestAction(deferredActionType); // 지연 액션 요청의 재실행 결과
+        if (!accepted)
+        {
+            Debug.LogWarning($"[ActionController] Deferred action request denied: {deferredActionType}");
+        }
     }
 
     /// <summary>
@@ -511,10 +556,21 @@ public class ActionController : MonoBehaviour
     /// </summary>
     private void NotifyActionStarted()
     {
-        for (int i = 0; i < _listeners.Count; i++)
+        _isDispatchingListenerCallbacks = true;
+
+        try
         {
-            _listeners[i].OnActionStarted(_runtime);
+            for (int i = 0; i < _listeners.Count; i++)
+            {
+                _listeners[i].OnActionStarted(_runtime);
+            }
         }
+        finally
+        {
+            _isDispatchingListenerCallbacks = false;
+        }
+
+        FlushDeferredActionRequest();
     }
 
     /// <summary>
@@ -522,10 +578,21 @@ public class ActionController : MonoBehaviour
     /// </summary>
     private void NotifyActionPhaseChanged(E_ActionPhase previousPhase, E_ActionPhase currentPhase)
     {
-        for (int i = 0; i < _listeners.Count; i++)
+        _isDispatchingListenerCallbacks = true;
+
+        try
         {
-            _listeners[i].OnActionPhaseChanged(_runtime, previousPhase, currentPhase);
+            for (int i = 0; i < _listeners.Count; i++)
+            {
+                _listeners[i].OnActionPhaseChanged(_runtime, previousPhase, currentPhase);
+            }
         }
+        finally
+        {
+            _isDispatchingListenerCallbacks = false;
+        }
+
+        FlushDeferredActionRequest();
     }
 
     /// <summary>
@@ -533,10 +600,21 @@ public class ActionController : MonoBehaviour
     /// </summary>
     private void NotifyActionCompleted()
     {
-        for (int i = 0; i < _listeners.Count; i++)
+        _isDispatchingListenerCallbacks = true;
+
+        try
         {
-            _listeners[i].OnActionCompleted(_runtime);
+            for (int i = 0; i < _listeners.Count; i++)
+            {
+                _listeners[i].OnActionCompleted(_runtime);
+            }
         }
+        finally
+        {
+            _isDispatchingListenerCallbacks = false;
+        }
+
+        FlushDeferredActionRequest();
     }
 
     /// <summary>
@@ -544,9 +622,20 @@ public class ActionController : MonoBehaviour
     /// </summary>
     private void NotifyActionCancelled(string reason)
     {
-        for (int i = 0; i < _listeners.Count; i++)
+        _isDispatchingListenerCallbacks = true;
+
+        try
         {
-            _listeners[i].OnActionCancelled(_runtime, reason);
+            for (int i = 0; i < _listeners.Count; i++)
+            {
+                _listeners[i].OnActionCancelled(_runtime, reason);
+            }
         }
+        finally
+        {
+            _isDispatchingListenerCallbacks = false;
+        }
+
+        FlushDeferredActionRequest();
     }
 }

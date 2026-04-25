@@ -26,14 +26,3 @@ MonoBehaviour:
     BlockAttack: 0
     BufferWhenBlocked: 0
     OutputActionType: 22
-  - Name: Attack_02
-    Enabled: 1
-    Priority: 1
-    RequiredFlags: 0
-    ExcludedFlags: 0
-    AllowedCurrentActions: 16000000
-    RequireComboWindowOpen: 0
-    RequireHitWindowOpen: 0
-    BlockAttack: 0
-    BufferWhenBlocked: 1
-    OutputActionType: 23

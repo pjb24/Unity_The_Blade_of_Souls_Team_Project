@@ -14,6 +14,8 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     [SerializeField] private PlayerMovement _playerMovement; // 공격 맥락 판정에 사용할 이동 상태 제공자 참조
     [Tooltip("InputManager Attack 입력에 매핑해 사용할 기본 공격 규칙 프로필입니다.")]
     [SerializeField] private AttackContextRuleProfile _defaultAttackRuleProfile; // InputManager Attack 입력 처리에 사용할 기본 공격 규칙 프로필입니다.
+    [Tooltip("콤보 완료 시점 전이 규칙과 입력 예약 허용 시간을 정의한 프로필입니다.")]
+    [SerializeField] private AttackComboLinkProfile _comboLinkProfile; // 콤보 예약 입력을 다음 액션으로 해석할 링크 규칙 프로필입니다.
 
     [Header("Runtime Options")]
     [Tooltip("공격 규칙 선택/차단 로그를 출력할지 여부입니다.")]
@@ -29,12 +31,21 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     [Tooltip("싱글플레이/멀티플레이 로컬 실행 경로 판정 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _enableOwnerRouteLog = false; // 로컬 실행 권한 판정(싱글/멀티) 로그 출력 여부입니다.
 
+    [Header("Queued Combo Debug")]
+    [Tooltip("현재 예약된 콤보 입력이 존재하는지 여부입니다.")]
+    [SerializeField] private bool _hasQueuedComboInput; // 현재 예약된 콤보 입력 존재 여부를 나타내는 상태 값입니다.
+    [Tooltip("예약 입력을 수집한 원본 액션 타입입니다.")]
+    [SerializeField] private E_ActionType _queuedComboSourceAction = E_ActionType.None; // 예약 입력을 수집한 원본 액션 타입입니다.
+    [Tooltip("예약 입력이 저장된 시각(Time.time)입니다.")]
+    [SerializeField] private float _queuedComboInputTime; // 예약 입력이 기록된 시각(Time.time)입니다.
+
     private Coroutine _registerActionListenerCoroutine; // ActionController 리스너 지연 등록 코루틴 핸들
     private bool _isActionListenerRegistered; // ActionController 리스너가 현재 등록된 상태인지 여부
     private bool _hasBufferedAttackInput; // 현재 버퍼링된 공격 입력이 존재하는지 여부
     private float _attackInputBufferTimer; // 버퍼링된 공격 입력의 남은 유효 시간
     private string _bufferedRouteName; // 현재 버퍼 입력이 속한 라우트 이름
     private AttackContextRuleProfile _bufferedRuleProfile; // 현재 버퍼 입력에 적용할 규칙 프로필
+    private string _queuedComboRouteName; // 예약 입력이 수집된 입력 라우트 이름
     [SerializeField] private NetworkObject _networkObject; // 소유권 기반 입력 처리 판정을 위한 NetworkObject 참조
 
     /// <summary>
@@ -54,6 +65,7 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         StopRunningCoroutine(ref _registerActionListenerCoroutine);
         TryImmediateUnregisterActionListenerOnDisable();
         ResetBufferedInput();
+        ResetQueuedComboInput(false, "OnDisable");
     }
 
     /// <summary>
@@ -78,6 +90,7 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         if (!CanProcessLocalOwnerLogic())
         {
             ResetBufferedInput();
+            ResetQueuedComboInput(false, "NonOwnerOrUnavailable");
             return;
         }
 
@@ -119,6 +132,12 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         }
 
         ActionRuntime runtime = _actionController.Runtime; // 입력 시점 액션 런타임 스냅샷
+
+        if (TryQueueComboInput(runtime.ActionType, routeName))
+        {
+            return;
+        }
+
         E_AttackContextFlags contextFlags = BuildAttackContextFlags(); // 입력 시점 이동 맥락 플래그 스냅샷
 
         if (!TryResolveRule(ruleProfile, runtime.ActionType, contextFlags, out AttackContextRuleData rule))
@@ -148,6 +167,49 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
         }
 
         TryRequestOrBuffer(rule.OutputActionType, rule.BufferWhenBlocked, source, rule.Name, routeName, ruleProfile);
+    }
+
+    /// <summary>
+    /// AttackCombo1 콤보 윈도우에서 입력된 공격을 즉시 요청하지 않고 예약으로 전환합니다.
+    /// </summary>
+    private bool TryQueueComboInput(E_ActionType currentActionType, string routeName)
+    {
+        if (currentActionType != E_ActionType.AttackCombo1)
+        {
+            return false;
+        }
+
+        if (!_actionController.IsComboInputWindowOpen)
+        {
+            return false;
+        }
+
+        if (_comboLinkProfile == null)
+        {
+            Debug.LogWarning("[ActionContextualAttackController] Combo input received during AttackCombo1, but AttackComboLinkProfile is null. Input will not transition.");
+            ResetQueuedComboInput(false, "MissingComboLinkProfile");
+            return true;
+        }
+
+        if (!_comboLinkProfile.TryGetLink(currentActionType, out AttackComboLinkData comboLink))
+        {
+            Debug.LogWarning($"[ActionContextualAttackController] Combo input received, but no combo link exists for {currentActionType}.");
+            ResetQueuedComboInput(false, "MissingComboLink");
+            return true;
+        }
+
+        _hasQueuedComboInput = true;
+        _queuedComboSourceAction = currentActionType;
+        _queuedComboInputTime = Time.time;
+        _queuedComboRouteName = routeName;
+
+        if (_enableRuntimeLog)
+        {
+            Debug.Log($"[ActionContextualAttackController] Queued combo input from {comboLink.FromActionType} to {comboLink.ToActionType}. route={routeName}, buffer={comboLink.InputBufferSeconds}");
+        }
+
+        ResetBufferedInput();
+        return true;
     }
 
     /// <summary>
@@ -445,6 +507,77 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
+    /// 예약된 콤보 입력 상태를 초기화하고 필요 시 경고 로그를 남깁니다.
+    /// </summary>
+    private void ResetQueuedComboInput(bool warn, string reason)
+    {
+        if (warn)
+        {
+            Debug.LogWarning($"[ActionContextualAttackController] Queued combo input cleared. reason={reason}, sourceAction={_queuedComboSourceAction}, route={_queuedComboRouteName}");
+        }
+
+        _hasQueuedComboInput = false;
+        _queuedComboSourceAction = E_ActionType.None;
+        _queuedComboInputTime = 0f;
+        _queuedComboRouteName = string.Empty;
+    }
+
+    /// <summary>
+    /// 완료된 액션이 예약 입력 원본일 때 콤보 링크를 평가해 다음 액션을 요청합니다.
+    /// </summary>
+    private void EvaluateQueuedComboOnActionCompleted(ActionRuntime runtime)
+    {
+        if (!_hasQueuedComboInput)
+        {
+            return;
+        }
+
+        if (!CanProcessLocalOwnerLogic())
+        {
+            ResetQueuedComboInput(false, "NotLocalOwner");
+            return;
+        }
+
+        if (runtime.ActionType != _queuedComboSourceAction)
+        {
+            return;
+        }
+
+        if (_comboLinkProfile == null)
+        {
+            ResetQueuedComboInput(true, "MissingComboLinkProfileAtComplete");
+            return;
+        }
+
+        if (!_comboLinkProfile.TryGetLink(_queuedComboSourceAction, out AttackComboLinkData comboLink))
+        {
+            ResetQueuedComboInput(true, $"MissingComboLinkAtComplete:{_queuedComboSourceAction}");
+            return;
+        }
+
+        float elapsedSeconds = Time.time - _queuedComboInputTime; // 예약 입력 시점 이후 경과 시간입니다.
+        if (elapsedSeconds > comboLink.InputBufferSeconds)
+        {
+            ResetQueuedComboInput(true, $"QueuedInputExpired(elapsed={elapsedSeconds:F3}, allowed={comboLink.InputBufferSeconds:F3})");
+            return;
+        }
+
+        bool requestAccepted = _actionController.RequestAction(comboLink.ToActionType); // 완료 이후 연결 규칙 기반 다음 콤보 요청 결과입니다.
+        if (!requestAccepted)
+        {
+            ResetQueuedComboInput(true, $"ComboRequestDenied:{comboLink.FromActionType}->{comboLink.ToActionType}");
+            return;
+        }
+
+        if (_enableRuntimeLog)
+        {
+            Debug.Log($"[ActionContextualAttackController] Queued combo transition requested: {comboLink.FromActionType} -> {comboLink.ToActionType}, route={_queuedComboRouteName}");
+        }
+
+        ResetQueuedComboInput(false, "ComboTransitionSucceeded");
+    }
+
+    /// <summary>
     /// ActionController 리스너 등록 코루틴을 재시작합니다.
     /// </summary>
     private void RestartActionListenerRegisterCoroutine()
@@ -564,10 +697,21 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 액션 시작 콜백에서 현재 구현은 별도 처리를 수행하지 않습니다.
+    /// 액션 시작 시 예약된 콤보 입력과 무관한 상위 우선순위 액션으로 전환되면 예약을 정리합니다.
     /// </summary>
     public void OnActionStarted(ActionRuntime runtime)
     {
+        if (!_hasQueuedComboInput)
+        {
+            return;
+        }
+
+        if (runtime.ActionType == _queuedComboSourceAction)
+        {
+            return;
+        }
+
+        ResetQueuedComboInput(true, $"QueuedComboInterruptedByStart:{runtime.ActionType}");
     }
 
     /// <summary>
@@ -578,10 +722,12 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 액션 완료 시 버퍼 입력이 남아 있으면 즉시 재시도합니다.
+    /// 액션 완료 시 콤보 예약 입력 평가 후 일반 버퍼 입력 재시도를 수행합니다.
     /// </summary>
     public void OnActionCompleted(ActionRuntime runtime)
     {
+        EvaluateQueuedComboOnActionCompleted(runtime);
+
         if (_hasBufferedAttackInput)
         {
             TryHandleAttackInput("ActionCompleted", _bufferedRouteName, _bufferedRuleProfile);
@@ -589,10 +735,22 @@ public class ActionContextualAttackController : MonoBehaviour, IActionListener
     }
 
     /// <summary>
-    /// 액션 취소 시 버퍼 입력이 남아 있으면 즉시 재시도합니다.
+    /// 액션 취소 시 예약/버퍼 입력을 즉시 정리합니다.
     /// </summary>
     public void OnActionCancelled(ActionRuntime runtime, string reason)
     {
+        if (_hasQueuedComboInput)
+        {
+            bool shouldClear = runtime.ActionType == _queuedComboSourceAction
+                || runtime.ActionType == E_ActionType.Hit
+                || runtime.ActionType == E_ActionType.Die;
+
+            if (shouldClear)
+            {
+                ResetQueuedComboInput(true, $"QueuedComboCancelled:{runtime.ActionType}, reason={reason}");
+            }
+        }
+
         if (_hasBufferedAttackInput)
         {
             TryHandleAttackInput("ActionCancelled", _bufferedRouteName, _bufferedRuleProfile);
