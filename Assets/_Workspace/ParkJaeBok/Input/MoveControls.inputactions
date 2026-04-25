@@ -59,6 +59,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Buff",
+                    "type": "Button",
+                    "id": "2d8312c5-31a0-4b67-81f9-eebd6fb2606e",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -246,6 +255,17 @@
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
                     "action": "Pause",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "46e66e03-ae4d-4e65-b683-1a0869320c54",
+                    "path": "<Keyboard>/z",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Buff",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

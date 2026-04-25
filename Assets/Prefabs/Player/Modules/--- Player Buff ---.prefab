@@ -1,0 +1,139 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &9162087343407987712
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7067718813731289812}
+  - component: {fileID: 1342528901201235947}
+  - component: {fileID: 3539755225294834333}
+  - component: {fileID: 3092072266344638745}
+  - component: {fileID: 8994000178113956424}
+  - component: {fileID: 5949611319147548541}
+  - component: {fileID: 6250511332997999690}
+  m_Layer: 7
+  m_Name: --- Player Buff ---
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7067718813731289812
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1342528901201235947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 024bc20013fddc94f81379a52ff2daa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuffGauge
+  _currentGauge: 0
+  _maxGauge: 0
+  _normalizedGauge: 0
+--- !u!114 &3539755225294834333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 329aa6c01fdb1034997e4eb9426136e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuffController
+  _buffConfig: {fileID: 11400000, guid: 447ca6f94d4c1554588dc1b375e0d4ea, type: 2}
+  _networkRelay: {fileID: 0}
+  _buffGauge: {fileID: 1342528901201235947}
+  _statModifier: {fileID: 8994000178113956424}
+  _visualController: {fileID: 5949611319147548541}
+  _audioController: {fileID: 6250511332997999690}
+  _attackExecutor: {fileID: 0}
+  _isBuffActive: 0
+  _runtimeMinBuffStartGauge: 0
+  _didLogGaugeStartBlockedWarning: 0
+--- !u!114 &3092072266344638745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c7048dfc630bb449bde70b6798b0849, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuffInputController
+  _buffController: {fileID: 3539755225294834333}
+  _isDrivingLocalInput: 0
+--- !u!114 &8994000178113956424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ffe4ae99f9e5c248ab99c9a71d78bb6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuffStatModifier
+  _buffConfig: {fileID: 11400000, guid: 447ca6f94d4c1554588dc1b375e0d4ea, type: 2}
+  _playerMovement: {fileID: 0}
+  _animator: {fileID: 0}
+  _actionController: {fileID: 0}
+  _isBuffApplied: 0
+  _cachedAnimatorSpeed: 1
+  _listenerRetryInterval: 0.1
+  _listenerMaxRetryCount: 30
+--- !u!114 &5949611319147548541
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56aeedb5ed7cf7d4284e7e76a3b555a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuffVisualController
+  _buffVfxRoot: {fileID: 0}
+  _buffConfig: {fileID: 11400000, guid: 447ca6f94d4c1554588dc1b375e0d4ea, type: 2}
+  _isBuffVisualActive: 0
+--- !u!114 &6250511332997999690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9162087343407987712}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 067ffd257b2f50e4ab44df795c1d5238, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuffAudioController
+  _buffConfig: {fileID: 11400000, guid: 447ca6f94d4c1554588dc1b375e0d4ea, type: 2}
+  _lastPlayedFrame: -1

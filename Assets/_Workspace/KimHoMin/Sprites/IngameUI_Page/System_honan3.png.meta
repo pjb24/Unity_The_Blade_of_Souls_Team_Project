@@ -106,28 +106,6 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: System_honan3_0
-      rect:
-        serializedVersion: 2
-        x: 45
-        y: 184
-        width: 6
-        height: 6
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 694bf2641c89d3610800000000000000
-      internalID: 1602604998287406230
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
       name: System_honan3_1
       rect:
         serializedVersion: 2
@@ -136,7 +114,7 @@ TextureImporter:
         width: 96
         height: 104
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -149,33 +127,11 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: System_honan3_2
-      rect:
-        serializedVersion: 2
-        x: 73
-        y: 117
-        width: 7
-        height: 7
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: e9bea74b7aa1c3c40800000000000000
-      internalID: 5493294953074977694
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 1e0217fb6d324a342a4c488d42688115
     internalID: 0
     vertices: []
     indices: 

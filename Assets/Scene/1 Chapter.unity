@@ -8434,6 +8434,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 325789467}
+  - component: {fileID: 325789468}
   m_Layer: 5
   m_Name: Gauge
   m_TagString: Untagged
@@ -8461,6 +8462,32 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: -108}
   m_SizeDelta: {x: 268.8, y: 27}
   m_Pivot: {x: 0, y: 1}
+--- !u!114 &325789468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 325789466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7602383b07099ce4b8d8aac5598e3e68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuffGaugeUiBridge
+  _localPlayerBuffProvider: {fileID: 0}
+  _targetGauge: {fileID: 0}
+  _targetController: {fileID: 0}
+  _gaugeSlider: {fileID: 0}
+  _gaugeFillImage: {fileID: 2088951733}
+  _gaugeText: {fileID: 0}
+  _hideUiWhenGaugeDisabled: 1
+  _uiRoot: {fileID: 2088951731}
+  _buffAvailabilityImage: {fileID: 2000012796}
+  _buffUnavailableSprite: {fileID: 1069157013589220368, guid: 334d8b58a7d6bc44cbf54ae9e2deaa68, type: 3}
+  _buffAvailableHostSprite: {fileID: -6972397116602079887, guid: 3497b125b52db6a449b1b5cb5aae00a3, type: 3}
+  _buffAvailableClientSprite: {fileID: 7012395647657636263, guid: 48e3631183fb48743b6d1e7f93918cdf, type: 3}
+  _retryInterval: 0.1
+  _maxRetryCount: 30
 --- !u!1 &335190963
 GameObject:
   m_ObjectHideFlags: 0
@@ -46200,7 +46227,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 86.4, y: 86.39999}
+  m_SizeDelta: {x: 81, y: 96}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2000012796
 MonoBehaviour:
@@ -48416,11 +48443,11 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
+  m_Sprite: {fileID: 532526161802478048, guid: ce70be288b925674ca69a950b2205744, type: 3}
+  m_Type: 3
   m_PreserveAspect: 0
   m_FillCenter: 1
-  m_FillMethod: 4
+  m_FillMethod: 0
   m_FillAmount: 1
   m_FillClockwise: 1
   m_FillOrigin: 0

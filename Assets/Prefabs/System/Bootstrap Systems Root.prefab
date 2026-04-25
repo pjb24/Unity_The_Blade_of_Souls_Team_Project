@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 16871069682181859}
   - component: {fileID: 793419730018100700}
   - component: {fileID: 1949728695239915533}
+  - component: {fileID: 1197943900809351441}
   m_Layer: 0
   m_Name: Bootstrap Systems Root
   m_TagString: Untagged
@@ -233,3 +234,21 @@ MonoBehaviour:
   _allowSinglePlayerFallbackScan: 1
   _warnOnFallbackPath: 1
   _resolvedLocalHealth: {fileID: 0}
+--- !u!114 &1197943900809351441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6fd8da733bb4cfe46acdbada5ab3e4b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalPlayerBuffProvider
+  _networkManager: {fileID: 0}
+  _resolveOnSceneLoaded: 1
+  _allowNetworkOwnerFallbackScan: 1
+  _allowSinglePlayerFallbackScan: 1
+  _warnOnFallbackPath: 1
+  _resolvedLocalBuffController: {fileID: 0}

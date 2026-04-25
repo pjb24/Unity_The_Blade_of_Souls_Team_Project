@@ -60,6 +60,8 @@ public class PlayerMovement : MonoBehaviour
     private bool _drivenDashPressed;
     // 입력 소스를 InputManager 직접 읽기에서 외부 드라이버 주입으로 전환할지 여부를 제어한다.
     private bool _useDrivenInput;
+    // 외부 시스템(Buff 등)에서 이동 속도에 곱해 적용할 배율 값이다.
+    private float _externalMoveSpeedMultiplier = 1f;
 
     //jump vars
     // 점프 상승 구간이 아직 유효한지 나타내며 중력/정점 처리 분기를 결정한다.
@@ -185,7 +187,7 @@ public class PlayerMovement : MonoBehaviour
     private VisualInterpolator _visuals;
 
     // 현재 달리기 입력 유지 여부를 외부에 노출한다.
-    public bool IsRunning => InputManager.RunIsHeld;
+    public bool IsRunning => _runHeld;
     // 점프 상승 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
     public bool IsJumpingState => _isJumping;
     // 일반 낙하 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
@@ -264,6 +266,14 @@ public class PlayerMovement : MonoBehaviour
         _drivenJumpPressed |= jumpPressed;
         _drivenJumpReleased |= jumpReleased;
         _drivenDashPressed |= dashPressed;
+    }
+
+    /// <summary>
+    /// 외부 시스템에서 이동 속도 배율을 적용/복구할 수 있도록 설정합니다.
+    /// </summary>
+    public void SetExternalMoveSpeedMultiplier(float multiplier)
+    {
+        _externalMoveSpeedMultiplier = Mathf.Max(0f, multiplier);
     }
 
     // 경사면 옵션이 켜진 경우 비주얼 회전을 마지막 단계에서 보간한다.
@@ -400,7 +410,8 @@ public class PlayerMovement : MonoBehaviour
 
                 float moveDirection = Mathf.Sign(_moveInput.x);
                 float targetVelocityX = 0f;
-                targetVelocityX = _runHeld ? moveDirection * MoveStats.MaxRunSpeed : moveDirection * MoveStats.MaxWalkSpeed;
+                float moveSpeedMultiplier = Mathf.Max(0f, _externalMoveSpeedMultiplier); // 외부 시스템에서 전달된 이동 속도 배율입니다.
+                targetVelocityX = _runHeld ? moveDirection * MoveStats.MaxRunSpeed * moveSpeedMultiplier : moveDirection * MoveStats.MaxWalkSpeed * moveSpeedMultiplier;
 
                 float t = Mathf.Clamp01(acceleration * timeStep);
                 Velocity.x = Mathf.Lerp(Velocity.x, targetVelocityX, t);

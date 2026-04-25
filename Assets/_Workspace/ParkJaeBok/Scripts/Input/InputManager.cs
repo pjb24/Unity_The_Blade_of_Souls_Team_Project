@@ -12,16 +12,20 @@ public class InputManager : MonoBehaviour
     public static bool RunIsHeld;
     public static bool DashWasPressed;
     public static bool AttackWasPressed;
+    public static bool BuffWasPressed;
 
     [Header("Runtime Options")]
     [Tooltip("Attack 액션을 찾지 못했을 때 경고 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _warnMissingAttackAction = true; // Attack 액션 미구성 시 경고 로그 출력 여부입니다.
+    [Tooltip("Buff 액션을 찾지 못했을 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnMissingBuffAction = true; // Buff 액션 미구성 시 경고 로그 출력 여부입니다.
 
     private InputAction _moveAction;
     private InputAction _jumpAction;
     private InputAction _runAction;
     private InputAction _dashAction;
     private InputAction _attackAction;
+    private InputAction _buffAction;
 
     /// <summary>
     /// InputManager 초기화 시 PlayerInput의 주요 액션 참조를 캐시합니다.
@@ -42,6 +46,12 @@ public class InputManager : MonoBehaviour
         {
             Debug.LogWarning($"[InputManager] Attack action is missing on {name}.");
         }
+
+        _buffAction = PlayerInput.actions.FindAction("Buff", false);
+        if (_buffAction == null && _warnMissingBuffAction)
+        {
+            Debug.LogWarning($"[InputManager] Buff action is missing on {name}.");
+        }
     }
 
     /// <summary>
@@ -61,5 +71,6 @@ public class InputManager : MonoBehaviour
         DashWasPressed = _dashAction.WasPerformedThisFrame();
 
         AttackWasPressed = _attackAction != null && _attackAction.WasPressedThisFrame();
+        BuffWasPressed = _buffAction != null && _buffAction.WasPressedThisFrame();
     }
 }

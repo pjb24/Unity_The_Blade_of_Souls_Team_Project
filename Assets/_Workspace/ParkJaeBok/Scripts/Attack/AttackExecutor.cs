@@ -40,6 +40,10 @@ public class AttackExecutor : MonoBehaviour
     private readonly Dictionary<E_ActionType, AttackSpec> _specMap = new Dictionary<E_ActionType, AttackSpec>(); // 런타임 빠른 조회를 위한 액션-스펙 딕셔너리입니다.
     private readonly HashSet<int> _hitTargetsInCurrentSwing = new HashSet<int>(); // 현재 공격 실행에서 이미 타격한 타겟 InstanceId 집합입니다.
     private readonly List<HitReceiver> _targetBuffer = new List<HitReceiver>(); // 타겟 탐지 결과를 임시 보관하는 버퍼 목록입니다.
+    private readonly List<IAttackExecutionListener> _listeners = new List<IAttackExecutionListener>(); // 공격 판정 결과를 전달할 리스너 목록입니다.
+    private readonly List<IAttackDamageModifierProvider> _damageModifierProviders = new List<IAttackDamageModifierProvider>(); // 최종 데미지 계산 시 사용할 수정자 제공자 목록입니다.
+    private readonly List<MonoBehaviour> _damageModifierComponentBuffer = new List<MonoBehaviour>(); // 하위 계층에서 데미지 수정자 후보를 수집할 임시 버퍼입니다.
+    private bool _isDamageModifierCacheDirty = true; // 데미지 수정자 캐시를 재구성해야 하는지 여부입니다.
 
     private int _currentSwingExecutionId = -1; // 현재 공격 실행 식별자(중복 타격 방지 스코프 구분용)입니다.
     private E_ActionType _currentSwingActionType = E_ActionType.None; // 현재 공격 실행에 대응하는 액션 타입입니다.
@@ -59,6 +63,7 @@ public class AttackExecutor : MonoBehaviour
         TryResolveActionController();
         TryResolveNetworkObject();
         RebuildSpecMap();
+        RebuildDamageModifierProviderCache();
     }
 
     /// <summary>
@@ -66,6 +71,8 @@ public class AttackExecutor : MonoBehaviour
     /// </summary>
     private void OnEnable()
     {
+        _isDamageModifierCacheDirty = true;
+
         if (_actionController == null)
         {
             return;
@@ -85,6 +92,43 @@ public class AttackExecutor : MonoBehaviour
         }
 
         _actionController.OnHitWindowChanged -= HandleHitWindowChanged;
+    }
+
+    /// <summary>
+    /// 공격 판정 결과 리스너를 등록합니다.
+    /// </summary>
+    public void AddListener(IAttackExecutionListener listener)
+    {
+        if (listener == null)
+        {
+            Debug.LogWarning("[AttackExecutor] Cannot add null listener.");
+            return;
+        }
+
+        if (_listeners.Contains(listener))
+        {
+            Debug.LogWarning("[AttackExecutor] Duplicate listener registration ignored.");
+            return;
+        }
+
+        _listeners.Add(listener);
+    }
+
+    /// <summary>
+    /// 공격 판정 결과 리스너를 해제합니다.
+    /// </summary>
+    public void RemoveListener(IAttackExecutionListener listener)
+    {
+        if (listener == null)
+        {
+            Debug.LogWarning("[AttackExecutor] Cannot remove null listener.");
+            return;
+        }
+
+        if (_listeners.Remove(listener) == false)
+        {
+            Debug.LogWarning("[AttackExecutor] Tried to remove unknown listener.");
+        }
     }
 
     /// <summary>
@@ -165,6 +209,7 @@ public class AttackExecutor : MonoBehaviour
             HitRequest request = BuildHitRequest(attackSpec, actionType, executionId, receiver, _currentSwingHitSerial);
             _currentSwingHitSerial++;
             HitResult result = receiver.ReceiveHit(request);
+            NotifyAttackExecuted(actionType, executionId, receiver, result);
 
             if (result.IsAccepted)
             {
@@ -502,7 +547,7 @@ public class AttackExecutor : MonoBehaviour
         Vector2 direction2D = ((Vector2)(targetPosition - attackerPosition)).normalized;
 
         string hitId = BuildHitId(actionType, executionId, receiver.gameObject.GetInstanceID(), hitSerial, attackSpec.AllowMultiHitPerSwing);
-        float safeDamage = attackSpec.GetSafeBaseDamage();
+        float safeDamage = ResolveFinalDamage(attackSpec, actionType);
 
         return new HitRequest(
             hitId: hitId,
@@ -512,6 +557,72 @@ public class AttackExecutor : MonoBehaviour
             hitDirection: new Vector3(direction2D.x, direction2D.y, 0f),
             statusTag: attackSpec.StatusTag,
             requestTime: Time.time);
+    }
+
+    /// <summary>
+    /// 공격 스펙의 기본 데미지에 등록된 수정자 제공자를 순차 적용해 최종 데미지를 계산합니다.
+    /// </summary>
+    private float ResolveFinalDamage(AttackSpec attackSpec, E_ActionType actionType)
+    {
+        float resolvedDamage = attackSpec.GetSafeBaseDamage(); // 공격 스펙에서 읽어온 기본 데미지 값입니다.
+
+        if (_isDamageModifierCacheDirty)
+        {
+            RebuildDamageModifierProviderCache();
+        }
+
+        for (int index = 0; index < _damageModifierProviders.Count; index++)
+        {
+            IAttackDamageModifierProvider modifierProvider = _damageModifierProviders[index]; // 현재 적용할 데미지 수정자 제공자입니다.
+            if (modifierProvider == null)
+            {
+                continue;
+            }
+
+            resolvedDamage = modifierProvider.ModifyDamage(resolvedDamage, attackSpec, actionType);
+        }
+
+        return Mathf.Max(0f, resolvedDamage);
+    }
+
+    /// <summary>
+    /// 동일 오브젝트에 부착된 데미지 수정자 제공자 목록을 캐시합니다.
+    /// </summary>
+    private void RebuildDamageModifierProviderCache()
+    {
+        _damageModifierProviders.Clear();
+        _damageModifierComponentBuffer.Clear();
+        GetComponentsInChildren(true, _damageModifierComponentBuffer);
+
+        for (int index = 0; index < _damageModifierComponentBuffer.Count; index++)
+        {
+            MonoBehaviour component = _damageModifierComponentBuffer[index]; // 현재 검사 중인 데미지 수정자 후보 컴포넌트입니다.
+            if (component is not IAttackDamageModifierProvider provider)
+            {
+                continue;
+            }
+
+            _damageModifierProviders.Add(provider);
+        }
+
+        _isDamageModifierCacheDirty = false;
+    }
+
+    /// <summary>
+    /// 공격 판정 결과를 리스너에게 전달합니다.
+    /// </summary>
+    private void NotifyAttackExecuted(E_ActionType actionType, int executionId, HitReceiver receiver, in HitResult result)
+    {
+        if (_listeners.Count == 0)
+        {
+            return;
+        }
+
+        AttackExecutionReport report = new AttackExecutionReport(actionType, executionId, receiver, result); // 리스너 전달용 공격 실행 보고서입니다.
+        for (int index = 0; index < _listeners.Count; index++)
+        {
+            _listeners[index].OnAttackExecuted(report);
+        }
     }
 
     /// <summary>
