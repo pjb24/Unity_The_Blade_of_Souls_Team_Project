@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: AttackContextRuleProfile_Player
   m_EditorClassIdentifier: Assembly-CSharp::AttackContextRuleProfile
   _fallbackActionType: 0
-  _attackInputBufferSeconds: 0.15
+  _attackInputBufferSeconds: 0.4
   _rules:
   - Name: Attack_01
     Enabled: 1

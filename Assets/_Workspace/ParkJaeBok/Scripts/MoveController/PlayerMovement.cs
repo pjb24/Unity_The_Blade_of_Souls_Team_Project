@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 [SelectionBase]
@@ -13,6 +14,10 @@ public class PlayerMovement : MonoBehaviour
     /// 실제 점프(일반 점프/공중 점프/벽 점프)가 시작될 때마다 통지되는 이벤트입니다.
     /// </summary>
     public event Action<Vector3> JumpExecuted;
+
+    [Header("Movement Lock")]
+    [Tooltip("현재 이동 잠금 사유 목록을 인스펙터에서 확인하기 위한 디버그 문자열입니다.")]
+    [SerializeField] private string _movementLockDebugView = string.Empty; // 현재 적용된 이동 잠금 사유를 사람이 읽을 수 있는 문자열로 표시합니다.
 
     [Header("References")]
     // 캐릭터 이동에 사용되는 모든 수치 데이터(속도, 가속, 점프값)를 담는다.
@@ -62,6 +67,8 @@ public class PlayerMovement : MonoBehaviour
     private bool _useDrivenInput;
     // 외부 시스템(Buff 등)에서 이동 속도에 곱해 적용할 배율 값이다.
     private float _externalMoveSpeedMultiplier = 1f;
+    // 현재 이동 잠금을 건 사유 집합입니다. 하나라도 남아 있으면 이동 입력을 차단합니다.
+    private readonly HashSet<E_MovementLockReason> _movementLockReasons = new HashSet<E_MovementLockReason>();
 
     //jump vars
     // 점프 상승 구간이 아직 유효한지 나타내며 중력/정점 처리 분기를 결정한다.
@@ -196,11 +203,16 @@ public class PlayerMovement : MonoBehaviour
     public bool IsWallSlidingState => _isWallSliding;
     // 벽 점프 단계 진행 여부를 외부 액션 동기화 로직에 제공한다.
     public bool IsWallJumpingState => _isWallJumping;
+    // 현재 하나 이상의 잠금 사유로 이동이 제한된 상태인지 외부에 제공합니다.
+    public bool IsMovementLocked => _movementLockReasons.Count > 0;
+    // 이동 잠금이 없어서 이동 입력을 적용할 수 있는지 여부를 외부에 제공합니다.
+    public bool CanMove => !IsMovementLocked;
 
     // 필수 컴포넌트 참조를 캐싱하고 초기 바라보는 방향을 설정한다.
     private void Awake()
     {
         IsFacingRight = true;
+        UpdateMovementLockDebugView();
 
         if (_visualsTransform == null)
         {
@@ -227,6 +239,12 @@ public class PlayerMovement : MonoBehaviour
     // 입력을 수집해 물리 프레임에서 소비할 버퍼 플래그를 설정한다.
     private void Update()
     {
+        if (IsMovementLocked)
+        {
+            ConsumeMovementInputsAsLocked();
+            return;
+        }
+
         if (_useDrivenInput)
         {
             _moveInput = _drivenMoveInput;
@@ -274,6 +292,73 @@ public class PlayerMovement : MonoBehaviour
     public void SetExternalMoveSpeedMultiplier(float multiplier)
     {
         _externalMoveSpeedMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    /// <summary>
+    /// 지정한 사유로 이동 잠금을 추가합니다.
+    /// </summary>
+    public void AddMovementLock(E_MovementLockReason reason, bool clearHorizontalVelocity = false)
+    {
+        _movementLockReasons.Add(reason);
+        UpdateMovementLockDebugView();
+
+        if (clearHorizontalVelocity)
+        {
+            ClearHorizontalMotion();
+        }
+    }
+
+    /// <summary>
+    /// 지정한 사유의 이동 잠금을 제거합니다.
+    /// </summary>
+    public void RemoveMovementLock(E_MovementLockReason reason)
+    {
+        _movementLockReasons.Remove(reason);
+        UpdateMovementLockDebugView();
+    }
+
+    /// <summary>
+    /// 지정한 사유의 이동 잠금이 현재 적용 중인지 반환합니다.
+    /// </summary>
+    public bool HasMovementLock(E_MovementLockReason reason)
+    {
+        return _movementLockReasons.Contains(reason);
+    }
+
+    /// <summary>
+    /// 이동 잠금 시 누적된 입력 버퍼를 초기화합니다.
+    /// </summary>
+    private void ConsumeMovementInputsAsLocked()
+    {
+        _moveInput = Vector2.zero;
+        _runHeld = false;
+        _jumpPressed = false;
+        _jumpReleased = false;
+        _dashPressed = false;
+
+        _drivenMoveInput = Vector2.zero;
+        _drivenRunHeld = false;
+        _drivenJumpPressed = false;
+        _drivenJumpReleased = false;
+        _drivenDashPressed = false;
+    }
+
+    /// <summary>
+    /// 수평 이동 성분만 안전하게 정지시켜 공격 시작 직후 미끄러짐을 방지합니다.
+    /// </summary>
+    private void ClearHorizontalMotion()
+    {
+        Velocity = new Vector2(0f, Velocity.y);
+    }
+
+    /// <summary>
+    /// 현재 잠금 사유 집합을 인스펙터 디버그 문자열로 갱신합니다.
+    /// </summary>
+    private void UpdateMovementLockDebugView()
+    {
+        _movementLockDebugView = _movementLockReasons.Count == 0
+            ? "None"
+            : string.Join(", ", _movementLockReasons);
     }
 
     // 경사면 옵션이 켜진 경우 비주얼 회전을 마지막 단계에서 보간한다.

@@ -16,6 +16,7 @@ GameObject:
   - component: {fileID: 7014546302037240364}
   - component: {fileID: 2246701947845240806}
   - component: {fileID: 8397185906079373947}
+  - component: {fileID: 674375901998290034}
   m_Layer: 7
   m_Name: --- Player_Action ---
   m_TagString: Player
@@ -207,3 +208,23 @@ MonoBehaviour:
   _hitBridgeProfile: {fileID: 11400000, guid: 395ae8a9b5041ca4081df3da1832b540, type: 2}
   _retryInterval: 0.1
   _maxRetryCount: 30
+--- !u!114 &674375901998290034
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8950158379528443017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1deb88839d3078f4fa5b8912e76def11, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionMovementLockBridge
+  _actionController: {fileID: 6523384298162873578}
+  _playerMovement: {fileID: 0}
+  _networkObject: {fileID: 0}
+  _lockAttackActionsByDefault: 1
+  _defaultLockActions: 0d0000001600000017000000180000001d0000001e0000001f000000
+  _clearHorizontalVelocityOnLock: 1
+  _warnWhenOwnershipUnavailable: 1
+  _enableRuntimeLog: 0

@@ -140,6 +140,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b12e6e85fe5d88344adb37f1c3ef6961, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  _movementLockDebugView: 
   MoveStats: {fileID: 11400000, guid: 881394b83eae6c1478996d1a91466316, type: 2}
   _coll: {fileID: 3141237076942185798}
   _visualsTransform: {fileID: 2201137399338360800}
@@ -677,6 +678,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 6731959234957534330}
     m_Modifications:
+    - target: {fileID: 674375901998290034, guid: d9ad53464808618478ec05f249f95a73, type: 3}
+      propertyPath: _networkObject
+      value: 
+      objectReference: {fileID: 5892350524157319419}
+    - target: {fileID: 674375901998290034, guid: d9ad53464808618478ec05f249f95a73, type: 3}
+      propertyPath: _playerMovement
+      value: 
+      objectReference: {fileID: 1249389477860502122}
     - target: {fileID: 5029073434713289560, guid: d9ad53464808618478ec05f249f95a73, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

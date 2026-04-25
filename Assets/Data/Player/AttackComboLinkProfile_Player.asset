@@ -16,4 +16,4 @@ MonoBehaviour:
   - Name: Attack1_to_Attack2
     FromActionType: 22
     ToActionType: 23
-    InputBufferSeconds: 0.3
+    InputBufferSeconds: 0.4

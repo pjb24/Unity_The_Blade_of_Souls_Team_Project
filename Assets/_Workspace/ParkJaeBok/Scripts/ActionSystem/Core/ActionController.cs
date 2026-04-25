@@ -514,7 +514,17 @@ public class ActionController : MonoBehaviour
             Priority = 0,
             IsInterruptible = true,
             AutoCompleteSeconds = 0f,
+            OverrideMovementLockSetting = false,
+            LockMovementDuringAction = false,
         };
+    }
+
+    /// <summary>
+    /// 지정한 액션 타입의 Rule을 프로필에서 직접 조회합니다.
+    /// </summary>
+    public bool TryGetActionRule(E_ActionType actionType, out ActionRuleData rule)
+    {
+        return _ruleMap.TryGetValue(actionType, out rule);
     }
 
     /// <summary>
