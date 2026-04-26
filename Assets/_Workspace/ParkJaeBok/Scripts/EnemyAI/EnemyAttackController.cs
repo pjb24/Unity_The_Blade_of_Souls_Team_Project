@@ -7,7 +7,7 @@ using UnityEngine;
 /// 공격 가능 여부, 애니메이션 이벤트 기반 공격 판정, 공격 종료 신호를 관리하는 공격 컨트롤러입니다.
 /// </summary>
 [DisallowMultipleComponent]
-public class EnemyAttackController : MonoBehaviour
+public class EnemyAttackController : NetworkBehaviour
 {
     [Header("Attack Runtime")]
     [Tooltip("공격 쿨다운 시간(초)입니다.")]
@@ -221,14 +221,7 @@ public class EnemyAttackController : MonoBehaviour
         _nextAttackAllowedAt = nowTime + _attackCooldown;
         _hasWarnedFallback = false;
 
-        if (_animationBridge != null)
-        {
-            _animationBridge.TriggerAttackIntent();
-        }
-        else
-        {
-            Debug.LogWarning($"[EnemyAttackController] Missing EnemyAnimationBridge on {name}. Attack intent is not forwarded.");
-        }
+        TriggerAttackIntentVisual();
 
         return true;
     }
@@ -259,6 +252,35 @@ public class EnemyAttackController : MonoBehaviour
         _isTerminalState = false;
         _hasWarnedFallback = false;
         _damagedTargetIds.Clear();
+    }
+
+    /// <summary>
+    /// 공격 시작 시각 의도를 로컬 Animator에 반영하고 필요 시 관찰자에게 복제합니다.
+    /// </summary>
+    private void TriggerAttackIntentVisual()
+    {
+        if (_animationBridge != null)
+        {
+            _animationBridge.TriggerAttackIntent();
+        }
+        else
+        {
+            Debug.LogWarning($"[EnemyAttackController] Missing EnemyAnimationBridge on {name}. Attack intent is not forwarded.");
+        }
+
+        if (EnemyNetworkAuthorityUtility.ShouldReplicateFromServer(_networkObject))
+        {
+            TriggerAttackIntentVisualRpc();
+        }
+    }
+
+    /// <summary>
+    /// 서버가 확정한 공격 트리거를 관찰자 인스턴스에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerAttackIntentVisualRpc()
+    {
+        _animationBridge?.TriggerAttackIntent();
     }
 
     /// <summary>
@@ -421,32 +443,13 @@ public class EnemyAttackController : MonoBehaviour
             _networkObject = GetComponent<NetworkObject>();
         }
 
-        if (_networkObject == null)
+        bool canExecute = EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject);
+        if (!canExecute && _warnWhenNetworkAuthorityUnavailable)
         {
-            if (_warnWhenNetworkAuthorityUnavailable)
-            {
-                Debug.LogWarning($"[EnemyAttackController] NetworkObject is missing. Server-only attack authority cannot be verified on {name}.");
-            }
-
-            return true;
+            Debug.LogWarning($"[EnemyAttackController] Observer instance skipped attack simulation. object={name}", this);
         }
 
-        if (!_networkObject.IsSpawned)
-        {
-            return true;
-        }
-
-        if (NetworkManager.Singleton == null)
-        {
-            if (_warnWhenNetworkAuthorityUnavailable)
-            {
-                Debug.LogWarning($"[EnemyAttackController] NetworkManager.Singleton is missing. Server-only attack authority cannot be verified on {name}.");
-            }
-
-            return true;
-        }
-
-        return NetworkManager.Singleton.IsServer;
+        return canExecute;
     }
 
     /// <summary>

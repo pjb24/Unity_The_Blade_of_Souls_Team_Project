@@ -8,7 +8,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkTransform))]
-public class PlayerNetworkSync : NetworkBehaviour
+public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
 {
     [Header("Dependencies")]
     [Tooltip("플레이어 Transform 동기화를 담당하는 NetworkTransform 참조입니다. 비어 있으면 자동 탐색합니다.")]
@@ -17,6 +17,9 @@ public class PlayerNetworkSync : NetworkBehaviour
     [SerializeField] private ActionController _actionController; // 네트워크 액션 상태를 생산/소비할 ActionController 참조입니다.
     [Tooltip("네트워크로 확정된 좌우 방향 상태를 읽고 반영할 PlayerMovement 참조입니다. 비어 있으면 자동 탐색합니다.")]
     [SerializeField] private PlayerMovement _playerMovement; // 바라보는 방향 동기화 원본/적용을 담당할 PlayerMovement 참조입니다.
+
+    [Tooltip("서버 확정 체력 상태를 복제하고 로컬 HealthComponent에 반영할 대상 참조입니다.")]
+    [SerializeField] private HealthComponent _healthComponent; // 서버 확정 체력 스냅샷을 기록할 HealthComponent 참조입니다.
 
     [Header("Action State Sync")]
     [Tooltip("Owner가 확정한 액션 상태를 서버를 통해 전파할지 여부입니다.")]
@@ -39,6 +42,16 @@ public class PlayerNetworkSync : NetworkBehaviour
     }; // 기본 이동 액션 외에도 복제를 허용할 추가 액션 타입 목록입니다.
     [Tooltip("ActionController 참조 누락 시 경고 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _warnMissingActionController = true; // ActionController 참조 누락 경고 출력 여부입니다.
+    [Tooltip("서버가 강제로 확정해야 하는 피격 계열 액션 목록입니다. Owner 입력보다 서버 확정값을 우선 적용합니다.")]
+    [SerializeField]
+    private E_ActionType[] _serverAuthoritativeActions = new E_ActionType[]
+    {
+        E_ActionType.Hit,
+        E_ActionType.Break,
+        E_ActionType.Die,
+    }; // 서버 확정값으로 우선 처리할 액션 타입 목록입니다.
+    [Tooltip("Owner 클라이언트에도 서버 확정 피격 계열 액션을 재적용할지 여부입니다.")]
+    [SerializeField] private bool _applyServerAuthoritativeActionsToOwner = true; // Owner 화면에 서버 확정 피격 계열 액션을 재적용할지 여부입니다.
 
     [Header("Facing Direction Sync")]
     [Tooltip("Owner가 바라보는 방향 상태를 서버로 전송할지 여부입니다.")]
@@ -49,6 +62,14 @@ public class PlayerNetworkSync : NetworkBehaviour
     [SerializeField] private bool _warnMissingPlayerMovement = true; // PlayerMovement 참조 누락 경고 출력 여부입니다.
     [Tooltip("Owner 클라이언트에도 서버 복제 방향값을 재적용할지 여부입니다. 기본값(false)은 Owner 입력 응답성을 우선합니다.")]
     [SerializeField] private bool _applyReplicatedFacingToOwner = false; // Owner 로컬 인스턴스에 복제 방향값 재적용 여부를 제어하는 플래그입니다.
+
+    [Header("Health Sync")]
+    [Tooltip("서버 확정 체력 상태를 네트워크로 복제할지 여부입니다.")]
+    [SerializeField] private bool _enableHealthStateSync = true; // 체력 상태 복제 활성화 여부입니다.
+    [Tooltip("Owner 클라이언트에도 서버 확정 체력 값을 적용할지 여부입니다.")]
+    [SerializeField] private bool _applyReplicatedHealthToOwner = true; // Owner 화면에 서버 체력 상태를 반영할지 여부입니다.
+    [Tooltip("HealthComponent 참조가 없을 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnMissingHealthComponent = true; // HealthComponent 누락 경고 출력 여부입니다.
 
     [Header("Facing Debug")]
     [Tooltip("디버그용: 마지막으로 Owner가 전송한 방향 상태입니다.")]
@@ -77,6 +98,26 @@ public class PlayerNetworkSync : NetworkBehaviour
     /// <summary>
     /// 초기화 시 NetworkTransform/의존성 참조를 캐시합니다.
     /// </summary>
+    private readonly NetworkVariable<float> _replicatedCurrentHealth = new NetworkVariable<float>(
+        0f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 서버 확정 현재 체력 값입니다.
+    private readonly NetworkVariable<float> _replicatedMaxHealth = new NetworkVariable<float>(
+        1f,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 서버 확정 최대 체력 값입니다.
+    private readonly NetworkVariable<bool> _replicatedIsDead = new NetworkVariable<bool>(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 서버 확정 사망 상태 값입니다.
+    private readonly NetworkVariable<int> _replicatedHealthRevision = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 체력 스냅샷 갱신 순번입니다.
+
+    private bool _isHealthListenerRegistered; // 서버 HealthComponent 리스너 등록 여부를 추적하는 플래그입니다.
+    private int _lastAppliedHealthRevision = -1; // 로컬 HealthComponent에 마지막으로 반영한 체력 스냅샷 순번입니다.
+
     private void Awake()
     {
         if (_networkTransform == null)
@@ -93,6 +134,11 @@ public class PlayerNetworkSync : NetworkBehaviour
         {
             _playerMovement = GetComponent<PlayerMovement>();
         }
+
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponent<HealthComponent>();
+        }
     }
 
     /// <summary>
@@ -103,6 +149,7 @@ public class PlayerNetworkSync : NetworkBehaviour
         _replicatedActionType.OnValueChanged += HandleReplicatedActionTypeChanged;
         _replicatedActionRunning.OnValueChanged += HandleReplicatedActionRunningChanged;
         _replicatedFacingRight.OnValueChanged += HandleReplicatedFacingDirectionChanged;
+        _replicatedHealthRevision.OnValueChanged += HandleReplicatedHealthRevisionChanged;
 
         if (_enableFacingDirectionSync && TryResolvePlayerMovement())
         {
@@ -122,6 +169,20 @@ public class PlayerNetworkSync : NetworkBehaviour
         {
             TryApplyReplicatedActionState();
         }
+
+        if (_enableHealthStateSync)
+        {
+            RegisterHealthListener();
+
+            if (IsServer)
+            {
+                PublishHealthSnapshot();
+            }
+            else
+            {
+                ApplyReplicatedHealthState();
+            }
+        }
     }
 
     /// <summary>
@@ -132,11 +193,14 @@ public class PlayerNetworkSync : NetworkBehaviour
         _replicatedActionType.OnValueChanged -= HandleReplicatedActionTypeChanged;
         _replicatedActionRunning.OnValueChanged -= HandleReplicatedActionRunningChanged;
         _replicatedFacingRight.OnValueChanged -= HandleReplicatedFacingDirectionChanged;
+        _replicatedHealthRevision.OnValueChanged -= HandleReplicatedHealthRevisionChanged;
 
         if (_playerMovement != null)
         {
             _playerMovement.FacingDirectionChanged -= HandleLocalFacingDirectionChanged;
         }
+
+        UnregisterHealthListener();
     }
 
     /// <summary>
@@ -144,6 +208,16 @@ public class PlayerNetworkSync : NetworkBehaviour
     /// </summary>
     private void Update()
     {
+        if (_enableHealthStateSync)
+        {
+            MaintainHealthSyncBinding();
+        }
+
+        if (_enableActionStateSync)
+        {
+            MaintainServerAuthoritativeActionState();
+        }
+
         if (!IsSpawned || !IsOwner)
         {
             return;
@@ -158,6 +232,39 @@ public class PlayerNetworkSync : NetworkBehaviour
         {
             TrySendFacingDirection();
         }
+    }
+
+    /// <summary>
+    /// 서버/클라이언트 역할에 맞춰 체력 동기화 바인딩과 스냅샷 반영을 유지합니다.
+    /// </summary>
+    private void MaintainHealthSyncBinding()
+    {
+        if (!IsSpawned)
+        {
+            return;
+        }
+
+        if (IsServer)
+        {
+            if (!_isHealthListenerRegistered)
+            {
+                RegisterHealthListener();
+
+                if (_isHealthListenerRegistered)
+                {
+                    PublishHealthSnapshot();
+                }
+            }
+
+            return;
+        }
+
+        if (_lastAppliedHealthRevision == _replicatedHealthRevision.Value)
+        {
+            return;
+        }
+
+        ApplyReplicatedHealthState();
     }
 
     /// <summary>
@@ -238,6 +345,15 @@ public class PlayerNetworkSync : NetworkBehaviour
             return;
         }
 
+        if (TryResolveActionController())
+        {
+            ActionRuntime runtime = _actionController.Runtime; // 서버 인스턴스에서 현재 유지 중인 액션 상태 스냅샷입니다.
+            if (runtime.IsRunning && IsServerAuthoritativeAction(runtime.ActionType))
+            {
+                return;
+            }
+        }
+
         _replicatedActionType.Value = actionTypeValue;
         _replicatedActionRunning.Value = isRunning;
     }
@@ -302,7 +418,7 @@ public class PlayerNetworkSync : NetworkBehaviour
     /// </summary>
     private void TryApplyReplicatedActionState()
     {
-        if (!_enableActionStateSync || IsOwner)
+        if (!_enableActionStateSync)
         {
             return;
         }
@@ -315,6 +431,12 @@ public class PlayerNetworkSync : NetworkBehaviour
         E_ActionType resolvedActionType = _replicatedActionRunning.Value
             ? (E_ActionType)_replicatedActionType.Value
             : E_ActionType.Idle; // 실행 중이 아닌 경우 원격 화면 표현을 Idle로 정규화합니다.
+
+        bool isServerAuthoritativeAction = IsServerAuthoritativeAction(resolvedActionType); // Owner 재적용 허용 여부를 판정할 서버 확정 액션 플래그입니다.
+        if (IsOwner && (!isServerAuthoritativeAction || !_applyServerAuthoritativeActionsToOwner))
+        {
+            return;
+        }
 
         if (!IsReplicatedAction(resolvedActionType))
         {
@@ -332,6 +454,34 @@ public class PlayerNetworkSync : NetworkBehaviour
 
     /// <summary>
     /// 서버 확정 방향 값을 PlayerMovement에 반영해 모든 참여자의 좌우 반전 상태를 일치시킵니다.
+    /// </summary>
+    /// <summary>
+    /// 서버가 피격 계열 강제 액션을 감지하면 Owner 입력보다 우선하는 확정 상태로 복제합니다.
+    /// </summary>
+    private void MaintainServerAuthoritativeActionState()
+    {
+        if (!IsServer || !TryResolveActionController())
+        {
+            return;
+        }
+
+        ActionRuntime runtime = _actionController.Runtime; // 서버 인스턴스에서 현재 실행 중인 액션 스냅샷입니다.
+        if (!runtime.IsRunning || !IsServerAuthoritativeAction(runtime.ActionType))
+        {
+            return;
+        }
+
+        if (_replicatedActionRunning.Value && _replicatedActionType.Value == (int)runtime.ActionType)
+        {
+            return;
+        }
+
+        _replicatedActionType.Value = (int)runtime.ActionType;
+        _replicatedActionRunning.Value = true;
+    }
+
+    /// <summary>
+    /// 서버 확정 방향 값을 PlayerMovement에 반영합니다.
     /// </summary>
     private void ApplyReplicatedFacingDirection(bool isFacingRight)
     {
@@ -356,6 +506,193 @@ public class PlayerNetworkSync : NetworkBehaviour
     /// <summary>
     /// 원격 표현 동기화 대상으로 허용된 액션인지 판정합니다.
     /// </summary>
+    /// <summary>
+    /// 서버 체력 스냅샷 순번이 변경되면 최신 체력 상태를 로컬 HealthComponent에 반영합니다.
+    /// </summary>
+    private void HandleReplicatedHealthRevisionChanged(int previousValue, int currentValue)
+    {
+        if (currentValue == previousValue)
+        {
+            return;
+        }
+
+        ApplyReplicatedHealthState();
+    }
+
+    /// <summary>
+    /// HealthComponent 리스너를 등록해 서버 확정 체력 상태를 복제합니다.
+    /// </summary>
+    private void RegisterHealthListener()
+    {
+        if (!_enableHealthStateSync || !IsServer || _isHealthListenerRegistered)
+        {
+            return;
+        }
+
+        if (!TryResolveHealthComponent())
+        {
+            return;
+        }
+
+        _healthComponent.AddListener(this);
+        _isHealthListenerRegistered = true;
+    }
+
+    /// <summary>
+    /// HealthComponent 리스너 등록을 해제합니다.
+    /// </summary>
+    private void UnregisterHealthListener()
+    {
+        if (!IsServer || !_isHealthListenerRegistered || _healthComponent == null || !_healthComponent.IsInitialized)
+        {
+            return;
+        }
+
+        _healthComponent.RemoveListener(this);
+        _isHealthListenerRegistered = false;
+    }
+
+    /// <summary>
+    /// 서버가 현재 HealthComponent 상태를 네트워크 변수 스냅샷으로 발행합니다.
+    /// </summary>
+    private void PublishHealthSnapshot()
+    {
+        if (!_enableHealthStateSync || !IsServer || !TryResolveHealthComponent())
+        {
+            return;
+        }
+
+        _replicatedCurrentHealth.Value = _healthComponent.GetCurrentHealth();
+        _replicatedMaxHealth.Value = _healthComponent.GetMaxHealth();
+        _replicatedIsDead.Value = _healthComponent.IsDead;
+        _replicatedHealthRevision.Value++;
+    }
+
+    /// <summary>
+    /// 서버 확정 체력 스냅샷을 로컬 HealthComponent에 적용합니다.
+    /// </summary>
+    private void ApplyReplicatedHealthState()
+    {
+        if (!_enableHealthStateSync || IsServer)
+        {
+            return;
+        }
+
+        if (IsOwner && !_applyReplicatedHealthToOwner)
+        {
+            return;
+        }
+
+        if (!TryResolveHealthComponent())
+        {
+            return;
+        }
+
+        float safeMaxHealth = Mathf.Max(1f, _replicatedMaxHealth.Value);
+        float safeCurrentHealth = Mathf.Clamp(_replicatedCurrentHealth.Value, 0f, safeMaxHealth);
+
+        _healthComponent.SetMaxHealth(safeMaxHealth, false);
+
+        if (_replicatedIsDead.Value)
+        {
+            _healthComponent.SetCurrentHealth(0f);
+            _lastAppliedHealthRevision = _replicatedHealthRevision.Value;
+            return;
+        }
+
+        if (_healthComponent.IsDead)
+        {
+            _healthComponent.Revive(Mathf.Max(0.01f, safeCurrentHealth));
+        }
+        else
+        {
+            _healthComponent.SetCurrentHealth(safeCurrentHealth);
+        }
+
+        _lastAppliedHealthRevision = _replicatedHealthRevision.Value;
+    }
+
+    /// <summary>
+    /// HealthComponent 참조를 보정하고 필요 시 경고를 출력합니다.
+    /// </summary>
+    private bool TryResolveHealthComponent()
+    {
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponent<HealthComponent>();
+        }
+
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponentInChildren<HealthComponent>(true);
+        }
+
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponentInParent<HealthComponent>();
+        }
+
+        if (_healthComponent != null)
+        {
+            return true;
+        }
+
+        if (_warnMissingHealthComponent)
+        {
+            Debug.LogWarning($"[PlayerNetworkSync] HealthComponent가 없어 체력 상태 동기화를 수행할 수 없습니다. object={name}", this);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 체력 변경 이벤트를 받아 서버 체력 스냅샷을 갱신합니다.
+    /// </summary>
+    public void OnHealthChanged(HealthChangeData data)
+    {
+        PublishHealthSnapshot();
+    }
+
+    /// <summary>
+    /// 피해 적용 이벤트를 받아 서버 체력 스냅샷을 갱신합니다.
+    /// </summary>
+    public void OnDamaged(DamageResult result)
+    {
+        PublishHealthSnapshot();
+    }
+
+    /// <summary>
+    /// 회복 이벤트를 받아 서버 체력 스냅샷을 갱신합니다.
+    /// </summary>
+    public void OnHealed(HealResult result)
+    {
+        PublishHealthSnapshot();
+    }
+
+    /// <summary>
+    /// 사망 이벤트를 받아 서버 체력 스냅샷을 갱신합니다.
+    /// </summary>
+    public void OnDied()
+    {
+        PublishHealthSnapshot();
+    }
+
+    /// <summary>
+    /// 부활 이벤트를 받아 서버 체력 스냅샷을 갱신합니다.
+    /// </summary>
+    public void OnRevived()
+    {
+        PublishHealthSnapshot();
+    }
+
+    /// <summary>
+    /// 최대 체력 변경 이벤트를 받아 서버 체력 스냅샷을 갱신합니다.
+    /// </summary>
+    public void OnMaxHealthChanged(float previousMaxHealth, float currentMaxHealth)
+    {
+        PublishHealthSnapshot();
+    }
+
     private bool IsReplicatedAction(E_ActionType actionType)
     {
         if (_replicateAllActionTypes)
@@ -393,6 +730,30 @@ public class PlayerNetworkSync : NetworkBehaviour
 
     /// <summary>
     /// ActionController 참조를 보정하고 누락 시 경고 로그를 출력합니다.
+    /// </summary>
+    /// <summary>
+    /// 서버 확정 액션 목록에 포함된 액션인지 판정합니다.
+    /// </summary>
+    private bool IsServerAuthoritativeAction(E_ActionType actionType)
+    {
+        if (_serverAuthoritativeActions == null || _serverAuthoritativeActions.Length == 0)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _serverAuthoritativeActions.Length; index++)
+        {
+            if (_serverAuthoritativeActions[index] == actionType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// ActionController 참조를 보정하고 필요 시 경고를 출력합니다.
     /// </summary>
     private bool TryResolveActionController()
     {

@@ -301,6 +301,7 @@ MonoBehaviour:
   _networkTransform: {fileID: 1952865801753107381}
   _actionController: {fileID: 126503336672774226}
   _playerMovement: {fileID: 1249389477860502122}
+  _healthComponent: {fileID: 420058020910919654}
   _enableActionStateSync: 1
   _actionStateSendInterval: 0.033
   _replicateAllActionTypes: 1
@@ -310,6 +311,9 @@ MonoBehaviour:
   _facingDirectionSendInterval: 0.05
   _warnMissingPlayerMovement: 1
   _applyReplicatedFacingToOwner: 0
+  _enableHealthStateSync: 1
+  _applyReplicatedHealthToOwner: 1
+  _warnMissingHealthComponent: 1
   _lastSentFacingRight: 1
   _lastReplicatedFacingRight: 1
 --- !u!114 &-910381344378754778
@@ -385,6 +389,7 @@ MonoBehaviour:
   _vfxController: {fileID: 3941053834431780128}
   _replicatePersistentStates: 1
   _replicateOneShotEvents: 1
+  _applyReplicatedHitEventToOwner: 1
   _verboseSinglePlayerFallbackLog: 0
 --- !u!114 &8388803539704185126
 MonoBehaviour:

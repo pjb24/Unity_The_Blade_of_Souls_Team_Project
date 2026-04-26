@@ -391,10 +391,11 @@ GameObject:
   - component: {fileID: 5735859578323686551}
   - component: {fileID: 5830294614880673736}
   - component: {fileID: 7436923322228586225}
-  - component: {fileID: 936761671860226794}
   - component: {fileID: 2304960036312476309}
+  - component: {fileID: 936761671860226794}
   - component: {fileID: 5455191030885747758}
   - component: {fileID: 8936608471266543776}
+  - component: {fileID: 323086996962915019}
   m_Layer: 8
   m_Name: --- Enemy Skeleton ---
   m_TagString: Enemy
@@ -496,45 +497,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.9919362, y: 2.9782202}
   m_EdgeRadius: 0
---- !u!114 &936761671860226794
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1543625763828124651}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfb64068fdfb4b947a22bdab9b1cb7f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StationaryRangedEnemyController
-  _targetDetector: {fileID: 5965885441630785641}
-  _projectileSpawnServiceSource: {fileID: 0}
-  _firePoint: {fileID: 1582911652336666716}
-  _visualRoot: {fileID: 88073295976413039}
-  _animator: {fileID: 623374781917366365}
-  _healthAdapter: {fileID: 2816224448135697430}
-  _detectionRange: 12
-  _attackEnterRange: 12
-  _attackExitRange: 12.1
-  _drawRangeGizmos: 1
-  _drawAttackRangeFromFirePoint: 1
-  _projectilePrefab: {fileID: 4188268375735499229, guid: 5db9d8b6552d7844aa3eece835f8e88a, type: 3}
-  _projectileSpeed: 12
-  _projectileLifetime: 3
-  _attackCooldown: 3
-  _attackTimeout: 3
-  _toggleOffWhileAttackingObjectA: {fileID: 2485568442100767960}
-  _toggleOffWhileAttackingObjectB: {fileID: 285341864765639013}
-  _distanceUpdateInterval: 0
-  _targetSearchInterval: 0.2
-  _hitStaggerDuration: 0.15
-  _combatBoolParameter: IsCombat
-  _hitTriggerParameter: HitTrigger
-  _dieTriggerParameter: DieTrigger
-  _attackStateTag: Attack
-  _attackAnimationLayerIndex: 0
-  _currentState: 0
 --- !u!114 &2304960036312476309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -560,6 +522,49 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
+--- !u!114 &936761671860226794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1543625763828124651}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cfb64068fdfb4b947a22bdab9b1cb7f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StationaryRangedEnemyController
+  ShowTopMostFoldoutHeaderGroup: 1
+  _targetDetector: {fileID: 5965885441630785641}
+  _projectileSpawnServiceSource: {fileID: 0}
+  _firePoint: {fileID: 1582911652336666716}
+  _visualRoot: {fileID: 88073295976413039}
+  _animator: {fileID: 623374781917366365}
+  _healthAdapter: {fileID: 2816224448135697430}
+  _deathController: {fileID: 323086996962915019}
+  _networkObject: {fileID: 2304960036312476309}
+  _detectionRange: 12
+  _attackEnterRange: 12
+  _attackExitRange: 12.1
+  _drawRangeGizmos: 1
+  _drawAttackRangeFromFirePoint: 1
+  _projectilePrefab: {fileID: 4188268375735499229, guid: 5db9d8b6552d7844aa3eece835f8e88a, type: 3}
+  _projectileSpeed: 12
+  _projectileLifetime: 3
+  _attackCooldown: 3
+  _attackTimeout: 3
+  _toggleOffWhileAttackingObjectA: {fileID: 2485568442100767960}
+  _toggleOffWhileAttackingObjectB: {fileID: 285341864765639013}
+  _distanceUpdateInterval: 0
+  _targetSearchInterval: 0.2
+  _hitStaggerDuration: 0.15
+  _combatBoolParameter: IsCombat
+  _hitTriggerParameter: HitTrigger
+  _dieTriggerParameter: DieTrigger
+  _attackStateTag: Attack
+  _attackAnimationLayerIndex: 0
+  _currentState: 0
+  _warnWhenAuthorityUnavailable: 1
 --- !u!114 &5455191030885747758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -588,6 +593,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SfxNetworkRelay
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &323086996962915019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1543625763828124651}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0519258aed078c54f8c1aedcf9004189, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAIDeathController
+  ShowTopMostFoldoutHeaderGroup: 1
+  _deathEffectId: 8
+  _deathVfxSpawnPoint: {fileID: 0}
+  _vfxReleaseDelay: 1.2
+  _bodyRemoveDelay: 1.2
+  _destroyOnRemove: 0
+  _networkObject: {fileID: 2304960036312476309}
 --- !u!1 &1553908258671500153
 GameObject:
   m_ObjectHideFlags: 0
@@ -1479,7 +1503,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHitVfxEmitter
   _hitReceiver: {fileID: 7011261029180374617}
-  _networkRelay: {fileID: 0}
+  _networkRelay: {fileID: 5455191030885747758}
   _hitVfxAnchor: {fileID: 3688136842492588234}
   _hitVfxEffectId: 13
   _verboseFallbackLog: 1

@@ -10,50 +10,64 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D))]
 public class PooledRangedProjectile : MonoBehaviour
 {
-    private const string GroundLayerName = "Ground"; // 벽/바닥 판정에 사용할 기본 레이어 이름입니다.
+    private const string GroundLayerName = "Ground"; // 환경 충돌 기본 레이어 이름입니다.
 
     [Header("Damage")]
     [Tooltip("Player에게 전달할 기본 피해량입니다.")]
-    [SerializeField] private float _damage = 10f; // 피격 요청 시 전달할 기본 피해량입니다.
-    [Tooltip("HitRequest 상태 태그 문자열입니다.")]
-    [SerializeField] private string _statusTag = "EnemyProjectile"; // HitRequest에 기록할 상태 태그입니다.
-    [Tooltip("피격 가능한 대상 레이어 마스크입니다.")]
-    [SerializeField] private LayerMask _targetLayerMask = 0; // 데미지 판정을 시도할 레이어 마스크입니다.
-    [Tooltip("비어 있지 않으면 지정 태그와 일치하는 대상만 공격합니다.")]
-    [SerializeField] private string _targetTag = "Player"; // 공격 대상 태그 필터입니다.
-    [Tooltip("비어 있지 않으면 지정 태그와 일치하는 대상을 무시합니다.")]
-    [SerializeField] private string _ignoreTag = "Enemy"; // 아군/동일 진영 무시용 태그 필터입니다.
-    [Tooltip("지형/벽 등 충돌 시 소멸할 환경 레이어 마스크입니다.")]
-    [SerializeField] private LayerMask _environmentLayerMask = 0; // 환경 충돌 소멸용 레이어 마스크입니다.
-    [Tooltip("대상 명중 후 즉시 소멸할지 여부입니다.")]
-    [SerializeField] private bool _despawnOnHit = true; // 명중 시 1회 타격 후 소멸 정책입니다.
-    [Tooltip("명중/환경 충돌 시 1회 재생할 히트 이펙트 프리팹입니다.")]
+    [SerializeField] private float _damage = 10f; // 히트 요청에 포함할 기본 피해량입니다.
+    [Tooltip("HitRequest.StatusTag로 전달할 문자열입니다.")]
+    [SerializeField] private string _statusTag = "EnemyProjectile"; // 공격 출처를 구분할 상태 태그입니다.
+    [Tooltip("피격 대상 판정에 사용할 레이어 마스크입니다.")]
+    [SerializeField] private LayerMask _targetLayerMask = 0; // 유효 타겟 검사용 레이어 마스크입니다.
+    [Tooltip("비어 있지 않으면 지정 태그를 가진 대상만 피격합니다.")]
+    [SerializeField] private string _targetTag = "Player"; // 피격 대상 태그 필터입니다.
+    [Tooltip("비어 있지 않으면 지정 태그를 가진 대상은 무시합니다.")]
+    [SerializeField] private string _ignoreTag = "Enemy"; // 자기 진영 무시용 태그 필터입니다.
+    [Tooltip("환경 충돌 판정에 사용할 레이어 마스크입니다.")]
+    [SerializeField] private LayerMask _environmentLayerMask = 0; // 환경 충돌용 레이어 마스크입니다.
+    [Tooltip("타겟 명중 시 즉시 소멸할지 여부입니다.")]
+    [SerializeField] private bool _despawnOnHit = true; // 타겟 명중 후 소멸 여부입니다.
+    [Tooltip("타겟/환경 충돌 시 1회 재생할 히트 이펙트 프리팹입니다.")]
     [SerializeField] private GameObject _hitEffectPrefab; // 충돌 지점 이펙트 프리팹입니다.
 
-    [Tooltip("현재 투사체 소유자입니다.")]
-    private GameObject _owner; // 소유자 참조입니다.
-    [Tooltip("발사 시 계산된 고정 이동 방향입니다.")]
-    private Vector2 _direction; // 발사 순간 계산된 이동 방향입니다.
-    [Tooltip("이동 속도입니다.")]
-    private float _speed; // 초당 이동 거리입니다.
+    [Tooltip("현재 투사체의 소유자입니다.")]
+    private GameObject _owner; // 공격 소유자 참조입니다.
+    [Tooltip("발사 시점에 고정된 이동 방향입니다.")]
+    private Vector2 _direction; // 현재 프레임 이동 방향입니다.
+    [Tooltip("투사체 이동 속도입니다.")]
+    private float _speed; // 초당 이동 속도입니다.
     [Tooltip("투사체 수명(초)입니다.")]
     private float _lifetime; // 자동 소멸까지 유지 시간입니다.
-    [Tooltip("수명 종료 시각입니다.")]
-    private float _expireAt; // 수명 종료 절대 시각입니다.
-    [Tooltip("Initialize 완료 여부입니다.")]
-    private bool _isInitialized; // 초기화 완료 플래그입니다.
-    [Tooltip("이미 히트 처리한 대상 인스턴스 ID 집합입니다.")]
-    private readonly HashSet<int> _hitTargetIds = new HashSet<int>(); // 동일 대상 다중 타격 방지용 집합입니다.
+    [Tooltip("수명이 끝나는 시각입니다.")]
+    private float _expireAt; // 수명 종료 시각 캐시입니다.
+    [Tooltip("초기화 완료 여부입니다.")]
+    private bool _isInitialized; // 발사 준비 완료 여부입니다.
+    [Tooltip("관찰자 시각 전용 투사체인지 여부입니다.")]
+    private bool _isVisualOnly; // 서버 판정 없는 시각 전용 투사체 여부입니다.
+    [Tooltip("관찰자 측 복제 투사체를 식별하는 시퀀스 ID입니다.")]
+    private int _visualInstanceId; // 복제 투사체 식별용 ID입니다.
+    [Tooltip("이미 피격 처리한 대상 InstanceId 집합입니다.")]
+    private readonly HashSet<int> _hitTargetIds = new HashSet<int>(); // 중복 타격 방지용 캐시입니다.
 
     [Tooltip("물리 이동을 수행하는 Rigidbody2D 참조입니다.")]
     private Rigidbody2D _rigidbody2D; // 투사체 물리 이동용 Rigidbody2D입니다.
     [Tooltip("트리거 충돌을 수신하는 Collider2D 참조입니다.")]
-    private Collider2D _collider2D; // 트리거 충돌용 Collider2D입니다.
+    private Collider2D _collider2D; // 충돌 판정용 Collider2D입니다.
     [Tooltip("풀 반환 콜백입니다.")]
-    private Action<PooledRangedProjectile> _returnHandler; // 서비스로 반환할 콜백입니다.
+    private Action<PooledRangedProjectile> _returnHandler; // 풀 서비스 반환 콜백입니다.
 
     /// <summary>
-    /// 필수 컴포넌트/기본 설정을 보정합니다.
+    /// 투사체가 소멸할 때 소멸 사유를 통지하는 이벤트입니다.
+    /// </summary>
+    public event Action<PooledRangedProjectile, E_ProjectileDespawnReason> Despawned;
+
+    /// <summary>
+    /// 현재 복제 시각 투사체 ID를 반환합니다.
+    /// </summary>
+    public int VisualInstanceId => _visualInstanceId;
+
+    /// <summary>
+    /// 필수 컴포넌트와 기본 물리 설정을 보정합니다.
     /// </summary>
     private void Awake()
     {
@@ -69,7 +83,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 에디터 값 변경 시 기본 환경 레이어 설정을 검증합니다.
+    /// 인스펙터 값 변경 시 기본 환경 레이어 설정을 검증합니다.
     /// </summary>
     private void OnValidate()
     {
@@ -82,9 +96,17 @@ public class PooledRangedProjectile : MonoBehaviour
     private void OnDisable()
     {
         _isInitialized = false;
+        _isVisualOnly = false;
+        _visualInstanceId = 0;
         _owner = null;
-        _rigidbody2D.linearVelocity = Vector2.zero;
+
+        if (_rigidbody2D != null)
+        {
+            _rigidbody2D.linearVelocity = Vector2.zero;
+        }
+
         _hitTargetIds.Clear();
+        Despawned = null;
     }
 
     /// <summary>
@@ -96,21 +118,36 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 발사 파라미터를 설정하고 투사체를 활성 런타임 상태로 초기화합니다.
+    /// 발사 파라미터를 설정하고 투사체를 활성 상태로 초기화합니다.
     /// </summary>
-    public void Initialize(Vector2 direction, float speed, float lifetime, GameObject owner)
+    public void Initialize(Vector2 direction, float speed, float lifetime, GameObject owner, bool isVisualOnly = false, int visualInstanceId = 0)
     {
         _direction = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.right;
         _speed = Mathf.Max(0f, speed);
         _lifetime = Mathf.Max(0.01f, lifetime);
         _owner = owner;
+        _isVisualOnly = isVisualOnly;
+        _visualInstanceId = Mathf.Max(0, visualInstanceId);
         _expireAt = Time.time + _lifetime;
         _isInitialized = true;
         _hitTargetIds.Clear();
     }
 
     /// <summary>
-    /// 고정 주기에서 직선 이동과 수명 종료를 처리합니다.
+    /// 네트워크 복제 결과로 시각 전용 투사체를 즉시 종료합니다.
+    /// </summary>
+    public void ForceDespawn(E_ProjectileDespawnReason reason)
+    {
+        if (!_isInitialized && !gameObject.activeSelf)
+        {
+            return;
+        }
+
+        Despawn(reason);
+    }
+
+    /// <summary>
+    /// 고정 주기에서 직선 이동과 수명 만료를 처리합니다.
     /// </summary>
     private void FixedUpdate()
     {
@@ -130,11 +167,16 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 트리거 충돌 정책(Owner/IgnoreTag 무시, TargetLayer+Tag 히트, Environment 충돌 소멸)을 처리합니다.
+    /// 트리거 충돌 처리와 타겟/환경 명중 판정을 수행합니다.
     /// </summary>
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!_isInitialized || other == null)
+        {
+            return;
+        }
+
+        if (_isVisualOnly)
         {
             return;
         }
@@ -166,6 +208,7 @@ public class PooledRangedProjectile : MonoBehaviour
             {
                 Despawn(E_ProjectileDespawnReason.HitTarget);
             }
+
             return;
         }
 
@@ -177,7 +220,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 타겟 대상으로 HitRequest를 전달합니다.
+    /// 타겟에게 HitRequest를 전달합니다.
     /// </summary>
     private void TryApplyHitToTarget(GameObject targetObject)
     {
@@ -201,7 +244,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 타겟 기준으로 자신/부모/자식/형제 계층을 순차 탐색하여 HitReceiver를 찾습니다.
+    /// 타겟 계층에서 HitReceiver를 순차 탐색합니다.
     /// </summary>
     private HitReceiver FindHitReceiverFromTargetHierarchy(GameObject targetObject)
     {
@@ -234,9 +277,9 @@ public class PooledRangedProjectile : MonoBehaviour
             return null;
         }
 
-        for (int i = 0; i < parentTransform.childCount; i++)
+        for (int index = 0; index < parentTransform.childCount; index++)
         {
-            Transform sibling = parentTransform.GetChild(i);
+            Transform sibling = parentTransform.GetChild(index);
             if (sibling == null || sibling.gameObject == targetObject)
             {
                 continue;
@@ -259,7 +302,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 지정한 레이어가 마스크에 포함되는지 반환합니다.
+    /// 지정 레이어가 마스크에 포함되는지 반환합니다.
     /// </summary>
     private bool IsLayerIncluded(int layer, LayerMask mask)
     {
@@ -267,7 +310,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 환경 레이어 마스크가 비어 있으면 Ground 레이어로 기본 설정합니다.
+    /// 환경 레이어 마스크가 비어 있으면 Ground 레이어를 기본값으로 설정합니다.
     /// </summary>
     private void ResolveDefaultEnvironmentLayerMask()
     {
@@ -288,7 +331,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 대상 태그가 공격 가능 조건을 만족하는지 반환합니다.
+    /// 타겟 태그가 공격 가능 조건을 만족하는지 반환합니다.
     /// </summary>
     private bool IsTargetTagAllowed(GameObject targetObject)
     {
@@ -306,7 +349,7 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 충돌 지점에 히트 이펙트를 1회 재생합니다.
+    /// 충돌 지점에 히트 이펙트를 재생합니다.
     /// </summary>
     private void PlayHitEffectAt(Vector3 worldPosition)
     {
@@ -319,10 +362,12 @@ public class PooledRangedProjectile : MonoBehaviour
     }
 
     /// <summary>
-    /// 사유를 남기고 투사체를 풀로 반환합니다.
+    /// 소멸 사유를 기록하고 투사체를 풀로 반환합니다.
     /// </summary>
     private void Despawn(E_ProjectileDespawnReason reason)
     {
+        Despawned?.Invoke(this, reason);
+
         if (_returnHandler != null)
         {
             _returnHandler.Invoke(this);

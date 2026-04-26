@@ -18,6 +18,8 @@ public class CharacterVfxNetworkSync : NetworkBehaviour
     [Tooltip("Jump/Hit 같은 단발 이벤트를 네트워크로 복제할지 여부입니다.")]
     [SerializeField] private bool _replicateOneShotEvents = true; // 단발 이벤트 복제 활성 여부를 제어하는 플래그입니다.
 
+    [Tooltip("서버 권한으로 재생된 HitEffect를 Owner 클라이언트에도 적용할지 여부입니다.")]
+    [SerializeField] private bool _applyReplicatedHitEventToOwner = true; // 서버 확정 HitEffect를 Owner 화면에도 반영할지 여부입니다.
     [Header("Debug")]
     [Tooltip("네트워크 미사용(싱글플레이) 폴백 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseSinglePlayerFallbackLog; // 네트워크 비활성 환경 폴백 로그 출력 여부를 제어하는 플래그입니다.
@@ -396,7 +398,12 @@ public class CharacterVfxNetworkSync : NetworkBehaviour
     /// </summary>
     private void HandleHitSequenceChanged(int previousValue, int currentValue)
     {
-        if (IsOwner || currentValue == previousValue)
+        if (currentValue == previousValue)
+        {
+            return;
+        }
+
+        if (IsOwner && !_applyReplicatedHitEventToOwner)
         {
             return;
         }

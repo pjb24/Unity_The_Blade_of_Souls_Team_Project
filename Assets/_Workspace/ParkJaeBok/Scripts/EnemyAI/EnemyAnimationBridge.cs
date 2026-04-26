@@ -48,6 +48,7 @@ public class EnemyAnimationBridge : MonoBehaviour
     /// 피격 애니메이션 종료 이벤트입니다.
     /// </summary>
     public event Action HitReactionFinished;
+    public event Action DeathAnimationFinished;
 
     /// <summary>
     /// 의존성을 자동 연결합니다.
@@ -180,5 +181,13 @@ public class EnemyAnimationBridge : MonoBehaviour
     public void AnimationEvent_HitReactionFinished()
     {
         HitReactionFinished?.Invoke();
+    }
+
+    /// <summary>
+    /// 애니메이션 이벤트에서 사망 종료 시점 신호를 전달합니다.
+    /// </summary>
+    public void AnimationEvent_DeathFinished()
+    {
+        DeathAnimationFinished?.Invoke();
     }
 }

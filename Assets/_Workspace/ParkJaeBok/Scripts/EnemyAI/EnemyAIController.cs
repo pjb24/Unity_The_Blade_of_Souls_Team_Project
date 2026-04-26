@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -7,7 +9,7 @@ using UnityEngine.AI;
 /// Enemy AI 상태 관리/우선순위 전이/홈 복귀 정책을 제어하는 중앙 브레인입니다.
 /// </summary>
 [DisallowMultipleComponent]
-public class EnemyAIController : MonoBehaviour
+public class EnemyAIController : NetworkBehaviour
 {
     [Header("Actor Root")]
     [Tooltip("AI가 실제 위치 기준으로 사용할 루트 Transform입니다. Child 분리 프리팹에서는 Parent 루트를 연결합니다.")]
@@ -26,8 +28,12 @@ public class EnemyAIController : MonoBehaviour
     [SerializeField] private EnemyAnimationBridge _animationBridge; // 애니메이션 브리지 참조입니다.
     [Tooltip("HealthComponent 이벤트를 AI 사망/피격 신호로 변환하는 어댑터입니다.")]
     [SerializeField] private EnemyHealthAdapter _healthAdapter; // 체력 어댑터 참조입니다.
+    [Tooltip("자폭 종료 시 자기 피해를 적용할 HealthComponent 참조입니다. 비어 있으면 자식/부모 계층에서 자동 탐색합니다.")]
+    [SerializeField] private HealthComponent _selfHealthComponent; // 자폭 종료 시 자기 최대 체력 피해를 적용할 HealthComponent 참조입니다.
     [Tooltip("사망 1회 진입/VFX/제거 시퀀스를 담당하는 사망 컨트롤러입니다.")]
     [SerializeField] private EnemyAIDeathController _deathController; // 사망 처리 컨트롤러 참조입니다.
+    [Tooltip("NGO 세션에서 Enemy AI 서버 권한을 판정할 NetworkObject 참조입니다. 비어 있으면 자동 탐색합니다.")]
+    [SerializeField] private NetworkObject _networkObject; // 멀티플레이 서버 권한 판정에 사용할 NetworkObject 참조입니다.
 
     [Header("Distance Settings")]
     [Tooltip("플레이어를 최초 인식하는 거리입니다.")]
@@ -58,9 +64,19 @@ public class EnemyAIController : MonoBehaviour
     [Tooltip("Enable 직후 Home Position 저장 전 NavMesh 준비를 기다리는 최대 시간(초)입니다.")]
     [SerializeField] private float _homeCaptureTimeout = 1.5f; // Home 저장 준비 대기 시간입니다.
 
+    [Header("Movement Sync")]
+    [Tooltip("Enemy 루트 위치를 NGO NetworkTransform으로 동기화할 대상 참조입니다. 비어 있으면 자동 탐색하거나 런타임에 추가합니다.")]
+    [SerializeField] private NetworkTransform _networkTransform; // Enemy 이동 동기화를 담당하는 NetworkTransform 참조입니다.
+    [Tooltip("NetworkTransform이 비어 있을 때 런타임에 자동 추가할지 여부입니다.")]
+    [SerializeField] private bool _autoAddNetworkTransformWhenMissing = true; // NetworkTransform 자동 보정 여부입니다.
+    [Tooltip("NetworkTransform 기반 이동 동기화를 사용할지 여부입니다. 끄면 기존 로컬 이동만 수행합니다.")]
+    [SerializeField] private bool _useNetworkTransformMovementSync = true; // Enemy 이동을 NetworkTransform으로 동기화할지 여부입니다.
+
     [Header("Debug")]
     [Tooltip("상태 전이/경고를 상세 로그로 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseStateLog = true; // 상세 상태 로그 출력 여부입니다.
+    [Tooltip("네트워크 권한이 없는 인스턴스가 AI 판단을 건너뛸 때 경고를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenAuthorityUnavailable = true; // 네트워크 권한 누락 경고 출력 여부입니다.
 
     private readonly Dictionary<EnemyAIStateId, IEnemyAIState> _states = new Dictionary<EnemyAIStateId, IEnemyAIState>(); // 상태 객체 맵입니다.
 
@@ -75,6 +91,7 @@ public class EnemyAIController : MonoBehaviour
 
     private bool _isDead; // 사망 상태 여부입니다.
     private bool _isRemovingOrRemoved; // 제거 진행/완료 상태 여부입니다.
+    private bool _hasLoggedAuthorityWarning; // 관찰자 인스턴스 권한 경고의 중복 출력을 막는 플래그입니다.
 
     /// <summary>
     /// 현재 상태 식별자를 반환합니다.
@@ -101,9 +118,6 @@ public class EnemyAIController : MonoBehaviour
     /// </summary>
     public Vector2 ActorWorldPosition => _actorRoot != null ? (Vector2)_actorRoot.position : (Vector2)transform.position;
 
-    /// <summary>
-    /// 컴포넌트 자동 연결, 설정 검증, 상태 객체 생성을 수행합니다.
-    /// </summary>
     private void Awake()
     {
         ResolveActorRoot();
@@ -126,6 +140,15 @@ public class EnemyAIController : MonoBehaviour
     /// <summary>
     /// 활성화 시 이벤트 구독과 런타임 초기화를 수행합니다.
     /// </summary>
+    public override void OnNetworkSpawn()
+    {
+        EnsureNetworkTransformReady();
+    }
+
+    public override void OnNetworkDespawn()
+    {
+    }
+
     private void OnEnable()
     {
         SubscribeHealthSignals();
@@ -153,6 +176,11 @@ public class EnemyAIController : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        if (!CanExecuteAiAuthority())
+        {
+            return;
+        }
+
         float now = Time.time;
 
         if (_targetDetector != null)
@@ -170,8 +198,35 @@ public class EnemyAIController : MonoBehaviour
     }
 
     /// <summary>
-    /// 상태 컨트롤러 의존성을 자동 연결합니다.
+    /// NetworkTransform 사용 조건을 검사하고 필요 시 런타임에 보정합니다.
     /// </summary>
+    private void EnsureNetworkTransformReady()
+    {
+        if (!_useNetworkTransformMovementSync)
+        {
+            return;
+        }
+
+        if (_networkTransform != null)
+        {
+            return;
+        }
+
+        _networkTransform = GetComponent<NetworkTransform>();
+        if (_networkTransform != null)
+        {
+            return;
+        }
+
+        if (!_autoAddNetworkTransformWhenMissing)
+        {
+            Debug.LogWarning($"[EnemyAIController] NetworkTransform is missing on {name}. Client movement will not stay in sync until one is assigned.", this);
+            return;
+        }
+
+        _networkTransform = gameObject.AddComponent<NetworkTransform>();
+    }
+
     private void ResolveDependencies()
     {
         if (_movementController == null)
@@ -204,9 +259,34 @@ public class EnemyAIController : MonoBehaviour
             _healthAdapter = GetComponent<EnemyHealthAdapter>();
         }
 
+        if (_selfHealthComponent == null)
+        {
+            _selfHealthComponent = GetComponent<HealthComponent>();
+        }
+
+        if (_selfHealthComponent == null)
+        {
+            _selfHealthComponent = GetComponentInChildren<HealthComponent>(true);
+        }
+
+        if (_selfHealthComponent == null)
+        {
+            _selfHealthComponent = GetComponentInParent<HealthComponent>();
+        }
+
         if (_deathController == null)
         {
             _deathController = GetComponent<EnemyAIDeathController>();
+        }
+
+        if (_networkObject == null)
+        {
+            _networkObject = GetComponent<NetworkObject>();
+        }
+
+        if (_networkTransform == null)
+        {
+            _networkTransform = GetComponent<NetworkTransform>();
         }
 
         if (_movementController == null)
@@ -224,10 +304,45 @@ public class EnemyAIController : MonoBehaviour
             Debug.LogWarning($"[EnemyAIController] Missing EnemyAttackController on {name}.");
         }
 
+        if (_selfHealthComponent == null)
+        {
+            Debug.LogWarning($"[EnemyAIController] Missing self HealthComponent on {name}. Self-destruct damage cannot route through the shared health pipeline.");
+        }
+
         if (_hitReactionController == null)
         {
             Debug.LogWarning($"[EnemyAIController] Missing EnemyHitReactionController on {name}. HitReaction state will not react to damage.");
         }
+
+        EnsureNetworkTransformReady();
+    }
+
+    /// <summary>
+    /// 현재 인스턴스가 Enemy AI 의사결정을 수행할 서버 권한을 가졌는지 판정합니다.
+    /// </summary>
+    private bool CanExecuteAiAuthority()
+    {
+        bool canExecute = EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject);
+        if (!canExecute && _warnWhenAuthorityUnavailable && _verboseStateLog && !_hasLoggedAuthorityWarning)
+        {
+            Debug.LogWarning($"[EnemyAIController] AI authority unavailable on observer instance. object={name}", this);
+            _hasLoggedAuthorityWarning = true;
+        }
+
+        if (canExecute)
+        {
+            _hasLoggedAuthorityWarning = false;
+        }
+
+        return canExecute;
+    }
+
+    /// <summary>
+    /// 현재 인스턴스가 서버 확정 시각 상태를 NGO RPC로 복제해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldReplicateVisuals()
+    {
+        return EnemyNetworkAuthorityUtility.ShouldReplicateFromServer(_networkObject);
     }
 
     /// <summary>
@@ -355,6 +470,7 @@ public class EnemyAIController : MonoBehaviour
 
         _isDead = _healthAdapter != null && !_healthAdapter.IsAlive;
         _isRemovingOrRemoved = false;
+        _hasLoggedAuthorityWarning = false;
         _nextRepathAt = 0f;
 
         _targetDetector?.ClearTarget();
@@ -685,8 +801,93 @@ public class EnemyAIController : MonoBehaviour
     public void PushAnimationIntent(EnemyAIStateId stateId, bool isMoving)
     {
         _animationBridge?.ApplyStateIntent(stateId, isMoving);
+
+        if (ShouldReplicateVisuals())
+        {
+            ApplyStateIntentRpc((int)stateId, isMoving);
+        }
     }
 
+    /// <summary>
+    /// 공격 시작 시각 의도를 로컬에 적용하고 필요 시 관찰자에게 복제합니다.
+    /// </summary>
+    public void TriggerAttackVisual()
+    {
+        _animationBridge?.TriggerAttackIntent();
+
+        if (ShouldReplicateVisuals())
+        {
+            TriggerAttackVisualRpc();
+        }
+    }
+
+    /// <summary>
+    /// 피격 시각 의도를 로컬에 적용하고 필요 시 관찰자에게 복제합니다.
+    /// </summary>
+    public void TriggerHitVisual()
+    {
+        _animationBridge?.TriggerHitIntent();
+
+        if (ShouldReplicateVisuals())
+        {
+            TriggerHitVisualRpc();
+        }
+    }
+
+    /// <summary>
+    /// 사망 시각 의도를 로컬에 적용하고 필요 시 관찰자에게 복제합니다.
+    /// </summary>
+    public void TriggerDeathVisual()
+    {
+        _animationBridge?.TriggerDeathIntent();
+
+        if (ShouldReplicateVisuals())
+        {
+            TriggerDeathVisualRpc();
+        }
+
+    }
+
+    /// <summary>
+    /// 서버가 확정한 상태 시각값을 관찰자 인스턴스 Animator에 반영합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void ApplyStateIntentRpc(int stateIdValue, bool isMoving)
+    {
+        _animationBridge?.ApplyStateIntent((EnemyAIStateId)stateIdValue, isMoving);
+    }
+
+    /// <summary>
+    /// 서버가 확정한 공격 시작 트리거를 관찰자 인스턴스에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerAttackVisualRpc()
+    {
+        _animationBridge?.TriggerAttackIntent();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 피격 트리거를 관찰자 인스턴스에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerHitVisualRpc()
+    {
+        _animationBridge?.TriggerHitIntent();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 사망 트리거를 관찰자 인스턴스에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerDeathVisualRpc()
+    {
+        _animationBridge?.TriggerDeathIntent();
+        _deathController?.TryEnterDeath();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 피격 사망 숨김 결과를 관찰자 인스턴스에 반영합니다.
+    /// </summary>
     /// <summary>
     /// Death 상태 진입 처리입니다.
     /// </summary>
@@ -735,12 +936,39 @@ public class EnemyAIController : MonoBehaviour
             return;
         }
 
-        TryEnterDeathState();
+        ApplySelfDestructDamage();
     }
 
     /// <summary>
     /// Death 상태 진입과 사망 시퀀스 시작을 단일 진입점으로 수행합니다.
     /// </summary>
+    /// <summary>
+    /// 자폭 공격 종료 시 자기 최대 체력만큼 피해를 적용해 일반 사망 경로로 진입시킵니다.
+    /// </summary>
+    private void ApplySelfDestructDamage()
+    {
+        if (_selfHealthComponent == null)
+        {
+            Debug.LogWarning($"[EnemyAIController] Missing self HealthComponent for self-destruct damage on {name}. Self-destruct cannot be resolved through HealthComponent.", this);
+            return;
+        }
+
+        float selfDestructDamage = Mathf.Max(1f, _selfHealthComponent.GetMaxHealth());
+        DamageContext selfDamageContext = new DamageContext(
+            selfDestructDamage,
+            gameObject,
+            $"{name}_self_destruct",
+            false,
+            true,
+            E_DamageType.True);
+
+        DamageResult selfDamageResult = _selfHealthComponent.ApplyDamage(selfDamageContext);
+        if (!selfDamageResult.DidCauseDeath && !_selfHealthComponent.IsDead)
+        {
+            Debug.LogWarning($"[EnemyAIController] Self-destruct damage did not kill {name}. Death state will remain driven by HealthComponent.", this);
+        }
+    }
+
     private void TryEnterDeathState()
     {
         if (_isRemovingOrRemoved)
@@ -761,6 +989,9 @@ public class EnemyAIController : MonoBehaviour
         TryChangeState(EnemyAIStateId.Death, true);
     }
 
+    /// <summary>
+    /// 피격 사망이 확정되면 서버와 관찰자 화면 모두에서 Enemy 루트를 즉시 비활성화합니다.
+    /// </summary>
     /// <summary>
     /// 선택 시 AI 디버그 Gizmos를 그립니다.
     /// </summary>
@@ -965,7 +1196,7 @@ public class EnemyAIController : MonoBehaviour
             Controller._attackController?.ForceStopAttack();
             Controller._healthAdapter?.SetCanBeHit(false);
             Controller.PushAnimationIntent(StateId, false);
-            Controller._animationBridge?.TriggerDeathIntent();
+            Controller.TriggerDeathVisual();
         }
     }
 
@@ -994,7 +1225,7 @@ public class EnemyAIController : MonoBehaviour
             Controller.SetMovementEnabled(false);
             Controller.StopMovementNow();
             Controller.PushAnimationIntent(StateId, false);
-            Controller._animationBridge?.TriggerHitIntent();
+            Controller.TriggerHitVisual();
         }
     }
 

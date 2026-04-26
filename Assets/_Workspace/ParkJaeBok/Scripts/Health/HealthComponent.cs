@@ -1,19 +1,21 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 씬에서 HealthCore를 사용할 수 있게 감싸는 MonoBehaviour 래퍼입니다.
+/// 씬 오브젝트에서 <see cref="HealthCore"/>를 사용할 수 있게 감싸는 MonoBehaviour 래퍼입니다.
 /// </summary>
 public class HealthComponent : MonoBehaviour
 {
     [Header("Initial Health")]
-    [SerializeField] private float _initialMaxHealth = 100f; // 시작 최대 체력 값
-    [SerializeField] private float _initialCurrentHealth = 100f; // 시작 현재 체력 값
-    [SerializeField] private bool _allowHealWhenDead = false; // 사망 중 회복 허용 여부
+    [SerializeField] private float _initialMaxHealth = 100f; // 시작 최대 체력 값입니다.
+    [SerializeField] private float _initialCurrentHealth = 100f; // 시작 현재 체력 값입니다.
+    [SerializeField] private bool _allowHealWhenDead = false; // 사망 중 회복 허용 여부입니다.
 
     [Header("Debug")]
-    [SerializeField] private float _debugCurrentHealth = 0f;
+    [SerializeField] private float _debugCurrentHealth = 0f; // 디버그 표시용 현재 체력 값입니다.
 
-    private HealthCore _healthCore; // 내부 체력 코어 인스턴스
+    private HealthCore _healthCore; // 실제 체력 계산과 상태 전이를 담당하는 HealthCore 인스턴스입니다.
+    private readonly List<IHealthListener> _pendingListeners = new List<IHealthListener>(); // HealthCore 초기화 전에 등록 요청된 리스너를 임시 보관하는 목록입니다.
 
     /// <summary>
     /// 코어 생성 여부를 반환합니다.
@@ -26,7 +28,7 @@ public class HealthComponent : MonoBehaviour
     public bool IsDead => _healthCore != null && _healthCore.IsDead;
 
     /// <summary>
-    /// 초기 설정을 검증하고 HealthCore를 생성합니다.
+    /// 초기 설정을 검증하고 HealthCore를 생성한 뒤 대기 중인 리스너를 반영합니다.
     /// </summary>
     private void Awake()
     {
@@ -44,7 +46,7 @@ public class HealthComponent : MonoBehaviour
         }
 
         _healthCore = new HealthCore(safeMaxHealth, safeCurrentHealth, _allowHealWhenDead);
-
+        FlushPendingListeners();
         _debugCurrentHealth = _healthCore.GetCurrentHealth();
     }
 
@@ -61,10 +63,21 @@ public class HealthComponent : MonoBehaviour
     /// </summary>
     public bool TryAddListener(IHealthListener listener)
     {
+        if (listener == null)
+        {
+            Debug.LogWarning($"[HealthComponent] AddListener called with null listener on {name}.");
+            return false;
+        }
+
         if (_healthCore == null)
         {
-            Debug.LogWarning($"[HealthComponent] AddListener called before initialization on {name}.");
-            return false;
+            if (_pendingListeners.Contains(listener))
+            {
+                return true;
+            }
+
+            _pendingListeners.Add(listener);
+            return true;
         }
 
         _healthCore.AddListener(listener);
@@ -84,10 +97,15 @@ public class HealthComponent : MonoBehaviour
     /// </summary>
     public bool TryRemoveListener(IHealthListener listener)
     {
+        if (listener == null)
+        {
+            Debug.LogWarning($"[HealthComponent] RemoveListener called with null listener on {name}.");
+            return false;
+        }
+
         if (_healthCore == null)
         {
-            Debug.LogWarning($"[HealthComponent] RemoveListener called before initialization on {name}.");
-            return false;
+            return _pendingListeners.Remove(listener);
         }
 
         _healthCore.RemoveListener(listener);
@@ -106,9 +124,7 @@ public class HealthComponent : MonoBehaviour
         }
 
         DamageResult result = _healthCore.ApplyDamage(context);
-
         _debugCurrentHealth = _healthCore.GetCurrentHealth();
-
         return result;
     }
 
@@ -124,9 +140,7 @@ public class HealthComponent : MonoBehaviour
         }
 
         HealResult result = _healthCore.ApplyHeal(context);
-
         _debugCurrentHealth = _healthCore.GetCurrentHealth();
-
         return result;
     }
 
@@ -215,7 +229,7 @@ public class HealthComponent : MonoBehaviour
     }
 
     /// <summary>
-    /// 정규화 체력을 조회합니다.
+    /// 정규화된 체력 값을 조회합니다.
     /// </summary>
     public float GetHealthNormalized()
     {
@@ -282,5 +296,29 @@ public class HealthComponent : MonoBehaviour
         }
 
         _healthCore.RemoveHealModifier(modifier);
+    }
+
+    /// <summary>
+    /// HealthCore 초기화 전에 들어온 리스너 등록 요청을 실제 코어에 반영합니다.
+    /// </summary>
+    private void FlushPendingListeners()
+    {
+        if (_healthCore == null || _pendingListeners.Count == 0)
+        {
+            return;
+        }
+
+        for (int index = 0; index < _pendingListeners.Count; index++)
+        {
+            IHealthListener pendingListener = _pendingListeners[index]; // 초기화 전에 등록 요청된 리스너 참조입니다.
+            if (pendingListener == null)
+            {
+                continue;
+            }
+
+            _healthCore.AddListener(pendingListener);
+        }
+
+        _pendingListeners.Clear();
     }
 }

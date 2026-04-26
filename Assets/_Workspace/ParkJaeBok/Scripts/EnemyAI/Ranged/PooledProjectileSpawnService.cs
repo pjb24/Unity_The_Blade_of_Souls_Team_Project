@@ -2,48 +2,77 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 투사체 프리팹 단위 풀을 관리하고 생성 요청을 실행하는 서비스입니다.
+/// 투사체 풀을 관리하고 생성/반환 요청을 수행하는 서비스입니다.
 /// </summary>
 [DisallowMultipleComponent]
 public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnService
 {
     [Header("Pool")]
-    [Tooltip("비활성 풀에 오브젝트가 부족할 때 자동 확장을 허용할지 여부입니다.")]
+    [Tooltip("비활성 풀에 사용할 인스턴스가 부족할 때 자동 확장을 허용할지 여부입니다.")]
     [SerializeField] private bool _allowAutoExpand = true; // 풀 부족 시 자동 확장 허용 여부입니다.
     [Tooltip("0 이하면 무제한, 1 이상이면 프리팹별 최대 생성 개수 제한입니다.")]
-    [SerializeField] private int _maxCountPerPrefab = 0; // 프리팹별 최대 생성 개수 제한 값입니다.
+    [SerializeField] private int _maxCountPerPrefab = 0; // 프리팹별 최대 생성 개수 제한값입니다.
 
-    [Tooltip("프리팹별 비활성 인스턴스 큐를 보관하는 맵입니다.")]
-    private readonly Dictionary<GameObject, Queue<PooledRangedProjectile>> _poolByPrefab = new Dictionary<GameObject, Queue<PooledRangedProjectile>>(); // 프리팹별 비활성 큐 맵입니다.
-    [Tooltip("프리팹별 총 생성 인스턴스 수를 추적하는 맵입니다.")]
-    private readonly Dictionary<GameObject, int> _createdCountByPrefab = new Dictionary<GameObject, int>(); // 프리팹별 생성 누적 개수입니다.
-    [Tooltip("활성 인스턴스가 어떤 프리팹에서 생성되었는지 추적하는 맵입니다.")]
-    private readonly Dictionary<PooledRangedProjectile, GameObject> _sourcePrefabByInstance = new Dictionary<PooledRangedProjectile, GameObject>(); // 인스턴스-원본 프리팹 역참조 맵입니다.
+    [Tooltip("프리팹별 비활성 Projectile 큐를 보관하는 맵입니다.")]
+    private readonly Dictionary<GameObject, Queue<PooledRangedProjectile>> _poolByPrefab = new Dictionary<GameObject, Queue<PooledRangedProjectile>>(); // 프리팹별 풀 큐입니다.
+    [Tooltip("프리팹별 누적 생성 개수를 추적하는 맵입니다.")]
+    private readonly Dictionary<GameObject, int> _createdCountByPrefab = new Dictionary<GameObject, int>(); // 프리팹별 생성 수 추적 맵입니다.
+    [Tooltip("생성된 Projectile 인스턴스와 원본 프리팹의 역참조 맵입니다.")]
+    private readonly Dictionary<PooledRangedProjectile, GameObject> _sourcePrefabByInstance = new Dictionary<PooledRangedProjectile, GameObject>(); // 인스턴스-프리팹 역참조 맵입니다.
+    [Tooltip("관찰자 시각 전용 Projectile을 복제 ID로 추적하는 맵입니다.")]
+    private readonly Dictionary<int, PooledRangedProjectile> _visualProjectileById = new Dictionary<int, PooledRangedProjectile>(); // 복제 시각 Projectile 조회 맵입니다.
 
     /// <summary>
-    /// 요청된 스펙으로 투사체를 스폰/재사용합니다.
+    /// 요청된 조건으로 Projectile을 스폰하고 인스턴스를 반환합니다.
     /// </summary>
-    public void RequestSpawn(GameObject prefab, Vector2 position, Vector2 direction, GameObject owner, float speed, float lifetime)
+    public PooledRangedProjectile RequestSpawn(GameObject prefab, Vector2 position, Vector2 direction, GameObject owner, float speed, float lifetime, bool isVisualOnly = false, int visualInstanceId = 0)
     {
         if (prefab == null)
         {
             Debug.LogWarning("[PooledProjectileSpawnService] RequestSpawn failed: prefab is null.");
-            return;
+            return null;
         }
 
         PooledRangedProjectile projectile = Acquire(prefab);
         if (projectile == null)
         {
-            return;
+            return null;
         }
 
         projectile.transform.position = position;
         projectile.gameObject.SetActive(true);
-        projectile.Initialize(direction, speed, lifetime, owner);
+        projectile.Initialize(direction, speed, lifetime, owner, isVisualOnly, visualInstanceId);
+
+        if (isVisualOnly && visualInstanceId > 0)
+        {
+            _visualProjectileById[visualInstanceId] = projectile;
+        }
+
+        return projectile;
     }
 
     /// <summary>
-    /// 풀에서 사용 가능한 투사체를 가져오거나 필요 시 새로 생성합니다.
+    /// 관찰자 시각 전용 Projectile을 복제 ID 기준으로 찾아 강제 종료합니다.
+    /// </summary>
+    public bool TryDespawnVisual(int visualInstanceId)
+    {
+        if (visualInstanceId <= 0)
+        {
+            return false;
+        }
+
+        if (!_visualProjectileById.TryGetValue(visualInstanceId, out PooledRangedProjectile projectile) || projectile == null)
+        {
+            _visualProjectileById.Remove(visualInstanceId);
+            return false;
+        }
+
+        projectile.ForceDespawn(E_ProjectileDespawnReason.HitEnvironment);
+        return true;
+    }
+
+    /// <summary>
+    /// 풀에서 사용 가능한 Projectile을 가져오거나 필요 시 새로 생성합니다.
     /// </summary>
     private PooledRangedProjectile Acquire(GameObject prefab)
     {
@@ -51,10 +80,10 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
 
         while (pool.Count > 0)
         {
-            PooledRangedProjectile pooled = pool.Dequeue();
-            if (pooled != null)
+            PooledRangedProjectile pooledProjectile = pool.Dequeue();
+            if (pooledProjectile != null)
             {
-                return pooled;
+                return pooledProjectile;
             }
         }
 
@@ -73,16 +102,16 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
         }
 
         Debug.LogWarning($"[PooledProjectileSpawnService] Pool expanded for {prefab.name}.");
-        GameObject created = Instantiate(prefab, transform);
-        PooledRangedProjectile createdProjectile = created.GetComponent<PooledRangedProjectile>();
+        GameObject createdObject = Instantiate(prefab, transform);
+        PooledRangedProjectile createdProjectile = createdObject.GetComponent<PooledRangedProjectile>();
         if (createdProjectile == null)
         {
-            createdProjectile = created.AddComponent<PooledRangedProjectile>();
-            Debug.LogWarning($"[PooledProjectileSpawnService] Added missing PooledRangedProjectile on {created.name}.");
+            createdProjectile = createdObject.AddComponent<PooledRangedProjectile>();
+            Debug.LogWarning($"[PooledProjectileSpawnService] Added missing PooledRangedProjectile on {createdObject.name}.");
         }
 
         createdProjectile.BindReturnHandler(ReturnToPool);
-        created.SetActive(false);
+        createdObject.SetActive(false);
 
         _createdCountByPrefab[prefab] = createdCount + 1;
         _sourcePrefabByInstance[createdProjectile] = prefab;
@@ -91,13 +120,18 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
     }
 
     /// <summary>
-    /// 사용 종료된 투사체를 비활성화해 풀로 반환합니다.
+    /// 사용 종료된 Projectile을 비활성화하고 풀로 반환합니다.
     /// </summary>
     private void ReturnToPool(PooledRangedProjectile projectile)
     {
         if (projectile == null)
         {
             return;
+        }
+
+        if (projectile.VisualInstanceId > 0)
+        {
+            _visualProjectileById.Remove(projectile.VisualInstanceId);
         }
 
         if (!_sourcePrefabByInstance.TryGetValue(projectile, out GameObject prefab) || prefab == null)
@@ -113,7 +147,7 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
     }
 
     /// <summary>
-    /// 지정 프리팹의 풀 큐를 가져오거나 새로 생성합니다.
+    /// 지정 프리팹의 풀 큐를 반환하거나 새로 생성합니다.
     /// </summary>
     private Queue<PooledRangedProjectile> GetOrCreatePool(GameObject prefab)
     {

@@ -1,10 +1,11 @@
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
 /// 고정형 원거리 Enemy의 Idle/Combat 상태 전이와 원거리 공격 흐름을 제어합니다.
 /// </summary>
 [DisallowMultipleComponent]
-public class StationaryRangedEnemyController : MonoBehaviour
+public class StationaryRangedEnemyController : NetworkBehaviour
 {
     [Header("References")]
     [Tooltip("EnemyAI 경로의 타겟 탐지기입니다.")]
@@ -19,6 +20,10 @@ public class StationaryRangedEnemyController : MonoBehaviour
     [SerializeField] private Animator _animator; // AttackTrigger를 호출할 Animator입니다.
     [Tooltip("피격/사망 이벤트를 수신할 Health 어댑터입니다.")]
     [SerializeField] private EnemyHealthAdapter _healthAdapter; // 피격/사망 이벤트 수신용 어댑터입니다.
+    [Tooltip("사망 VFX/제거 시퀀스를 담당하는 사망 컨트롤러입니다. 비어 있으면 자동 탐색합니다.")]
+    [SerializeField] private EnemyAIDeathController _deathController; // 원거리 Enemy의 사망 제거 시퀀스를 담당하는 컨트롤러 참조입니다.
+    [Tooltip("NGO 세션에서 서버 권한 여부를 판정할 NetworkObject 참조입니다. 비어 있으면 자동 탐색합니다.")]
+    [SerializeField] private NetworkObject _networkObject; // 멀티플레이 서버 권한 판정에 사용할 NetworkObject 참조입니다.
 
     [Header("Ranges")]
     [Tooltip("Idle→Combat 감지 거리입니다.")]
@@ -75,6 +80,8 @@ public class StationaryRangedEnemyController : MonoBehaviour
     [Header("Debug")]
     [Tooltip("현재 상태입니다.")]
     [SerializeField] private E_StationaryRangedEnemyState _currentState = E_StationaryRangedEnemyState.Idle; // 상태 머신 현재 상태입니다.
+    [Tooltip("네트워크 권한이 없는 관찰자 인스턴스 경고를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenAuthorityUnavailable = true; // 관찰자 인스턴스 권한 경고 출력 여부입니다.
 
     [Tooltip("현재 공격 진행 중 여부입니다.")]
     private bool _isAttacking; // 공격 진행 플래그입니다.
@@ -94,6 +101,8 @@ public class StationaryRangedEnemyController : MonoBehaviour
     private float _hitStaggerReleaseAt; // 피격 경직 종료 시각입니다.
     [Tooltip("현재 피격 상태 유지 여부입니다.")]
     private bool _isHitStateActive; // 피격 상태 유지 플래그입니다.
+    [Tooltip("관찰자 인스턴스 권한 경고를 중복 출력하지 않기 위한 플래그입니다.")]
+    private bool _hasLoggedAuthorityWarning; // 관찰자 인스턴스 권한 경고 중복 방지 플래그입니다.
     [Tooltip("공격 토글 오브젝트의 마지막 적용 활성 상태입니다.")]
     private bool _isAttackToggleObjectsActive = true; // SetActive 중복 호출 방지용 마지막 상태 캐시입니다.
     [Tooltip("현재 공격 사이클에서 발사 방향을 고정했는지 여부입니다.")]
@@ -117,6 +126,16 @@ public class StationaryRangedEnemyController : MonoBehaviour
     /// <summary>
     /// 초기 참조 구성/설정 검증을 수행합니다.
     /// </summary>
+    [Tooltip("Projectile 생성/소멸 복제 시퀀스를 발급하는 값입니다.")]
+    private int _projectileVisualSequence; // 복제 투사체 고유 ID 발급 시퀀스입니다.
+
+    private readonly NetworkVariable<bool> _replicatedFacingRight = new NetworkVariable<bool>(
+        true,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 서버 확정 시각 방향 상태입니다.
+
+    private bool _lastPublishedFacingRight = true; // 마지막으로 복제한 방향 상태입니다.
+
     private void Awake()
     {
         ResolveDependencies();
@@ -127,10 +146,29 @@ public class StationaryRangedEnemyController : MonoBehaviour
     /// <summary>
     /// 활성화 시 Health 어댑터 이벤트를 구독합니다.
     /// </summary>
+    public override void OnNetworkSpawn()
+    {
+        _replicatedFacingRight.OnValueChanged += HandleReplicatedFacingRightChanged;
+
+        if (!CanExecuteAiAuthority())
+        {
+            ApplyReplicatedFacingDirection(_replicatedFacingRight.Value);
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _replicatedFacingRight.OnValueChanged -= HandleReplicatedFacingRightChanged;
+    }
+
     private void OnEnable()
     {
         SubscribeHealthSignals();
         _isDead = _healthAdapter != null && !_healthAdapter.IsAlive;
+        _hasLoggedAuthorityWarning = false;
+        _currentState = E_StationaryRangedEnemyState.Idle;
+        _lastPublishedFacingRight = _replicatedFacingRight.Value;
+        _deathController?.ResetRuntime();
         ForceAttackToggleObjectsActive(true);
     }
 
@@ -175,8 +213,14 @@ public class StationaryRangedEnemyController : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        ApplyReplicatedFacingDirection(_replicatedFacingRight.Value);
         SyncAnimatorState();
         SyncAttackToggleObjectsByAnimation();
+
+        if (!CanExecuteAiAuthority())
+        {
+            return;
+        }
 
         if (_isDead)
         {
@@ -213,6 +257,133 @@ public class StationaryRangedEnemyController : MonoBehaviour
     }
 
     /// <summary>
+    /// 현재 인스턴스가 원거리 Enemy AI 의사결정을 수행할 서버 권한을 가졌는지 판정합니다.
+    /// </summary>
+    private bool CanExecuteAiAuthority()
+    {
+        bool canExecute = EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject);
+        if (!canExecute && _warnWhenAuthorityUnavailable && !_hasLoggedAuthorityWarning)
+        {
+            Debug.LogWarning($"[StationaryRangedEnemyController] AI authority unavailable on observer instance. object={name}", this);
+            _hasLoggedAuthorityWarning = true;
+        }
+
+        if (canExecute)
+        {
+            _hasLoggedAuthorityWarning = false;
+        }
+
+        return canExecute;
+    }
+
+    /// <summary>
+    /// 서버가 현재 시각 상태를 관찰자 인스턴스에 복제해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldReplicateVisuals()
+    {
+        return EnemyNetworkAuthorityUtility.ShouldReplicateFromServer(_networkObject);
+    }
+
+    /// <summary>
+    /// 상태 값을 갱신하고 Animator Bool 시각을 즉시 동기화합니다.
+    /// </summary>
+    private void SetCurrentState(E_StationaryRangedEnemyState nextState)
+    {
+        if (_currentState == nextState)
+        {
+            return;
+        }
+
+        _currentState = nextState;
+        SyncAnimatorState();
+
+        if (ShouldReplicateVisuals())
+        {
+            SetCurrentStateRpc((int)nextState);
+        }
+    }
+
+    /// <summary>
+    /// 서버가 확정한 전투 상태를 관찰자 인스턴스에 복제합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void SetCurrentStateRpc(int stateValue)
+    {
+        _currentState = (E_StationaryRangedEnemyState)stateValue;
+        SyncAnimatorState();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 공격 시작 트리거를 관찰자 인스턴스 Animator에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerAttackVisualRpc()
+    {
+        _animator?.SetTrigger(AttackTriggerHash);
+    }
+
+    /// <summary>
+    /// 서버가 확정한 피격 트리거를 관찰자 인스턴스 Animator에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerHitVisualRpc()
+    {
+        TriggerHitAnimation();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 사망 트리거를 관찰자 인스턴스 Animator에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void TriggerDieVisualRpc()
+    {
+        TriggerDieAnimation();
+        _deathController?.TryEnterDeath();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 투사체 발사 결과를 관찰자 인스턴스에 전달해 동일한 시각 투사체를 생성합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void SpawnProjectileVisualRpc(int projectileVisualId, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
+    {
+        if (_projectileSpawnService == null)
+        {
+            ResolveDependencies();
+        }
+
+        if (_projectileSpawnService == null)
+        {
+            Debug.LogWarning($"[StationaryRangedEnemyController] Missing IProjectileSpawnService on observer instance {name}.");
+            return;
+        }
+
+        _projectileSpawnService.RequestSpawn(
+            _projectilePrefab,
+            firePosition,
+            direction,
+            gameObject,
+            projectileSpeed,
+            projectileLifetime,
+            true,
+            projectileVisualId);
+    }
+
+    /// <summary>
+    /// 서버가 확정한 Projectile 종료 결과를 관찰자 인스턴스에 적용합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void DespawnProjectileVisualRpc(int projectileVisualId)
+    {
+        if (_projectileSpawnService == null)
+        {
+            ResolveDependencies();
+        }
+
+        _projectileSpawnService?.TryDespawnVisual(projectileVisualId);
+    }
+
+    /// <summary>
     /// Idle 상태 전이를 처리합니다.
     /// </summary>
     private void TickIdle()
@@ -225,7 +396,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
 
         if (GetDistanceToTarget(target) <= _detectionRange)
         {
-            _currentState = E_StationaryRangedEnemyState.Combat;
+            SetCurrentState(E_StationaryRangedEnemyState.Combat);
         }
     }
 
@@ -251,7 +422,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
         if (!IsTargetValidForDetection(target))
         {
             StopAttackAsFailedCycle();
-            _currentState = E_StationaryRangedEnemyState.Idle;
+            SetCurrentState(E_StationaryRangedEnemyState.Idle);
             return;
         }
 
@@ -261,7 +432,7 @@ public class StationaryRangedEnemyController : MonoBehaviour
         if (distance > _detectionRange)
         {
             StopAttackAsFailedCycle();
-            _currentState = E_StationaryRangedEnemyState.Idle;
+            SetCurrentState(E_StationaryRangedEnemyState.Idle);
             return;
         }
 
@@ -308,6 +479,11 @@ public class StationaryRangedEnemyController : MonoBehaviour
         if (_animator != null)
         {
             _animator.SetTrigger(AttackTriggerHash);
+
+            if (ShouldReplicateVisuals())
+            {
+                TriggerAttackVisualRpc();
+            }
         }
         else
         {
@@ -321,6 +497,11 @@ public class StationaryRangedEnemyController : MonoBehaviour
     /// </summary>
     public void OnFireProjectile()
     {
+        if (!CanExecuteAiAuthority())
+        {
+            return;
+        }
+
         if (!_isWaitingForFireEvent)
         {
             Debug.LogWarning($"[StationaryRangedEnemyController] OnFireProjectile called outside active cycle on {name}.");
@@ -350,13 +531,29 @@ public class StationaryRangedEnemyController : MonoBehaviour
             return;
         }
 
-        _projectileSpawnService.RequestSpawn(
+        int projectileVisualId = NextProjectileVisualId();
+        PooledRangedProjectile spawnedProjectile = _projectileSpawnService.RequestSpawn(
             _projectilePrefab,
             firePosition,
             direction,
             gameObject,
             _projectileSpeed,
-            _projectileLifetime);
+            _projectileLifetime,
+            false,
+            projectileVisualId);
+
+        if (spawnedProjectile == null)
+        {
+            StopAttackAsFailedCycle();
+            return;
+        }
+
+        spawnedProjectile.Despawned += HandleAuthoritativeProjectileDespawned;
+
+        if (ShouldReplicateVisuals())
+        {
+            SpawnProjectileVisualRpc(projectileVisualId, firePosition, direction, _projectileSpeed, _projectileLifetime);
+        }
 
         if (usedFallbackTargetPosition)
         {
@@ -562,14 +759,89 @@ public class StationaryRangedEnemyController : MonoBehaviour
             return;
         }
 
-        Vector3 localScale = _visualRoot.localScale;
-        localScale.x = Mathf.Abs(localScale.x) * (deltaX >= 0f ? 1f : -1f);
-        _visualRoot.localScale = localScale;
+        bool isFacingRight = deltaX >= 0f;
+        ApplyFacingDirection(isFacingRight);
+
+        if (ShouldReplicateVisuals() && _lastPublishedFacingRight != isFacingRight)
+        {
+            _replicatedFacingRight.Value = isFacingRight;
+            _lastPublishedFacingRight = isFacingRight;
+        }
     }
 
     /// <summary>
     /// 필수 참조를 자동 연결하고 서비스 인터페이스를 해석합니다.
     /// </summary>
+    /// <summary>
+    /// 서버 Projectile 소멸 결과를 관찰자 시각 Projectile에도 복제합니다.
+    /// </summary>
+    /// <summary>
+    /// 관찰자 인스턴스가 받은 방향 복제 값을 시각 루트에 반영합니다.
+    /// </summary>
+    private void HandleReplicatedFacingRightChanged(bool previousValue, bool currentValue)
+    {
+        ApplyReplicatedFacingDirection(currentValue);
+    }
+
+    /// <summary>
+    /// 서버 확정 방향 값을 관찰자 시각 루트에 반영합니다.
+    /// </summary>
+    private void ApplyReplicatedFacingDirection(bool isFacingRight)
+    {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
+        ApplyFacingDirection(isFacingRight);
+    }
+
+    /// <summary>
+    /// 지정 방향 기준으로 시각 루트 좌우 반전을 적용합니다.
+    /// </summary>
+    private void ApplyFacingDirection(bool isFacingRight)
+    {
+        if (_visualRoot == null)
+        {
+            return;
+        }
+
+        Vector3 localScale = _visualRoot.localScale;
+        localScale.x = Mathf.Abs(localScale.x) * (isFacingRight ? 1f : -1f);
+        _visualRoot.localScale = localScale;
+    }
+
+    private void HandleAuthoritativeProjectileDespawned(PooledRangedProjectile projectile, E_ProjectileDespawnReason reason)
+    {
+        if (projectile == null)
+        {
+            return;
+        }
+
+        projectile.Despawned -= HandleAuthoritativeProjectileDespawned;
+
+        if (!ShouldReplicateVisuals() || projectile.VisualInstanceId <= 0)
+        {
+            return;
+        }
+
+        DespawnProjectileVisualRpc(projectile.VisualInstanceId);
+    }
+
+    /// <summary>
+    /// 관찰자용 Projectile 복제 ID를 발급합니다.
+    /// </summary>
+    private int NextProjectileVisualId()
+    {
+        _projectileVisualSequence++;
+        if (_projectileVisualSequence <= 0)
+        {
+            _projectileVisualSequence = 1;
+        }
+
+        return _projectileVisualSequence;
+    }
+
     private void ResolveDependencies()
     {
         if (_targetDetector == null)
@@ -587,6 +859,16 @@ public class StationaryRangedEnemyController : MonoBehaviour
         if (_healthAdapter == null)
         {
             _healthAdapter = GetComponent<EnemyHealthAdapter>();
+        }
+
+        if (_deathController == null)
+        {
+            _deathController = GetComponent<EnemyAIDeathController>();
+        }
+
+        if (_networkObject == null)
+        {
+            _networkObject = GetComponent<NetworkObject>();
         }
 
         if (_visualRoot == null)
@@ -777,6 +1059,11 @@ public class StationaryRangedEnemyController : MonoBehaviour
         _isHitStateActive = true;
         _hitStaggerReleaseAt = Time.time + _hitStaggerDuration;
         TriggerHitAnimation();
+
+        if (ShouldReplicateVisuals())
+        {
+            TriggerHitVisualRpc();
+        }
     }
 
     /// <summary>
@@ -786,9 +1073,18 @@ public class StationaryRangedEnemyController : MonoBehaviour
     {
         _isDead = true;
         _isHitStateActive = false;
-        _currentState = E_StationaryRangedEnemyState.Idle;
+        SetCurrentState(E_StationaryRangedEnemyState.Idle);
         StopAttackAsFailedCycle();
         TriggerDieAnimation();
+
+        if (ShouldReplicateVisuals())
+        {
+            TriggerDieVisualRpc();
+        }
+
+        _healthAdapter?.SetCanBeHit(false);
+        _targetDetector?.ClearTarget();
+        _deathController?.TryEnterDeath();
     }
 
     /// <summary>
@@ -798,8 +1094,9 @@ public class StationaryRangedEnemyController : MonoBehaviour
     {
         _isDead = false;
         _isHitStateActive = false;
-        _currentState = E_StationaryRangedEnemyState.Idle;
+        SetCurrentState(E_StationaryRangedEnemyState.Idle);
         _hitStaggerReleaseAt = 0f;
+        _healthAdapter?.SetCanBeHit(true);
     }
 
     /// <summary>

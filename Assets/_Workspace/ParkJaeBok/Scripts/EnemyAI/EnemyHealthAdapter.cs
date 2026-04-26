@@ -2,17 +2,18 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// HealthComponent 이벤트를 Enemy AI 친화적인 시그널로 변환하고 피격 가능 여부를 일원화하는 어댑터입니다.
+/// <see cref="HealthComponent"/> 이벤트를 Enemy AI가 소비하기 쉬운 신호로 변환하고,
+/// 피격 가능 상태를 일관되게 제어하는 어댑터입니다.
 /// </summary>
 [DisallowMultipleComponent]
 public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
 {
     [Tooltip("Enemy 생존 판정과 이벤트 구독에 사용할 HealthComponent 참조입니다.")]
-    [SerializeField] private HealthComponent _healthComponent; // Enemy 체력 컴포넌트 참조입니다.
-    [Tooltip("피격 수신 진입점 차단 제어에 사용할 HitReceiver 참조입니다.")]
-    [SerializeField] private HitReceiver _hitReceiver; // HitReceiver 무적 상태 제어에 사용할 참조입니다.
+    [SerializeField] private HealthComponent _healthComponent; // Enemy 생존 판정과 이벤트 구독에 사용할 체력 컴포넌트 참조입니다.
+    [Tooltip("피격 진입 차단 상태를 반영할 HitReceiver 참조입니다.")]
+    [SerializeField] private HitReceiver _hitReceiver; // 피격 허용 여부를 HitReceiver 무적 상태와 동기화할 참조입니다.
 
-    private bool _canBeHit = true; // 현재 로직 기준 피격 허용 여부입니다.
+    private bool _canBeHit = true; // 현재 로직 기준으로 피격을 허용할지 여부입니다.
 
     /// <summary>
     /// 데미지 수신 이벤트입니다.
@@ -35,12 +36,12 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     public bool IsAlive => _healthComponent != null && !_healthComponent.IsDead;
 
     /// <summary>
-    /// 현재 피격 허용 여부를 반환합니다.
+    /// 현재 피격 허용 상태를 반환합니다.
     /// </summary>
     public bool CanBeHit => _canBeHit && IsAlive;
 
     /// <summary>
-    /// HealthComponent와 HitReceiver를 자동 연결합니다.
+    /// 필요한 런타임 참조를 자동으로 연결합니다.
     /// </summary>
     private void Awake()
     {
@@ -56,17 +57,17 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
 
         if (_healthComponent == null)
         {
-            Debug.LogWarning($"[EnemyHealthAdapter] Missing HealthComponent on {name}. Death/Hit state transitions will not work.");
+            Debug.LogWarning($"[EnemyHealthAdapter] Missing HealthComponent on {name}. Death and hit state transitions will not work.", this);
         }
 
         if (_hitReceiver == null)
         {
-            Debug.LogWarning($"[EnemyHealthAdapter] Missing HitReceiver on {name}. CanBeHit gating cannot block damage entry.");
+            Debug.LogWarning($"[EnemyHealthAdapter] Missing HitReceiver on {name}. CanBeHit gating cannot block damage entry.", this);
         }
     }
 
     /// <summary>
-    /// 활성화 시 HealthComponent 이벤트를 구독하고 피격 상태를 기본값으로 복구합니다.
+    /// 활성화 시 체력 이벤트를 구독하고 피격 가능 상태를 초기화합니다.
     /// </summary>
     private void OnEnable()
     {
@@ -79,7 +80,7 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 비활성화 시 HealthComponent 이벤트 구독을 해제합니다.
+    /// 비활성화 시 체력 이벤트 구독을 해제합니다.
     /// </summary>
     private void OnDisable()
     {
@@ -92,7 +93,7 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 피격 가능 여부를 설정하고 HitReceiver 무적 상태를 동기화합니다.
+    /// 피격 허용 상태를 갱신하고 HitReceiver 무적 상태와 동기화합니다.
     /// </summary>
     public void SetCanBeHit(bool canBeHit)
     {
@@ -105,14 +106,14 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 체력 변경 이벤트를 수신합니다.
+    /// 체력 변화 이벤트를 수신합니다.
     /// </summary>
     public void OnHealthChanged(HealthChangeData data)
     {
     }
 
     /// <summary>
-    /// 데미지 이벤트를 수신합니다.
+    /// 데미지 수신 이벤트를 전달합니다.
     /// </summary>
     public void OnDamaged(DamageResult result)
     {
@@ -127,7 +128,8 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 사망 이벤트를 수신하고 피격 차단 상태로 전환합니다.
+    /// 사망 확정 시 피격을 차단하고 사망 이벤트를 전달합니다.
+    /// 최종 비활성화 타이밍은 EnemyAIDeathController가 담당합니다.
     /// </summary>
     public void OnDied()
     {
@@ -136,7 +138,7 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 부활 이벤트를 수신하고 피격 허용 상태를 복구합니다.
+    /// 부활 시 피격 가능 상태를 복구하고 부활 이벤트를 전달합니다.
     /// </summary>
     public void OnRevived()
     {
@@ -145,7 +147,7 @@ public class EnemyHealthAdapter : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 최대 체력 변경 이벤트를 수신합니다.
+    /// 최대 체력 변화 이벤트를 수신합니다.
     /// </summary>
     public void OnMaxHealthChanged(float previousMaxHealth, float currentMaxHealth)
     {
