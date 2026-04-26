@@ -57,8 +57,8 @@ MonoBehaviour:
   _networkObject: {fileID: 128880914658158548}
   _detectionRange: 8
   _chaseRange: 12
-  _attackEnterRange: 0
-  _attackExitRange: 0
+  _attackEnterRange: 3
+  _attackExitRange: 3
   _returnStopDistance: 0.2
   _arrivalVelocityEpsilon: 0.05
   _repathInterval: 0.25

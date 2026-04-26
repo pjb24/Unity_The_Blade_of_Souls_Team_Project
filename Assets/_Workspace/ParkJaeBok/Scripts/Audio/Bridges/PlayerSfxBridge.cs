@@ -141,6 +141,13 @@ public class PlayerSfxBridge : MonoBehaviour, IHitListener
             return;
         }
 
+        if (_networkRelay != null && _networkRelay.IsNetworkSessionActive() && _networkRelay.IsServerRelay())
+        {
+            TryRequestSfx(_playerHitEventType, _playerHitSubTypeKey, _playerHitFallbackSoundId, transform, "PlayerHit.Server");
+            _networkRelay.BroadcastServerAuthoritativeSfx(_playerHitEventType, _playerHitSubTypeKey, _playerHitFallbackSoundId);
+            return;
+        }
+
         TriggerStateReplicatedSfx(_playerHitEventType, _playerHitSubTypeKey, _playerHitFallbackSoundId, "PlayerHit");
     }
 
