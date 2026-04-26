@@ -74,7 +74,7 @@ MonoBehaviour:
     RequireCurrentPhaseMatch: 0
     RequiredCurrentPhase: 0
   - Name: Deny_Land_to_AttackCombo1
-    Enabled: 1
+    Enabled: 0
     Priority: 0
     CurrentActionType: 4
     RequestedActionType: 22
@@ -84,7 +84,7 @@ MonoBehaviour:
     RequireCurrentPhaseMatch: 0
     RequiredCurrentPhase: 0
   - Name: Deny_Land_to_AttackCombo2
-    Enabled: 1
+    Enabled: 0
     Priority: 0
     CurrentActionType: 4
     RequestedActionType: 23
@@ -98,6 +98,16 @@ MonoBehaviour:
     Priority: 0
     CurrentActionType: 22
     RequestedActionType: 23
+    Decision: 2
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    RequireCurrentPhaseMatch: 1
+    RequiredCurrentPhase: 2
+  - Name: Deny_AttackCombo2_to_AttackCombo1
+    Enabled: 1
+    Priority: 0
+    CurrentActionType: 23
+    RequestedActionType: 22
     Decision: 2
     RequireComboWindowOpen: 0
     RequireHitWindowOpen: 0
