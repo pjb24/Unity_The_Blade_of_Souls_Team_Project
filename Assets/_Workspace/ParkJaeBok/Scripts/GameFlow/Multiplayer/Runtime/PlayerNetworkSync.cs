@@ -85,6 +85,14 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         false,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server); // 서버 확정 액션 실행 여부를 모든 관찰자에게 복제하는 네트워크 변수입니다.
+    private readonly NetworkVariable<int> _replicatedActionStartType = new NetworkVariable<int>(
+        (int)E_ActionType.None,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 서버가 확정한 최신 액션 시작 타입입니다.
+    private readonly NetworkVariable<int> _replicatedActionStartRevision = new NetworkVariable<int>(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // 서버가 확정한 액션 시작 이벤트 revision 값입니다.
     private readonly NetworkVariable<bool> _replicatedFacingRight = new NetworkVariable<bool>(
         true,
         NetworkVariableReadPermission.Everyone,
@@ -117,6 +125,8 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
 
     private bool _isHealthListenerRegistered; // 서버 HealthComponent 리스너 등록 여부를 추적하는 플래그입니다.
     private int _lastAppliedHealthRevision = -1; // 로컬 HealthComponent에 마지막으로 반영한 체력 스냅샷 순번입니다.
+    private int _lastAppliedActionStartRevision = -1; // 로컬 관찰자 인스턴스가 마지막으로 처리한 액션 시작 revision 값입니다.
+    private int _lastPublishedServerAuthoritativeExecutionId = -1; // 서버 권한 액션 시작 이벤트의 중복 발행을 막기 위한 마지막 실행 ID입니다.
 
     private void Awake()
     {
@@ -148,6 +158,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     {
         _replicatedActionType.OnValueChanged += HandleReplicatedActionTypeChanged;
         _replicatedActionRunning.OnValueChanged += HandleReplicatedActionRunningChanged;
+        _replicatedActionStartRevision.OnValueChanged += HandleReplicatedActionStartRevisionChanged;
         _replicatedFacingRight.OnValueChanged += HandleReplicatedFacingDirectionChanged;
         _replicatedHealthRevision.OnValueChanged += HandleReplicatedHealthRevisionChanged;
 
@@ -167,6 +178,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
 
         if (_enableActionStateSync)
         {
+            TryApplyReplicatedActionStartEvent();
             TryApplyReplicatedActionState();
         }
 
@@ -192,6 +204,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     {
         _replicatedActionType.OnValueChanged -= HandleReplicatedActionTypeChanged;
         _replicatedActionRunning.OnValueChanged -= HandleReplicatedActionRunningChanged;
+        _replicatedActionStartRevision.OnValueChanged -= HandleReplicatedActionStartRevisionChanged;
         _replicatedFacingRight.OnValueChanged -= HandleReplicatedFacingDirectionChanged;
         _replicatedHealthRevision.OnValueChanged -= HandleReplicatedHealthRevisionChanged;
 
@@ -354,8 +367,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             }
         }
 
-        _replicatedActionType.Value = actionTypeValue;
-        _replicatedActionRunning.Value = isRunning;
+        PublishReplicatedActionState(actionTypeValue, isRunning, shouldPublishStartEvent: isRunning);
     }
 
     /// <summary>
@@ -405,6 +417,19 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// 복제된 액션 시작 revision 값이 변경되면 최신 시작 이벤트를 즉시 적용합니다.
+    /// </summary>
+    private void HandleReplicatedActionStartRevisionChanged(int previousValue, int currentValue)
+    {
+        if (currentValue == previousValue)
+        {
+            return;
+        }
+
+        TryApplyReplicatedActionStartEvent();
+    }
+
+    /// <summary>
     /// 방향 복제값이 변경되면 최신 확정 방향을 비주얼에 적용합니다.
     /// </summary>
     private void HandleReplicatedFacingDirectionChanged(bool previousValue, bool currentValue)
@@ -444,12 +469,18 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         }
 
         ActionRuntime runtime = _actionController.Runtime; // 현재 원격 인스턴스에서 실행 중인 액션 런타임 스냅샷입니다.
-        if (runtime.IsRunning && runtime.ActionType == resolvedActionType)
+        if (_replicatedActionRunning.Value)
         {
+            if (runtime.IsRunning && runtime.ActionType == resolvedActionType)
+            {
+                return;
+            }
+
+            _actionController.ApplyReplicatedActionStart(resolvedActionType, "PlayerNetworkSync-State");
             return;
         }
 
-        _actionController.RequestAction(resolvedActionType);
+        _actionController.ApplyReplicatedActionStop(E_ActionType.Idle, "PlayerNetworkSync-State");
     }
 
     /// <summary>
@@ -471,13 +502,15 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        if (_replicatedActionRunning.Value && _replicatedActionType.Value == (int)runtime.ActionType)
+        if (_lastPublishedServerAuthoritativeExecutionId == runtime.ExecutionId
+            && _replicatedActionRunning.Value
+            && _replicatedActionType.Value == (int)runtime.ActionType)
         {
             return;
         }
 
-        _replicatedActionType.Value = (int)runtime.ActionType;
-        _replicatedActionRunning.Value = true;
+        _lastPublishedServerAuthoritativeExecutionId = runtime.ExecutionId;
+        PublishReplicatedActionState((int)runtime.ActionType, true, shouldPublishStartEvent: true);
     }
 
     /// <summary>
@@ -691,6 +724,66 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     public void OnMaxHealthChanged(float previousMaxHealth, float currentMaxHealth)
     {
         PublishHealthSnapshot();
+    }
+
+    /// <summary>
+    /// 서버 확정 액션 상태를 네트워크 변수에 반영하고 필요 시 시작 이벤트도 함께 발행합니다.
+    /// </summary>
+    private void PublishReplicatedActionState(int actionTypeValue, bool isRunning, bool shouldPublishStartEvent)
+    {
+        _replicatedActionType.Value = actionTypeValue;
+        _replicatedActionRunning.Value = isRunning;
+
+        if (!shouldPublishStartEvent)
+        {
+            return;
+        }
+
+        E_ActionType startedActionType = (E_ActionType)actionTypeValue; // 시작 이벤트로 전파할 확정 액션 타입입니다.
+        if (!IsReplicatedAction(startedActionType))
+        {
+            return;
+        }
+
+        _replicatedActionStartType.Value = actionTypeValue;
+        _replicatedActionStartRevision.Value++;
+    }
+
+    /// <summary>
+    /// 서버가 확정한 액션 시작 이벤트를 원격 관찰자 ActionController에 적용합니다.
+    /// </summary>
+    private void TryApplyReplicatedActionStartEvent()
+    {
+        if (!_enableActionStateSync)
+        {
+            return;
+        }
+
+        int currentRevision = _replicatedActionStartRevision.Value; // 원격 관찰자가 처리해야 할 최신 시작 revision 값입니다.
+        if (currentRevision <= 0 || _lastAppliedActionStartRevision == currentRevision)
+        {
+            return;
+        }
+
+        _lastAppliedActionStartRevision = currentRevision;
+
+        if (IsOwner)
+        {
+            return;
+        }
+
+        if (!TryResolveActionController())
+        {
+            return;
+        }
+
+        E_ActionType startedActionType = (E_ActionType)_replicatedActionStartType.Value; // 원격에 재생해야 할 시작 액션 타입입니다.
+        if (!IsReplicatedAction(startedActionType))
+        {
+            return;
+        }
+
+        _actionController.ApplyReplicatedActionStart(startedActionType, "PlayerNetworkSync-StartEvent");
     }
 
     private bool IsReplicatedAction(E_ActionType actionType)

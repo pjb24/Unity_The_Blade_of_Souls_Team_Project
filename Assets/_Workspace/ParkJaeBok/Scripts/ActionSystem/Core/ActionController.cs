@@ -155,6 +155,62 @@ public class ActionController : MonoBehaviour
     }
 
     /// <summary>
+    /// 네트워크로 확정된 액션 시작을 로컬 규칙 검사 없이 그대로 반영합니다.
+    /// </summary>
+    public bool ApplyReplicatedActionStart(E_ActionType actionType, string sourceContext)
+    {
+        if (_isDispatchingListenerCallbacks)
+        {
+            Debug.LogWarning($"[ActionController] Replicated action start ignored during listener dispatch. action={actionType}, source={sourceContext}");
+            return false;
+        }
+
+        if (actionType == E_ActionType.None)
+        {
+            Debug.LogWarning($"[ActionController] Replicated action start ignored: invalid action type None. source={sourceContext}");
+            return false;
+        }
+
+        if (_runtime.IsRunning)
+        {
+            CancelCurrentAction($"Replicated override by {actionType} ({sourceContext})");
+        }
+
+        _runtime.Begin(actionType);
+        NotifyActionStarted();
+
+        E_ActionPhase previousPhase = _runtime.SetPhase(E_ActionPhase.Progress);
+        NotifyActionPhaseChanged(previousPhase, E_ActionPhase.Progress);
+
+        TryScheduleAutoComplete(_runtime.ExecutionId, actionType);
+        return true;
+    }
+
+    /// <summary>
+    /// 네트워크로 확정된 액션 종료를 반영하고 필요 시 기본 액션으로 복귀시킵니다.
+    /// </summary>
+    public bool ApplyReplicatedActionStop(E_ActionType fallbackActionType, string sourceContext)
+    {
+        if (_isDispatchingListenerCallbacks)
+        {
+            Debug.LogWarning($"[ActionController] Replicated action stop ignored during listener dispatch. fallback={fallbackActionType}, source={sourceContext}");
+            return false;
+        }
+
+        if (_runtime.IsRunning)
+        {
+            CompleteCurrentAction();
+        }
+
+        if (fallbackActionType == E_ActionType.None)
+        {
+            return true;
+        }
+
+        return RequestAction(fallbackActionType);
+    }
+
+    /// <summary>
     /// 리스너 콜백 전파 중 발생한 액션 요청을 단일 슬롯에 저장합니다.
     /// </summary>
     private void QueueDeferredActionRequest(E_ActionType actionType)
