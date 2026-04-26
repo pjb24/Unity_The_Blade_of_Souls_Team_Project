@@ -37,6 +37,11 @@ public class PlayerBuffNetworkRelay : NetworkBehaviour
     public event Action<float, float> ReplicatedGaugeChanged;
 
     /// <summary>
+    /// NetworkObject spawn 이후 초기 복제 스냅샷을 안전하게 적용할 수 있음을 알리는 이벤트입니다.
+    /// </summary>
+    public event Action NetworkSpawned;
+
+    /// <summary>
     /// 현재 복제된 Buff 활성 상태를 반환합니다.
     /// </summary>
     public bool ReplicatedBuffActive => _replicatedBuffActive.Value;
@@ -61,6 +66,7 @@ public class PlayerBuffNetworkRelay : NetworkBehaviour
     {
         _replicatedBuffActive.OnValueChanged += HandleReplicatedBuffActiveChanged;
         _replicatedGauge.OnValueChanged += HandleReplicatedGaugeChanged;
+        NetworkSpawned?.Invoke();
     }
 
     /// <summary>

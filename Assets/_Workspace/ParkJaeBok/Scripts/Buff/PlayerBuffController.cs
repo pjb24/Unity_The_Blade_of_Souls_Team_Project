@@ -414,11 +414,6 @@ public class PlayerBuffController : MonoBehaviour, IAttackExecutionListener
 
         _runtimeMinBuffStartGauge = _buffConfig != null ? _buffConfig.GetRuntimeMinBuffStartGauge() : 0f;
         _buffGauge.Initialize(maxGauge, initialGauge);
-
-        if (_networkRelay != null && _networkRelay.HasNetworkSession() && !_networkRelay.HasServerAuthority())
-        {
-            ApplyReplicatedState(_networkRelay.ReplicatedBuffActive, _networkRelay.ReplicatedGauge, false, "InitializeGaugeFromRelay");
-        }
     }
 
     /// <summary>
@@ -452,6 +447,9 @@ public class PlayerBuffController : MonoBehaviour, IAttackExecutionListener
 
         if (bind)
         {
+            _networkRelay.NetworkSpawned -= HandleRelayNetworkSpawned;
+            _networkRelay.NetworkSpawned += HandleRelayNetworkSpawned;
+
             _networkRelay.ReplicatedBuffActiveChanged -= HandleReplicatedBuffActiveChanged;
             _networkRelay.ReplicatedBuffActiveChanged += HandleReplicatedBuffActiveChanged;
 
@@ -460,6 +458,7 @@ public class PlayerBuffController : MonoBehaviour, IAttackExecutionListener
             return;
         }
 
+        _networkRelay.NetworkSpawned -= HandleRelayNetworkSpawned;
         _networkRelay.ReplicatedBuffActiveChanged -= HandleReplicatedBuffActiveChanged;
         _networkRelay.ReplicatedGaugeChanged -= HandleReplicatedGaugeChanged;
     }
@@ -566,5 +565,24 @@ public class PlayerBuffController : MonoBehaviour, IAttackExecutionListener
         }
 
         ApplyReplicatedState(_networkRelay != null && _networkRelay.ReplicatedBuffActive, currentValue, false, "ReplicatedGaugeChanged");
+    }
+
+    /// <summary>
+    /// Network spawn 직후 권한 주체별로 초기 Buff 상태를 동기화합니다.
+    /// </summary>
+    private void HandleRelayNetworkSpawned()
+    {
+        if (_networkRelay == null)
+        {
+            return;
+        }
+
+        if (_networkRelay.HasServerAuthority())
+        {
+            PushAuthorityStateToReplication();
+            return;
+        }
+
+        ApplyReplicatedState(_networkRelay.ReplicatedBuffActive, _networkRelay.ReplicatedGauge, false, "RelayNetworkSpawned");
     }
 }
