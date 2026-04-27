@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 642850820691853347}
   - component: {fileID: 8388803539704185126}
   - component: {fileID: 4578962109902812217}
+  - component: {fileID: 5707488873725091993}
   m_Layer: 7
   m_Name: --- PLAYER ---
   m_TagString: Player
@@ -141,7 +142,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   _movementLockDebugView: 
-  MoveStats: {fileID: 11400000, guid: 881394b83eae6c1478996d1a91466316, type: 2}
+  MoveStats: {fileID: 11400000, guid: f7093933f72906044b9c8fef5243d5bb, type: 2}
   _coll: {fileID: 3141237076942185798}
   _visualsTransform: {fileID: 2201137399338360800}
   _respawnPoint: {fileID: 0}
@@ -307,6 +308,8 @@ MonoBehaviour:
   _replicateAllActionTypes: 1
   _additionalReplicatedActions: 1600000017000000
   _warnMissingActionController: 1
+  _serverAuthoritativeActions: 0e000000130000000f000000
+  _applyServerAuthoritativeActionsToOwner: 1
   _enableFacingDirectionSync: 1
   _facingDirectionSendInterval: 0.05
   _warnMissingPlayerMovement: 1
@@ -371,6 +374,7 @@ MonoBehaviour:
   - {fileID: 4187914290405443220}
   _targetAnimators:
   - {fileID: 4942721371539737433}
+  _ownerSortingOrderController: {fileID: 5707488873725091993}
   _lastAppliedVariant: 0
   _autoResolveTargetsOnAwake: 1
 --- !u!114 &642850820691853347
@@ -419,6 +423,29 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _networkObject: {fileID: 5892350524157319419}
   _targetController: {fileID: 881706988583029653}
+--- !u!114 &5707488873725091993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6058810458548238607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3da7454d7a51846b657e53f7d7ffd3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerOwnerSortingOrderController
+  _targetSpriteRenderers:
+  - {fileID: 4187914290405443220}
+  _autoCollectRenderers: 1
+  _ownerOrderOffset: 10
+  _nonOwnerOrderOffset: 0
+  _cacheOnAwake: 1
+  _applyOnStart: 1
+  _warnWhenRendererMissing: 1
+  _verboseLogging: 0
+  _lastAppliedAsOwner: 0
+  _lastAppliedOffset: 0
 --- !u!1001 &482668432451794149
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -857,9 +884,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5892350524157319419}
     - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _playerMovement
+      value: 
+      objectReference: {fileID: 1249389477860502122}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: _actionController
       value: 
       objectReference: {fileID: 126503336672774226}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _facingVisualTarget
+      value: 
+      objectReference: {fileID: 2201137399338360800}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _facingSpriteRenderer
+      value: 
+      objectReference: {fileID: 4187914290405443220}
     - target: {fileID: 2904827519901548356, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
