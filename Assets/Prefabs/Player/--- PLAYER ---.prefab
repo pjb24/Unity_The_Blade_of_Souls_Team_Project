@@ -141,7 +141,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
   _movementLockDebugView: 
-  MoveStats: {fileID: 11400000, guid: 881394b83eae6c1478996d1a91466316, type: 2}
+  MoveStats: {fileID: 11400000, guid: f7093933f72906044b9c8fef5243d5bb, type: 2}
   _coll: {fileID: 3141237076942185798}
   _visualsTransform: {fileID: 2201137399338360800}
   _respawnPoint: {fileID: 0}
@@ -307,6 +307,8 @@ MonoBehaviour:
   _replicateAllActionTypes: 1
   _additionalReplicatedActions: 1600000017000000
   _warnMissingActionController: 1
+  _serverAuthoritativeActions: 0e000000130000000f000000
+  _applyServerAuthoritativeActionsToOwner: 1
   _enableFacingDirectionSync: 1
   _facingDirectionSendInterval: 0.05
   _warnMissingPlayerMovement: 1
