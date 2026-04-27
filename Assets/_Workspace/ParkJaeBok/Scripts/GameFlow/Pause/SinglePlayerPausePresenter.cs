@@ -109,6 +109,11 @@ public class SinglePlayerPausePresenter : MonoBehaviour
             return;
         }
 
+        if (StageSelectionUIController.TryCloseAnyOpenFromPauseInput())
+        {
+            return;
+        }
+
         if (_pauseFlowCoordinator == null)
         {
             _pauseFlowCoordinator = new PauseFlowCoordinator(_gameFlowController, _pauseService, _multiplayerSessionOrchestrator);
