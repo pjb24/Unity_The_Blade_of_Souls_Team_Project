@@ -8,6 +8,12 @@ using UnityEngine;
 public class AttackExecutor : MonoBehaviour
 {
     [Header("Dependencies")]
+    [Tooltip("플레이어의 좌우 바라보는 방향을 공격 판정 오프셋에 반영하기 위한 PlayerMovement 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
+    [SerializeField] private PlayerMovement _playerMovement; // 플레이어 공격 판정 오프셋을 바라보는 방향 기준으로 변환하기 위한 방향 상태 참조입니다.
+    [Tooltip("PlayerMovement가 없을 때 방향을 추정할 시각 루트 Transform입니다. X 스케일이 음수이면 왼쪽으로 해석합니다.")]
+    [SerializeField] private Transform _facingVisualTarget; // PlayerMovement를 찾지 못한 경우 사용할 시각 루트 방향 폴백 참조입니다.
+    [Tooltip("PlayerMovement/시각 루트가 없을 때 SpriteRenderer.flipX로 방향을 추정하기 위한 참조입니다. flipX가 true이면 왼쪽으로 해석합니다.")]
+    [SerializeField] private SpriteRenderer _facingSpriteRenderer; // 마지막 방향 폴백으로 사용할 SpriteRenderer 참조입니다.
     [SerializeField] private ActionController _actionController; // 현재 액터의 액션 상태/윈도우를 조회할 ActionController 참조입니다.
     [Tooltip("네트워크 실행 권한(서버/소유권) 판정을 위한 NetworkObject 참조입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
     [SerializeField] private NetworkObject _networkObject; // 네트워크 실행 권한(서버/소유권) 판정을 위한 NetworkObject 참조입니다.
@@ -22,6 +28,11 @@ public class AttackExecutor : MonoBehaviour
     [Tooltip("NetworkObject/NetworkManager 누락으로 서버 권한 판정을 확정할 수 없을 때 경고 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _warnWhenNetworkAuthorityUnavailable = true; // NetworkObject/NetworkManager 미구성으로 권한 판정을 확정할 수 없을 때 경고를 출력할지 여부입니다.
     [SerializeField] private bool _drawGizmos; // 씬 뷰에서 마지막 판정 영역을 Gizmos로 시각화할지 여부입니다.
+
+    [Tooltip("PlayerMovement를 찾지 못해 보조 방향 소스를 사용할 때 경고 로그를 출력할지 여부입니다.")]
+    [SerializeField] private bool _warnWhenFacingDirectionFallbackUsed = true; // PlayerMovement 방향값 대신 폴백 방향값을 사용할 때 경고를 출력할지 여부입니다.
+    [Tooltip("씬 선택 상태에서 ActionMap에 등록된 모든 AttackSpec 범위를 현재 바라보는 방향 기준으로 미리 그릴지 여부입니다.")]
+    [SerializeField] private bool _drawConfiguredAttackSpecGizmos = true; // 씬 디버그용으로 등록된 공격 스펙 범위를 방향 보정 후 표시할지 여부입니다.
 
     [Header("Player SFX")]
     [Tooltip("플레이어 공격 HitWindow가 열릴 때 공격 SFX를 재생할지 여부입니다.")]
@@ -52,8 +63,12 @@ public class AttackExecutor : MonoBehaviour
     private Vector2 _lastGizmoBoxSize = Vector2.one; // 마지막 박스 크기(Gizmos 표시용)입니다.
     private float _lastGizmoRadius = 0.5f; // 마지막 원형 반경(Gizmos 표시용)입니다.
     private E_AttackAreaType _lastGizmoAreaType = E_AttackAreaType.Circle; // 마지막 판정 도형 타입(Gizmos 표시용)입니다.
+    private bool _hasLastGizmoSnapshot; // 런타임에서 실제로 수행된 마지막 판정 스냅샷이 있는지 여부입니다.
     private int _lastAttackSfxExecutionId = -1; // 마지막으로 공격 SFX를 재생한 액션 실행 ID입니다.
     private float _nextPlayerAttackSfxPlayableTime; // 다음 플레이어 공격 SFX 재생이 가능한 시간입니다.
+    private bool _didWarnFacingVisualFallback; // 시각 루트 방향 폴백 경고가 이미 출력되었는지 추적합니다.
+    private bool _didWarnFacingSpriteFallback; // SpriteRenderer 방향 폴백 경고가 이미 출력되었는지 추적합니다.
+    private bool _didWarnFacingDefaultFallback; // 기본 오른쪽 방향 폴백 경고가 이미 출력되었는지 추적합니다.
 
     /// <summary>
     /// 의존성 보정과 액션-공격 매핑 초기화를 수행합니다.
@@ -61,7 +76,9 @@ public class AttackExecutor : MonoBehaviour
     private void Awake()
     {
         TryResolveActionController();
+        TryResolvePlayerMovement();
         TryResolveNetworkObject();
+        TryResolveFacingFallbackReferences();
         RebuildSpecMap();
         RebuildDamageModifierProviderCache();
     }
@@ -451,11 +468,13 @@ public class AttackExecutor : MonoBehaviour
     /// </summary>
     private void CollectTargets(AttackSpec attackSpec, List<HitReceiver> targets)
     {
-        Vector3 center = transform.TransformPoint(attackSpec.LocalOffset);
+        Vector2 adjustedLocalOffset = GetFacingAdjustedOffset(attackSpec.LocalOffset);
+        Vector3 center = transform.TransformPoint(adjustedLocalOffset);
         _lastGizmoCenter = center;
         _lastGizmoAreaType = attackSpec.AreaType;
         _lastGizmoRadius = attackSpec.GetSafeRadius();
         _lastGizmoBoxSize = attackSpec.GetSafeBoxSize();
+        _hasLastGizmoSnapshot = true;
 
         Collider2D[] colliders;
         if (attackSpec.AreaType == E_AttackAreaType.Box)
@@ -538,7 +557,82 @@ public class AttackExecutor : MonoBehaviour
     }
 
     /// <summary>
-    /// 공격 스펙/실행 정보/타겟 정보를 조합해 HitRequest를 생성합니다.
+    /// 공격 데이터의 X 오프셋을 캐릭터가 바라보는 방향 기준으로 변환합니다.
+    /// </summary>
+    private Vector2 GetFacingAdjustedOffset(Vector2 rawOffset)
+    {
+        float facingDirection = ResolveFacingDirectionSign();
+        return new Vector2(rawOffset.x * facingDirection, rawOffset.y);
+    }
+
+    /// <summary>
+    /// PlayerMovement를 우선 사용하고, 없을 때만 시각 루트 또는 SpriteRenderer로 좌우 방향을 추정합니다.
+    /// </summary>
+    private float ResolveFacingDirectionSign()
+    {
+        if (TryResolvePlayerMovement())
+        {
+            return _playerMovement.IsFacingRight ? 1f : -1f;
+        }
+
+        TryResolveFacingFallbackReferences();
+
+        if (_facingVisualTarget != null)
+        {
+            WarnFacingFallbackOnce(ref _didWarnFacingVisualFallback, "Visual Target localScale.x");
+            return _facingVisualTarget.localScale.x >= 0f ? 1f : -1f;
+        }
+
+        if (_facingSpriteRenderer != null)
+        {
+            WarnFacingFallbackOnce(ref _didWarnFacingSpriteFallback, "SpriteRenderer.flipX");
+            return _facingSpriteRenderer.flipX ? -1f : 1f;
+        }
+
+        WarnFacingFallbackOnce(ref _didWarnFacingDefaultFallback, "default right direction");
+        return 1f;
+    }
+
+    /// <summary>
+    /// PlayerMovement 참조가 비어 있을 때 같은 오브젝트에서 자동으로 보정합니다.
+    /// </summary>
+    private bool TryResolvePlayerMovement()
+    {
+        if (_playerMovement == null)
+        {
+            _playerMovement = GetComponent<PlayerMovement>();
+        }
+
+        return _playerMovement != null;
+    }
+
+    /// <summary>
+    /// PlayerMovement가 없는 액터의 방향 추정을 위해 기존 시각 컴포넌트를 자동으로 보정합니다.
+    /// </summary>
+    private void TryResolveFacingFallbackReferences()
+    {
+        if (_facingSpriteRenderer == null)
+        {
+            _facingSpriteRenderer = GetComponentInChildren<SpriteRenderer>(true);
+        }
+    }
+
+    /// <summary>
+    /// 방향 폴백이 사용될 때 원인을 한 번만 경고로 남깁니다.
+    /// </summary>
+    private void WarnFacingFallbackOnce(ref bool didWarn, string fallbackSource)
+    {
+        if (!_warnWhenFacingDirectionFallbackUsed || didWarn)
+        {
+            return;
+        }
+
+        didWarn = true;
+        Debug.LogWarning($"[AttackExecutor] PlayerMovement facing direction not found. Attack offset uses fallback source: {fallbackSource}. object={name}", this);
+    }
+
+    /// <summary>
+    /// 공격 스펙, 실행 정보, 대상 정보를 조합해 HitRequest를 생성합니다.
     /// </summary>
     private HitRequest BuildHitRequest(AttackSpec attackSpec, E_ActionType actionType, int executionId, HitReceiver receiver, int hitSerial)
     {
@@ -663,13 +757,59 @@ public class AttackExecutor : MonoBehaviour
             return;
         }
 
-        Gizmos.color = Color.red;
-        if (_lastGizmoAreaType == E_AttackAreaType.Box)
+        DrawConfiguredAttackSpecGizmos();
+        DrawLastAttackSnapshotGizmo();
+    }
+
+    /// <summary>
+    /// ActionMap에 등록된 공격 스펙 범위를 현재 바라보는 방향 기준 offset으로 씬에 미리 표시합니다.
+    /// </summary>
+    private void DrawConfiguredAttackSpecGizmos()
+    {
+        if (!_drawConfiguredAttackSpecGizmos || _actionMaps == null)
         {
-            Gizmos.DrawWireCube(_lastGizmoCenter, _lastGizmoBoxSize);
             return;
         }
 
-        Gizmos.DrawWireSphere(_lastGizmoCenter, _lastGizmoRadius);
+        Gizmos.color = Color.yellow;
+        for (int index = 0; index < _actionMaps.Length; index++)
+        {
+            AttackSpec attackSpec = _actionMaps[index].AttackSpec;
+            if (attackSpec == null)
+            {
+                continue;
+            }
+
+            Vector3 center = transform.TransformPoint(GetFacingAdjustedOffset(attackSpec.LocalOffset));
+            DrawAttackAreaGizmo(center, attackSpec.AreaType, attackSpec.GetSafeBoxSize(), attackSpec.GetSafeRadius());
+        }
+    }
+
+    /// <summary>
+    /// 런타임에서 마지막으로 실제 수행된 공격 판정 범위를 씬에 표시합니다.
+    /// </summary>
+    private void DrawLastAttackSnapshotGizmo()
+    {
+        if (!_hasLastGizmoSnapshot)
+        {
+            return;
+        }
+
+        Gizmos.color = Color.red;
+        DrawAttackAreaGizmo(_lastGizmoCenter, _lastGizmoAreaType, _lastGizmoBoxSize, _lastGizmoRadius);
+    }
+
+    /// <summary>
+    /// 공격 판정 도형 타입에 맞는 Gizmo 와이어 도형을 그립니다.
+    /// </summary>
+    private void DrawAttackAreaGizmo(Vector3 center, E_AttackAreaType areaType, Vector2 boxSize, float radius)
+    {
+        if (areaType == E_AttackAreaType.Box)
+        {
+            Gizmos.DrawWireCube(center, boxSize);
+            return;
+        }
+
+        Gizmos.DrawWireSphere(center, radius);
     }
 }

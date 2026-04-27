@@ -884,9 +884,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 5892350524157319419}
     - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _playerMovement
+      value: 
+      objectReference: {fileID: 1249389477860502122}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: _actionController
       value: 
       objectReference: {fileID: 126503336672774226}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _facingVisualTarget
+      value: 
+      objectReference: {fileID: 2201137399338360800}
+    - target: {fileID: -5962116161829518522, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
+      propertyPath: _facingSpriteRenderer
+      value: 
+      objectReference: {fileID: 4187914290405443220}
     - target: {fileID: 2904827519901548356, guid: 1340789fbf7aef24c84d7cff48e53d93, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -14,7 +14,8 @@ public class AttackSpec : ScriptableObject
 
     [Header("Targeting")]
     [SerializeField] private E_AttackAreaType _areaType = E_AttackAreaType.Circle; // 타겟 탐지에 사용할 판정 도형 타입입니다.
-    [SerializeField] private Vector2 _localOffset = new Vector2(1f, 0f); // 공격자 기준 로컬 판정 오프셋입니다.
+    [Tooltip("공격자 기준 로컬 판정 오프셋입니다. X 양수는 캐릭터가 바라보는 전방, X 음수는 후방이며 Y 값은 좌우 반전에 영향받지 않습니다.")]
+    [SerializeField] private Vector2 _localOffset = new Vector2(1f, 0f); // 공격자 바라보는 방향 기준 로컬 판정 오프셋입니다.
     [SerializeField] private float _radius = 1.5f; // Circle 판정 반경 값입니다.
     [SerializeField] private Vector2 _boxSize = new Vector2(2.5f, 1.2f); // Box 판정 크기 값입니다.
     [SerializeField] private LayerMask _targetLayerMask = ~0; // 타겟 탐지 레이어 마스크입니다.
