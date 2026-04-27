@@ -21,6 +21,9 @@ public class PlayerVisualPresenter : NetworkBehaviour
     [Tooltip("외형 Animator Controller를 적용할 Animator 목록입니다. 비어 있으면 자동 탐색합니다.")]
     [SerializeField] private Animator[] _targetAnimators; // 외형 타입에 맞는 Animator Controller를 반영할 대상 Animator 배열입니다.
 
+    [Tooltip("로컬 Owner 기준 SpriteRenderer 정렬 순서를 보정하는 컨트롤러입니다. 비어 있으면 같은 오브젝트에서 찾고, 없으면 런타임에 추가합니다.")]
+    [SerializeField] private PlayerOwnerSortingOrderController _ownerSortingOrderController; // Owner 캐릭터가 로컬 화면에서 위에 보이도록 sortingOrder를 보정하는 컨트롤러입니다.
+
     [Header("Debug")]
     [Tooltip("디버그용: 마지막으로 적용된 외형 타입입니다.")]
     [SerializeField] private E_PlayerVisualVariant _lastAppliedVariant = E_PlayerVisualVariant.Y; // 마지막 외형 적용 결과를 Inspector에서 확인하기 위한 디버그 값입니다.
@@ -38,6 +41,8 @@ public class PlayerVisualPresenter : NetworkBehaviour
             _ruleResolver = GetComponent<PlayerVisualRuleResolver>();
         }
 
+        ResolveOwnerSortingOrderControllerIfNeeded();
+
         if (!_autoResolveTargetsOnAwake)
         {
             return;
@@ -52,6 +57,7 @@ public class PlayerVisualPresenter : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         ApplyResolvedVisual();
+        ApplyOwnerSortingOrder();
     }
 
     /// <summary>
@@ -60,6 +66,7 @@ public class PlayerVisualPresenter : NetworkBehaviour
     public void RefreshVisual()
     {
         ApplyResolvedVisual();
+        ApplyOwnerSortingOrder();
     }
 
     /// <summary>
@@ -101,6 +108,37 @@ public class PlayerVisualPresenter : NetworkBehaviour
         {
             _targetAnimators = GetComponentsInChildren<Animator>(true);
         }
+    }
+
+    /// <summary>
+    /// Owner 정렬 보정 컨트롤러 참조를 보정하고 없으면 런타임에 추가합니다.
+    /// </summary>
+    private void ResolveOwnerSortingOrderControllerIfNeeded()
+    {
+        if (_ownerSortingOrderController != null)
+        {
+            return;
+        }
+
+        _ownerSortingOrderController = GetComponent<PlayerOwnerSortingOrderController>();
+        if (_ownerSortingOrderController == null)
+        {
+            _ownerSortingOrderController = PlayerOwnerSortingOrderController.EnsureAttached(gameObject);
+        }
+    }
+
+    /// <summary>
+    /// NetworkObject Owner 정보가 확정된 뒤 로컬 화면 기준 SpriteRenderer 정렬 순서를 적용합니다.
+    /// </summary>
+    private void ApplyOwnerSortingOrder()
+    {
+        ResolveOwnerSortingOrderControllerIfNeeded();
+        if (_ownerSortingOrderController == null)
+        {
+            return;
+        }
+
+        _ownerSortingOrderController.ApplyByOwnership(IsOwner);
     }
 
     /// <summary>
