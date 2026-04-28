@@ -28,10 +28,16 @@ public class OptionsPanelBindingView : MonoBehaviour, IOptionsPanelBindingView
     [Tooltip("Awake 시 바인딩 오류를 발견하면 Warning 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _logValidationWarnings = true; // 런타임 바인딩 검증 실패 시 경고 로그 출력 여부입니다.
 
+    [Header("Runtime Sync")]
+    [Tooltip("OptionManager의 런타임 옵션이 로드되거나 변경될 때 현재 UI 값을 자동으로 동기화할지 여부입니다.")]
+    [SerializeField] private bool _syncViewWhenRuntimeOptionsChanged = true; // 저장 데이터 로드처럼 View 밖에서 발생한 옵션 변경을 UI에 반영할지 결정하는 값입니다.
+
     private readonly List<IOptionRowBinder> _runtimeBinders = new List<IOptionRowBinder>(); // 런타임에 생성된 유효 Row Binder 목록입니다.
     private readonly List<OptionRowBindingEntry> _collectedEntries = new List<OptionRowBindingEntry>(); // 자동 수집 모드에서 사용한 Row 바인딩 임시 목록입니다.
     private OptionsPanelPresenter _presenter; // Row Binder 조합 흐름을 제어하는 Presenter 인스턴스입니다.
     private bool _isApplyingSnapshot; // ApplyOptionsToView 처리 중 재진입을 방지하기 위한 가드 플래그입니다.
+    private bool _isSubscribedToOptionManager; // OptionManager 변경 이벤트 중복 구독을 막기 위한 상태값입니다.
+    private OptionManager _subscribedOptionManager; // 현재 변경 이벤트를 구독 중인 OptionManager 참조입니다.
 
     /// <summary>
     /// 런타임 시작 시 바인딩 유효성 검사와 Presenter 초기화를 수행합니다.
@@ -40,7 +46,42 @@ public class OptionsPanelBindingView : MonoBehaviour, IOptionsPanelBindingView
     {
         ResolveOptionManager();
         RebuildRuntimeBinders();
-        ApplyOptionsToView(BuildSeedData());
+        ApplyOptionsFromCurrentRuntime();
+    }
+
+    /// <summary>
+    /// View가 활성화될 때 런타임 옵션 변경을 구독하고 현재 스냅샷을 UI에 반영합니다.
+    /// </summary>
+    private void OnEnable()
+    {
+        SubscribeOptionManagerChanges();
+        ApplyOptionsFromCurrentRuntime();
+    }
+
+    /// <summary>
+    /// 다른 런타임 싱글톤의 Awake 로드가 끝난 뒤 최신 옵션 스냅샷을 다시 UI에 반영합니다.
+    /// </summary>
+    private void Start()
+    {
+        ResolveOptionManager();
+        SubscribeOptionManagerChanges();
+        ApplyOptionsFromCurrentRuntime();
+    }
+
+    /// <summary>
+    /// View가 비활성화될 때 런타임 옵션 변경 구독을 해제합니다.
+    /// </summary>
+    private void OnDisable()
+    {
+        UnsubscribeOptionManagerChanges();
+    }
+
+    /// <summary>
+    /// View 파괴 시 남아 있는 OptionManager 변경 구독을 정리합니다.
+    /// </summary>
+    private void OnDestroy()
+    {
+        UnsubscribeOptionManagerChanges();
     }
 
     /// <summary>
@@ -159,6 +200,24 @@ public class OptionsPanelBindingView : MonoBehaviour, IOptionsPanelBindingView
     }
 
     /// <summary>
+    /// 외부 Bridge가 해석한 OptionManager를 연결하고 현재 런타임 옵션을 UI에 즉시 반영합니다.
+    /// </summary>
+    public void BindOptionManager(OptionManager optionManager)
+    {
+        if (_optionManager == optionManager)
+        {
+            SubscribeOptionManagerChanges();
+            ApplyOptionsFromCurrentRuntime();
+            return;
+        }
+
+        UnsubscribeOptionManagerChanges();
+        _optionManager = optionManager;
+        SubscribeOptionManagerChanges();
+        ApplyOptionsFromCurrentRuntime();
+    }
+
+    /// <summary>
     /// 직렬화 참조 또는 전역 Instance에서 OptionManager를 해석합니다.
     /// </summary>
     private OptionManager ResolveOptionManager()
@@ -170,6 +229,74 @@ public class OptionsPanelBindingView : MonoBehaviour, IOptionsPanelBindingView
 
         _optionManager = OptionManager.Instance;
         return _optionManager;
+    }
+
+    /// <summary>
+    /// OptionManager의 옵션 변경 이벤트를 중복 없이 구독합니다.
+    /// </summary>
+    private void SubscribeOptionManagerChanges()
+    {
+        if (_syncViewWhenRuntimeOptionsChanged == false || _isSubscribedToOptionManager)
+        {
+            return;
+        }
+
+        OptionManager optionManager = ResolveOptionManager(); // UI 자동 동기화 이벤트를 받을 런타임 옵션 매니저입니다.
+        if (optionManager == null)
+        {
+            return;
+        }
+
+        optionManager.RemoveListener(HandleRuntimeOptionsChanged);
+        optionManager.AddListener(HandleRuntimeOptionsChanged);
+        _subscribedOptionManager = optionManager;
+        _isSubscribedToOptionManager = true;
+    }
+
+    /// <summary>
+    /// OptionManager의 옵션 변경 이벤트 구독을 해제합니다.
+    /// </summary>
+    private void UnsubscribeOptionManagerChanges()
+    {
+        if (_isSubscribedToOptionManager == false)
+        {
+            return;
+        }
+
+        if (_subscribedOptionManager != null)
+        {
+            _subscribedOptionManager.RemoveListener(HandleRuntimeOptionsChanged);
+        }
+
+        _subscribedOptionManager = null;
+        _isSubscribedToOptionManager = false;
+    }
+
+    /// <summary>
+    /// 런타임 옵션이 변경되면 최신 스냅샷을 UI 위젯에 반영합니다.
+    /// </summary>
+    private void HandleRuntimeOptionsChanged(OptionSaveData optionData)
+    {
+        if (_syncViewWhenRuntimeOptionsChanged == false || _isApplyingSnapshot)
+        {
+            return;
+        }
+
+        ApplyOptionsToView(optionData);
+    }
+
+    /// <summary>
+    /// 연결된 OptionManager의 현재 스냅샷을 가져와 UI에 반영합니다.
+    /// </summary>
+    private void ApplyOptionsFromCurrentRuntime()
+    {
+        OptionManager optionManager = ResolveOptionManager(); // 이미 로드된 글로벌 옵션을 보유한 런타임 옵션 매니저입니다.
+        if (optionManager == null)
+        {
+            return;
+        }
+
+        ApplyOptionsToView(optionManager.GetCurrentOptions());
     }
 
     /// <summary>

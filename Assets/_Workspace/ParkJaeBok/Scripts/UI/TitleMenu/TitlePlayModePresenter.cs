@@ -61,6 +61,9 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("기존 Options 패널 루트(레거시 패널 유지 시 사용)입니다.")]
     [SerializeField] private GameObject _legacyOptionsPanelRoot; // 레거시 Options 모달을 열고 닫을 패널 루트 참조입니다.
 
+    [Tooltip("기존 Options 패널을 열기 전에 저장 옵션을 UI에 반영할 브리지 컴포넌트입니다. 비어 있으면 Options 패널 하위에서 자동 탐색합니다.")]
+    [SerializeField] private MonoBehaviour _legacyOptionsBridgeComponent; // 레거시 Options 패널 오픈 전 동기화를 수행할 브리지 컴포넌트 참조입니다.
+
     [Tooltip("모달 패널 표시 시 함께 켤 공통 백드롭입니다.")]
     [SerializeField] private GameObject _modalBackdrop; // 레거시 Load/Options 패널 표시 중 입력 차단을 담당하는 백드롭 참조입니다.
 
@@ -104,6 +107,8 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("디버그용: 슬롯 선택 패널의 현재 처리 모드입니다.")]
     [SerializeField] private E_TitleSlotFlowMode _currentSlotFlowMode = E_TitleSlotFlowMode.None; // 슬롯 선택 패널에서 어떤 흐름을 처리 중인지 추적하는 런타임 상태입니다.
 
+    private ITitleMenuOptionsPanelBridge _legacyOptionsBridge; // 레거시 Options 패널 오픈 전후 동기화를 수행할 브리지 인터페이스 참조입니다.
+
     /// <summary>
     /// Inspector 미할당 시 GameFlowController를 자동으로 해석합니다.
     /// </summary>
@@ -125,6 +130,8 @@ public class TitlePlayModePresenter : MonoBehaviour
         {
             _hostFlowController = GetComponent<TitleMultiplayerHostFlowController>();
         }
+
+        ResolveLegacyOptionsBridge();
     }
 
     /// <summary>
@@ -284,7 +291,9 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     public void OnClickOption()
     {
+        SynchronizeLegacyOptionsPanelBeforeOpen();
         OpenLegacyPanel(_legacyOptionsPanelRoot, _legacyLoadGamePanelRoot);
+        SynchronizeLegacyOptionsPanelAfterOpen();
     }
 
     /// <summary>
@@ -587,6 +596,60 @@ public class TitlePlayModePresenter : MonoBehaviour
         {
             panel.SetActive(isVisible);
         }
+    }
+
+    /// <summary>
+    /// 레거시 Options 패널용 브리지를 직렬화 참조 또는 패널 하위 컴포넌트에서 해석합니다.
+    /// </summary>
+    private ITitleMenuOptionsPanelBridge ResolveLegacyOptionsBridge()
+    {
+        if (_legacyOptionsBridge != null)
+        {
+            return _legacyOptionsBridge;
+        }
+
+        _legacyOptionsBridge = _legacyOptionsBridgeComponent as ITitleMenuOptionsPanelBridge;
+        if (_legacyOptionsBridge != null)
+        {
+            return _legacyOptionsBridge;
+        }
+
+        if (_legacyOptionsPanelRoot == null)
+        {
+            return null;
+        }
+
+        MonoBehaviour[] candidates = _legacyOptionsPanelRoot.GetComponentsInChildren<MonoBehaviour>(true); // 비활성 패널 하위까지 포함한 브리지 후보 목록입니다.
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            MonoBehaviour candidate = candidates[i]; // ITitleMenuOptionsPanelBridge 구현 여부를 확인할 컴포넌트 후보입니다.
+            if (candidate is ITitleMenuOptionsPanelBridge bridge)
+            {
+                _legacyOptionsBridgeComponent = candidate;
+                _legacyOptionsBridge = bridge;
+                return _legacyOptionsBridge;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 레거시 Options 패널을 열기 전에 저장된 런타임 옵션을 UI에 반영합니다.
+    /// </summary>
+    private void SynchronizeLegacyOptionsPanelBeforeOpen()
+    {
+        ITitleMenuOptionsPanelBridge bridge = ResolveLegacyOptionsBridge(); // Options 패널 오픈 전 동기화를 담당할 브리지입니다.
+        bridge?.HandleBeforeOpen(null);
+    }
+
+    /// <summary>
+    /// 레거시 Options 패널을 연 직후 필요한 후처리를 수행합니다.
+    /// </summary>
+    private void SynchronizeLegacyOptionsPanelAfterOpen()
+    {
+        ITitleMenuOptionsPanelBridge bridge = ResolveLegacyOptionsBridge(); // Options 패널 오픈 후 처리를 담당할 브리지입니다.
+        bridge?.HandleAfterOpen(null);
     }
 
     private void ApplySlotBeforePlay(int slotIndex)

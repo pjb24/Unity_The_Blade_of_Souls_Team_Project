@@ -4,6 +4,11 @@
 public interface IOptionsPanelBindingView
 {
     /// <summary>
+    /// 옵션 UI가 사용할 OptionManager를 연결하고 현재 런타임 옵션을 UI에 즉시 반영합니다.
+    /// </summary>
+    void BindOptionManager(OptionManager optionManager);
+
+    /// <summary>
     /// 런타임 옵션 스냅샷을 받아 UI 위젯 상태를 갱신합니다.
     /// </summary>
     void ApplyOptionsToView(OptionSaveData optionData);

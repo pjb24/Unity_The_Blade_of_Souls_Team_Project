@@ -58,6 +58,12 @@ public class TitleMenuOptionsPanelBridge : MonoBehaviour, ITitleMenuOptionsPanel
             return;
         }
 
+        ResolveOptionsView();
+        if (_optionsView != null)
+        {
+            _optionsView.BindOptionManager(optionManager);
+        }
+
         if (_reloadOptionsOnOpen)
         {
             optionManager.LoadCurrentOptions("TitleMenu.Options.Open");
@@ -95,6 +101,7 @@ public class TitleMenuOptionsPanelBridge : MonoBehaviour, ITitleMenuOptionsPanel
             return;
         }
 
+        _optionsView.BindOptionManager(optionManager);
         OptionSaveData snapshot = optionManager.GetCurrentOptions(); // 현재 런타임 옵션 스냅샷입니다.
         _optionsView.ApplyOptionsToView(snapshot);
     }
