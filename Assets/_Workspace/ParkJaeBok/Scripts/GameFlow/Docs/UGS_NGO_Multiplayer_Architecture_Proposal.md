@@ -80,7 +80,7 @@
 
 ## 3. 현재 코드베이스 재사용 포인트
 - `GameFlowController`: 타이틀 모드 분기, 권한 정책 게이트, 종료/폴백 흐름
-- `StageFlow` (`StageSession`, `StageCatalog`, `StageSpawnResolver`): Town→Stage 전환 문맥, 스폰 해석
+- `StageFlow` (`StageSession`, `StageCatalog`) + `PlayerSpawnCoordinator`/`PlayerSpawnPointRegistry`: Town→Stage 전환 문맥, 슬롯 기반 스폰 해석
 - `SaveCoordinator`: 트리거 기반 저장 호출 지점 통합
 - `TownStageSelectorPresenter`: Host 전용 선택 UX 강제 및 차단 이벤트 연결
 

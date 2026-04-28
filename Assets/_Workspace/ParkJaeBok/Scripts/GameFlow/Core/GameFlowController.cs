@@ -493,8 +493,7 @@ public class GameFlowController : MonoBehaviour
             return false;
         }
 
-        string townEntryPointId = ResolveTownEntryPointId();
-        _stageSession.SetNextStage(townStage, townEntryPointId);
+        _stageSession.SetNextStage(townStage);
 
         bool movedToReturnState = _stateMachine.TryTransitionTo(GameFlowState.ReturnToTown, "RequestReturnToTown.State");
         if (!movedToReturnState)
@@ -955,36 +954,6 @@ public class GameFlowController : MonoBehaviour
 
         sceneName = stageDefinition.SceneName;
         return string.IsNullOrWhiteSpace(sceneName) == false;
-    }
-
-    /// <summary>
-    /// 현재 선택된 스테이지의 마을 복귀 포인트를 해석합니다.
-    /// </summary>
-    private string ResolveTownEntryPointId()
-    {
-        const string fallbackTownEntryPointId = "Town_Default";
-
-        if (_stageSession == null || string.IsNullOrWhiteSpace(_stageSession.SelectedStageId))
-        {
-            return fallbackTownEntryPointId;
-        }
-
-        if (_stageCatalog == null)
-        {
-            return fallbackTownEntryPointId;
-        }
-
-        if (!_stageCatalog.TryGetById(_stageSession.SelectedStageId, out StageDefinition currentStage) || currentStage == null)
-        {
-            return fallbackTownEntryPointId;
-        }
-
-        if (string.IsNullOrWhiteSpace(currentStage.TownReturnPointId))
-        {
-            return fallbackTownEntryPointId;
-        }
-
-        return currentStage.TownReturnPointId;
     }
 
     /// <summary>

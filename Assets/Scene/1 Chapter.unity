@@ -29664,52 +29664,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!1 &1228562378
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1228562379}
-  - component: {fileID: 1228562380}
-  m_Layer: 0
-  m_Name: Stage01_Entry_A
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &1228562379
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1228562378}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -28.16, y: 7.98, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1228562380
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1228562378}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: acaa9e31e88bbe442aa809c8090a2cd3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageEntryPoint
-  _entryPointId: Stage01_Entry_A
-  _isFallbackPoint: 1
 --- !u!1 &1228753792
 GameObject:
   m_ObjectHideFlags: 0
@@ -44157,10 +44111,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1838042335}
-  - component: {fileID: 1838042334}
   - component: {fileID: 1838042333}
   m_Layer: 0
-  m_Name: Stage01_SystemRoot
+  m_Name: BGM
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -44184,28 +44137,6 @@ MonoBehaviour:
   _popOnDisable: 1
   _retryInterval: 0.1
   _maxRetryCount: 30
---- !u!114 &1838042334
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1838042332}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3acdffd2ce76ff7419bc2b79360f5906, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageSpawnResolver
-  _checkpointCatalog: {fileID: 0}
-  _explicitPlayerTransform: {fileID: 0}
-  _useSpawnTargetMarker: 1
-  _allowTagFallback: 1
-  _playerTag: Player
-  _useParentTransformWhenTargetRegistryMember: 1
-  _maxResolveRetryCount: 10
-  _resolveRetryInterval: 0.1
-  _lastResolveSucceeded: 0
-  _lastResolveFailureReason: 
 --- !u!4 &1838042335
 Transform:
   m_ObjectHideFlags: 0
@@ -51672,8 +51603,6 @@ SceneRoots:
   - {fileID: 2118981040}
   - {fileID: 1305116980}
   - {fileID: 75227949}
-  - {fileID: 1228562379}
-  - {fileID: 1838042335}
   - {fileID: 1549499006}
   - {fileID: 1285375447}
   - {fileID: 972276312}
@@ -51691,3 +51620,4 @@ SceneRoots:
   - {fileID: 564453431}
   - {fileID: 1448528700}
   - {fileID: 112470733}
+  - {fileID: 1838042335}

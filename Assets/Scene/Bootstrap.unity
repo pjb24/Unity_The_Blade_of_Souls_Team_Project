@@ -598,6 +598,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7566822536936447386, guid: 5b7ec49658020534c814323efcb6a626, type: 3}
+      propertyPath: _gameFlowController
+      value: 
+      objectReference: {fileID: 854791248119616890}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -667,6 +671,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8411604793116231885, guid: 341246ec36877b54386667b093c79f07, type: 3}
+      propertyPath: _gameFlowController
+      value: 
+      objectReference: {fileID: 854791248119616890}
     - target: {fileID: 8411604793116231885, guid: 341246ec36877b54386667b093c79f07, type: 3}
       propertyPath: _onSessionFailed.m_PersistentCalls.m_Calls.Array.size
       value: 0
@@ -778,6 +786,17 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 517370791919577952, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
   m_PrefabInstance: {fileID: 854791248119616886}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &854791248119616890 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
+  m_PrefabInstance: {fileID: 854791248119616886}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 854791248119616889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57e900d018fa3a04cacad621dd8e3be9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameFlowController
 --- !u!114 &854791248119616891 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4599951219679633824, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
@@ -804,7 +823,6 @@ MonoBehaviour:
   _saveFolderName: SaveData
   _globalOptionsFileName: GlobalOptionsSave.json
   _slotFileNameFormat: Slot_{0}_Save.json
-  _saveFileName: save_data.json
   _optionDefaultProfile: {fileID: 11400000, guid: 8bc1541c5b6b62d4fbabf72b2fb7024c, type: 2}
   _defaultPlayData:
     Version: 1
@@ -813,13 +831,7 @@ MonoBehaviour:
       Records: []
     StageSession:
       SelectedStageId: 
-      TargetStageEntryPointId: 
-      TargetTownReturnPointId: 
       RequestedBgmContextType: 0
-      LastCheckpointId: 
-      LastCheckpointSceneName: 
-      LastCheckpointWorldPosition: {x: 0, y: 0, z: 0}
-      UseCheckpointForNextSpawn: 0
     LastPlayedSceneName: 
     LastSavedUnixTimeUtc: 1777364111
     HasProgress: 0

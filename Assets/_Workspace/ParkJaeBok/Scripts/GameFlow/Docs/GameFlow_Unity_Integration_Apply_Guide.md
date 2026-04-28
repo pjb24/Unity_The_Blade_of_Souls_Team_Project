@@ -11,7 +11,7 @@
 - `GameFlow/Services/BootstrapTitleSceneLoader.cs` | Bootstrap 시작 후 Title 씬 자동 진입 트리거 | **Bootstrap Scene / Loader**
 - `SaveSystem/Runtime/SaveCoordinator.cs`, `RecoveryService.cs` | Continue/복구 실패 보고 연동 | **Bootstrap Scene / System**
 - `UI/TitleMenu/TitleMenuPresenter.cs`, `TitleMenuView.cs`, `TitleMenuActionContext.cs`, `Actions/*` | 타이틀 UI 입력을 GameFlow API로 라우팅 | **Title Scene / UI**
-- `StageFlow/TownStageSelectorPresenter.cs`, `StageReturnToTownPresenter.cs`, `StageSpawnResolver.cs` | Town/Stage 구간에서 GameFlow 요청 라우팅 | **Town/Stage Scene**
+- `StageFlow/TownStageSelectorPresenter.cs`, `StageReturnToTownPresenter.cs`, `GameFlow/Multiplayer/Runtime/PlayerSpawnCoordinator.cs`, `PlayerSpawnPointRegistry.cs` | Town/Stage 구간에서 GameFlow 요청 라우팅 및 플레이어 스폰 위치 결정 | **Town/Stage Scene**
 - `GameFlow/Test/GameFlowIntegrationTestRunner.cs` | 통합 시나리오 실행기 | **테스트 전용 Scene/Object**
 
 - 레거시 제거(코드 경로 기준):

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 씬 전환 사이에서 스테이지 선택과 복귀 지점 정보를 유지하는 런타임 세션 저장소입니다.
+/// 씬 전환 사이에서 스테이지 선택과 BGM 요청 정보를 유지하는 런타임 세션 저장소입니다.
 /// </summary>
 public class StageSession : MonoBehaviour
 {
@@ -13,12 +13,6 @@ public class StageSession : MonoBehaviour
     {
         [Tooltip("마지막으로 선택한 스테이지 ID입니다.")]
         public string SelectedStageId; // 마지막으로 선택한 스테이지 ID입니다.
-
-        [Tooltip("다음 씬 진입에 사용할 스테이지 엔트리 포인트 ID입니다.")]
-        public string TargetStageEntryPointId; // 다음 씬 진입에 사용할 스테이지 엔트리 포인트 ID입니다.
-
-        [Tooltip("마을 복귀 때 사용할 엔트리 포인트 ID입니다.")]
-        public string TargetTownReturnPointId; // 마을 복귀 때 사용할 엔트리 포인트 ID입니다.
 
         [Tooltip("다음 씬에 적용할 BGM 컨텍스트 타입입니다.")]
         public E_BgmContextType RequestedBgmContextType; // 다음 씬에 적용할 BGM 컨텍스트 타입입니다.
@@ -32,12 +26,6 @@ public class StageSession : MonoBehaviour
     [Header("Debug (Runtime State)")]
     [Tooltip("디버그용: 플레이어가 마지막으로 선택한 스테이지 ID입니다.")]
     [SerializeField] private string _selectedStageId; // 플레이어가 마지막으로 선택한 스테이지 ID입니다.
-
-    [Tooltip("디버그용: 다음 로드 씬에서 사용할 스테이지 진입 포인트 ID입니다.")]
-    [SerializeField] private string _targetStageEntryPointId; // 다음 로드 씬에서 사용할 스테이지 진입 포인트 ID입니다.
-
-    [Tooltip("디버그용: 마을 복귀 때 사용할 포인트 ID입니다.")]
-    [SerializeField] private string _targetTownReturnPointId; // 마을 복귀 때 사용할 포인트 ID입니다.
 
     [Tooltip("디버그용: 다음 씬에 적용 요청된 BGM 컨텍스트 타입입니다.")]
     [SerializeField] private E_BgmContextType _requestedBgmContextType = E_BgmContextType.None; // 다음 씬에 적용 요청된 BGM 컨텍스트 타입입니다.
@@ -78,16 +66,6 @@ public class StageSession : MonoBehaviour
     public string SelectedStageId => _selectedStageId;
 
     /// <summary>
-    /// 다음 씬에서 사용할 스테이지 진입 포인트 ID를 반환합니다.
-    /// </summary>
-    public string TargetStageEntryPointId => _targetStageEntryPointId;
-
-    /// <summary>
-    /// 마을 복귀 때 사용할 포인트 ID를 반환합니다.
-    /// </summary>
-    public string TargetTownReturnPointId => _targetTownReturnPointId;
-
-    /// <summary>
     /// 다음 씬 진입 때 요청된 BGM 컨텍스트 타입을 반환합니다.
     /// </summary>
     public E_BgmContextType RequestedBgmContextType => _requestedBgmContextType;
@@ -121,9 +99,9 @@ public class StageSession : MonoBehaviour
     }
 
     /// <summary>
-    /// 다음 스테이지 진입 문맥을 저장하면서 필요한 엔트리 포인트를 덮어씁니다.
+    /// 다음 스테이지 진입 문맥을 저장합니다.
     /// </summary>
-    public void SetNextStage(StageDefinition stageDefinition, string entryPointOverrideId)
+    public void SetNextStage(StageDefinition stageDefinition, string _)
     {
         if (stageDefinition == null)
         {
@@ -132,25 +110,14 @@ public class StageSession : MonoBehaviour
         }
 
         _selectedStageId = stageDefinition.StageId;
-        _targetStageEntryPointId = string.IsNullOrWhiteSpace(entryPointOverrideId) ? stageDefinition.StageEntryPointId : entryPointOverrideId;
-        _targetTownReturnPointId = stageDefinition.TownReturnPointId;
         _requestedBgmContextType = stageDefinition.BgmContextType;
     }
 
     /// <summary>
-    /// 마을 복귀 포인트 ID를 갱신합니다.
+    /// 레거시 호출과의 호환을 위해 남겨둔 메서드입니다. 플레이어 위치는 PlayerSpawnCoordinator가 결정합니다.
     /// </summary>
-    public void SetTownReturnPoint(string townReturnPointId)
+    public void SetTownReturnPoint(string _)
     {
-        _targetTownReturnPointId = townReturnPointId;
-    }
-
-    /// <summary>
-    /// 씬 진입에 사용했던 임시 진입 포인트 정보를 초기화합니다.
-    /// </summary>
-    public void ConsumeEntryPoint()
-    {
-        _targetStageEntryPointId = string.Empty;
     }
 
     /// <summary>
@@ -171,8 +138,6 @@ public class StageSession : MonoBehaviour
         return new SnapshotData
         {
             SelectedStageId = _selectedStageId,
-            TargetStageEntryPointId = _targetStageEntryPointId,
-            TargetTownReturnPointId = _targetTownReturnPointId,
             RequestedBgmContextType = _requestedBgmContextType
         };
     }
@@ -183,8 +148,6 @@ public class StageSession : MonoBehaviour
     public void ApplySnapshot(SnapshotData snapshot)
     {
         _selectedStageId = snapshot.SelectedStageId;
-        _targetStageEntryPointId = snapshot.TargetStageEntryPointId;
-        _targetTownReturnPointId = snapshot.TargetTownReturnPointId;
         _requestedBgmContextType = snapshot.RequestedBgmContextType;
     }
 }

@@ -63,13 +63,6 @@ public class StageDefinition : ScriptableObject
     [Tooltip("Town 씬 여부를 나타내는 플래그입니다. StageCatalog의 Town 검색에 사용됩니다.")]
     [SerializeField] private bool _isTownStage = false; // 이 스테이지를 Town Stage로 취급할지 여부입니다.
 
-    [Header("Entry / Return")]
-    [Tooltip("스테이지 씬에서 플레이어를 배치할 진입 포인트 ID입니다.")]
-    [SerializeField] private string _stageEntryPointId = "Default"; // 스테이지 진입 시 StageEntryPoint와 매칭할 ID입니다.
-
-    [Tooltip("마을로 복귀할 때 플레이어를 배치할 포인트 ID입니다.")]
-    [SerializeField] private string _townReturnPointId = "Town_Default"; // 마을 복귀 시 사용할 포인트 ID입니다.
-
     [Tooltip("현재 빌드/운영 상태에서 해당 스테이지 입장을 허용할지 여부입니다.")]
     [SerializeField] private bool _isEntryEnabled = true; // 운영 이슈 대응을 위해 스테이지 입장 허용 여부를 제어하는 플래그입니다.
 
@@ -107,16 +100,6 @@ public class StageDefinition : ScriptableObject
     /// Town 스테이지 여부를 반환합니다.
     /// </summary>
     public bool IsTownStage => _isTownStage;
-
-    /// <summary>
-    /// 스테이지 진입 포인트 ID를 반환합니다.
-    /// </summary>
-    public string StageEntryPointId => _stageEntryPointId;
-
-    /// <summary>
-    /// 마을 복귀 포인트 ID를 반환합니다.
-    /// </summary>
-    public string TownReturnPointId => _townReturnPointId;
 
     /// <summary>
     /// 기본 개방 상태 여부를 반환합니다.

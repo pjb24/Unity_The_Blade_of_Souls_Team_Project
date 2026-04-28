@@ -1,5 +1,7 @@
 # Stage 선택/진입 테스트 씬 구성 가이드 (버튼 UI 샘플 포함)
 
+> 현재 플레이어 스폰 위치 결정은 `PlayerSpawnCoordinator`와 `PlayerSpawnPointRegistry`로 일원화되어 있습니다. 이 문서에 남아 있는 `StageEntryPoint`, `StageSpawnResolver`, `StagePlayerSpawnTarget` 언급은 기존 테스트 씬 직렬화 호환을 위한 레거시 항목입니다.
+
 이 문서는 아래 기능을 **한 번에 검증**할 수 있도록 테스트 씬을 구성하는 상세 절차입니다.
 
 - 마을(Map) UI에서 스테이지 버튼 선택
@@ -34,9 +36,9 @@
 - `StageAvailabilityService`
 - `TownStageSelectorPresenter`
 - `StageReturnToTownPresenter`
-- `StageEntryPoint`
-- `StageSpawnResolver`
-- `StagePlayerSpawnTarget`
+- `PlayerSpawnCoordinator`
+- `PlayerSpawnPointRegistry`
+- `PlayerSpawnPoint`
 
 ### SaveSystem
 - `SaveCoordinator`
@@ -127,11 +129,11 @@
 
 ### A) `Town_SystemRoot`
 - 컴포넌트
-  - `StageSpawnResolver`
+  - `PlayerSpawnCoordinator`
+  - `PlayerSpawnPointRegistry`
 - 권장값
-  - `Use Spawn Target Marker = true`
-  - `Allow Tag Fallback = true`
-  - `Player Tag = Player`
+  - `PlayerSpawnPointRegistry.Auto Collect From Children = true`
+  - `PlayerSpawnCoordinator.Registry = Town_SystemRoot의 PlayerSpawnPointRegistry`
 
 ### B) `Town_Session`
 - 컴포넌트
@@ -166,12 +168,13 @@
   - `Play Ui Click Sfx = true/false`
   - `Verbose Log = true`
 
-### G) `Town_Return_A`
+### G) `Town_PlayerSpawnPoints`
 - 컴포넌트
-  - `StageEntryPoint`
+  - `PlayerSpawnCoordinator`
+  - `PlayerSpawnPointRegistry`
+  - 자식 오브젝트별 `PlayerSpawnPoint`
 - 값
-  - `Entry Point Id = Town_Return_A`
-  - `Is Fallback Point = true`
+  - `Single`, `Host`, `Client` 슬롯별 위치를 씬 안에서 직접 배치
 
 ---
 
@@ -228,19 +231,14 @@
 각 스테이지 씬에 공통으로 아래를 배치합니다.
 
 1. `StageXX_SystemRoot`
-   - `StageSpawnResolver`
-2. `Player`
-   - `StagePlayerSpawnTarget` (`Is Primary = true`, `Priority = 100`)
-   - Tag = `Player`
-3. `StageXX_Entry_A`
-   - `StageEntryPoint`
-   - `Entry Point Id = StageXX_Entry_A`
-   - `Is Fallback Point = true`
+   - `PlayerSpawnCoordinator`
+   - `PlayerSpawnPointRegistry`
+2. `StageXX_Spawn_Single`, `StageXX_Spawn_Host`, `StageXX_Spawn_Client`
+   - 각각 `PlayerSpawnPoint`
+   - `Slot = Single / Host / Client`
 
-4. `StageXX_ReturnPresenter`
+3. `StageXX_ReturnPresenter`
    - `StageReturnToTownPresenter`
-   - `Stage Catalog = SC_StageCatalog_Test`
-   - `Use Current Stage Town Return Point = true`
 
 5. `Btn_ReturnToTown` (UI Button)
    - OnClick -> `StageReturnToTownPresenter.ReturnToTown()`
@@ -322,13 +320,13 @@
 ## 11) 권장 Hierarchy 샘플
 
 ### Town_StageSelect_Test
-- `Town_SystemRoot` (`StageSpawnResolver`)
+- `Town_SystemRoot` (`PlayerSpawnCoordinator`, `PlayerSpawnPointRegistry`)
 - `Town_Session` (`StageSession`)
 - `Town_TransitionService` (`SceneTransitionService`)
 - `Town_StageProgressRuntime` (`StageProgressRuntime`)
 - `Town_SaveRoot` (`SaveCoordinator`, `JsonFileSaveBackend`, `StageSessionSaveParticipant`, `StageProgressSaveParticipant`)
 - `Town_StageSelectPresenter` (`TownStageSelectorPresenter`)
-- `Town_Return_A` (`StageEntryPoint`)
+- `Town_PlayerSpawnPoints` (`PlayerSpawnPoint`)
 - `Canvas_StageSelect`
   - `Panel_StageButtons`
     - `Btn_Stage01`
@@ -337,9 +335,8 @@
     - `Btn_CheckStage02`
 
 ### Stage_Test_01 / Stage_Test_02
-- `StageXX_SystemRoot` (`StageSpawnResolver`)
-- `Player` (`StagePlayerSpawnTarget`)
-- `StageXX_Entry_A` (`StageEntryPoint`)
+- `StageXX_SystemRoot` (`PlayerSpawnCoordinator`, `PlayerSpawnPointRegistry`)
+- `StageXX_PlayerSpawnPoints` (`PlayerSpawnPoint`)
 - `StageXX_ReturnPresenter` (`StageReturnToTownPresenter`)
 - `Canvas`
   - `Btn_ReturnToTown`
