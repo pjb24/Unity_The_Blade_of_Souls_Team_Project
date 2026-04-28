@@ -936,12 +936,6 @@ public class GameFlowController : MonoBehaviour
             return false;
         }
 
-        if (_stageSession.UseCheckpointForNextSpawn && string.IsNullOrWhiteSpace(_stageSession.LastCheckpointSceneName) == false)
-        {
-            sceneName = _stageSession.LastCheckpointSceneName;
-            return true;
-        }
-
         if (string.IsNullOrWhiteSpace(_stageSession.SelectedStageId))
         {
             return false;

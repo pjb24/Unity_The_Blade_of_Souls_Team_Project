@@ -44,7 +44,7 @@ public class SlotPlaySaveData
     public StageProgressRuntime.SnapshotData StageProgress; // 슬롯별 스테이지 진행 상태입니다.
 
     [Tooltip("이 슬롯에 저장된 스테이지 세션과 이어하기 정보입니다.")]
-    public StageSession.SnapshotData StageSession; // 슬롯별 현재 스테이지, 체크포인트, 복귀 지점 정보입니다.
+    public StageSession.SnapshotData StageSession; // 슬롯별 현재 스테이지와 복귀 지점 정보입니다.
 
     [Tooltip("이어하기에 사용할 마지막 플레이 씬 이름입니다.")]
     public string LastPlayedSceneName; // 이어하기 대상 씬을 결정할 때 사용하는 마지막 플레이 씬 이름입니다.

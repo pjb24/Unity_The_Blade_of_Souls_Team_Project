@@ -834,11 +834,6 @@ public class SaveDataStore : MonoBehaviour
             return true;
         }
 
-        if (!string.IsNullOrWhiteSpace(_runtimeData.StageSession.LastCheckpointId))
-        {
-            return true;
-        }
-
         return false;
     }
 
