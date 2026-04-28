@@ -42,5 +42,29 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: BackGround
+    uniqueID: 1490782237
+    locked: 0
+  - name: Player
+    uniqueID: 2178487057
+    locked: 0
+  - name: Boss
+    uniqueID: 1595461513
+    locked: 0
+  - name: Altar
+    uniqueID: 2411164379
+    locked: 0
+  - name: Object
+    uniqueID: 382832513
+    locked: 0
+  - name: Pillar_Top
+    uniqueID: 1396044803
+    locked: 0
+  - name: Pillar
+    uniqueID: 618617319
+    locked: 0
+  - name: Broken_Pillar
+    uniqueID: 2373667899
+    locked: 0
   m_RenderingLayers:
   - Default
