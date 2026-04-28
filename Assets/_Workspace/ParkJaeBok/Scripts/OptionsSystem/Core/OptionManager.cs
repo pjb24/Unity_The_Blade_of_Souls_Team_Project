@@ -149,23 +149,38 @@ public class OptionManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 세이브 시스템이 제거되어 옵션 저장 요청을 수행하지 않습니다.
+    /// 런타임 옵션을 저장 시스템으로 저장합니다.
     /// </summary>
     public bool SaveCurrentOptions(string triggerContext = "OptionManager.ManualSave")
     {
-        _lastSaveSucceeded = false;
-        _lastSaveFailureReason = "Save system removed";
-        Debug.LogWarning($"[OptionManager] Save system has been removed. Option save is skipped. context={triggerContext}", this);
-        return false;
+        SaveDataStore saveDataStore = SaveDataStore.Instance; // 옵션 저장 요청을 위임할 단일 저장소입니다.
+        if (saveDataStore == null)
+        {
+            _lastSaveSucceeded = false;
+            _lastSaveFailureReason = "SaveDataStore missing";
+            Debug.LogWarning($"[OptionManager] SaveDataStore를 찾을 수 없어 옵션 저장을 수행하지 못했습니다. context={triggerContext}", this);
+            return false;
+        }
+
+        saveDataStore.CaptureFromRuntime(triggerContext);
+        _lastSaveSucceeded = saveDataStore.Save(triggerContext);
+        _lastSaveFailureReason = _lastSaveSucceeded ? string.Empty : "SaveDataStore.Save failed";
+        return _lastSaveSucceeded;
     }
 
     /// <summary>
-    /// 세이브 시스템이 제거되어 옵션 로드 요청을 수행하지 않습니다.
+    /// 옵션 로드를 트리거합니다.
     /// </summary>
     public bool LoadCurrentOptions(string triggerContext = "OptionManager.ManualLoad")
     {
-        Debug.LogWarning($"[OptionManager] Save system has been removed. Option load is skipped. context={triggerContext}", this);
-        return false;
+        SaveDataStore saveDataStore = SaveDataStore.Instance; // 옵션 로드 요청을 위임할 단일 저장소입니다.
+        if (saveDataStore == null)
+        {
+            Debug.LogWarning($"[OptionManager] SaveDataStore를 찾을 수 없어 옵션 로드를 수행하지 못했습니다. context={triggerContext}", this);
+            return false;
+        }
+
+        return saveDataStore.Load(triggerContext);
     }
 
     public OptionNumericSetting GetGammaBrightnessMetadata() => _defaultProfile.GammaBrightnessSetting;

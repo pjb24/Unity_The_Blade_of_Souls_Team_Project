@@ -287,7 +287,15 @@ public class GameFlowController : MonoBehaviour
         int safeSlotIndex = Mathf.Max(1, slotIndex); // 슬롯 기반 시작에 사용할 보정 슬롯 번호입니다.
         if (clearSlotIfUsed)
         {
-            LogWarning($"Save system has been removed. Slot clear request is ignored. slot={safeSlotIndex}");
+            SaveDataStore saveDataStore = ResolveSaveDataStore(); // 새 게임 시작 전 기존 저장 파일 초기화에 사용할 저장소입니다.
+            if (saveDataStore != null)
+            {
+                saveDataStore.ResetSaveData(true, $"NewGame.ClearSlot.{safeSlotIndex}");
+            }
+            else
+            {
+                LogWarning($"SaveDataStore를 찾을 수 없어 슬롯 초기화를 건너뜁니다. slot={safeSlotIndex}");
+            }
         }
 
         return RequestStartSinglePlayer();
@@ -298,8 +306,7 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestStartLoadGameInSlot(int slotIndex)
     {
-        LogWarning($"Save system has been removed. Load Game is unavailable. slot={Mathf.Max(1, slotIndex)}");
-        return false;
+        return RequestContinue();
     }
 
     /// <summary>
@@ -307,8 +314,7 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestContinueFromLastUsedSlot()
     {
-        LogWarning("Save system has been removed. Continue from last used slot is unavailable.");
-        return false;
+        return RequestContinue();
     }
 
     /// <summary>
@@ -378,8 +384,31 @@ public class GameFlowController : MonoBehaviour
     {
         _stateMachine?.DispatchEvent(new GameFlowEvent(GameFlowEventType.ContinueRequested, "RequestContinue"));
 
-        LogWarning("Save system has been removed. Continue is unavailable.");
-        return false;
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // Continue 로드 요청을 처리할 단일 저장소입니다.
+        if (saveDataStore == null)
+        {
+            LogWarning("SaveDataStore를 찾을 수 없어 Continue를 수행할 수 없습니다.");
+            return false;
+        }
+
+        if (!saveDataStore.Load("GameFlow.Continue"))
+        {
+            LogWarning("저장 데이터 로드에 실패하여 Continue를 수행할 수 없습니다.");
+            return false;
+        }
+
+        if (!TryResolveContinueSceneName(out string sceneName))
+        {
+            sceneName = saveDataStore.RuntimeData.LastPlayedSceneName;
+        }
+
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            LogWarning("Continue에 사용할 씬 이름이 없어 로드를 중단합니다.");
+            return false;
+        }
+
+        return TryStartSceneLoad(sceneName, _defaultNewGameLoadedState, "RequestContinue");
     }
 
     /// <summary>
@@ -872,7 +901,21 @@ public class GameFlowController : MonoBehaviour
     }
 
     /// <summary>
-    /// Continue 요청에서 마지막 진입 씬을 해석합니다.
+    /// 저장/로드 요청을 처리할 SaveDataStore 인스턴스를 해석합니다.
+    /// </summary>
+    private SaveDataStore ResolveSaveDataStore()
+    {
+        SaveDataStore saveDataStore = SaveDataStore.Instance; // 현재 부트스트랩에 배치된 단일 저장소입니다.
+        if (saveDataStore == null)
+        {
+            LogWarning("SaveDataStore Instance가 없어 저장/로드 요청을 처리할 수 없습니다.");
+        }
+
+        return saveDataStore;
+    }
+
+    /// <summary>
+    /// Continue 요청에서 마지막 진입 씬 이름을 해석합니다.
     /// </summary>
     private bool TryResolveContinueSceneName(out string sceneName)
     {
@@ -974,7 +1017,17 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     private void TrySaveBeforeExit()
     {
-        LogWarning("Save system has been removed. Exit save is skipped.");
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 종료 또는 타이틀 복귀 직전 저장을 처리할 단일 저장소입니다.
+        if (saveDataStore == null)
+        {
+            LogWarning("SaveDataStore를 찾을 수 없어 종료 전 저장을 건너뜁니다.");
+            return;
+        }
+
+        if (!saveDataStore.Save("GameFlow.Exit"))
+        {
+            NotifySaveFailed("GameFlow.Exit");
+        }
     }
 
     /// <summary>

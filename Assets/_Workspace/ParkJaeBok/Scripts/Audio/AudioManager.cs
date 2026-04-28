@@ -742,21 +742,50 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 저장 시스템 제거 후 Inspector 기본 볼륨값만 검증합니다.
+    /// 저장 시스템에서 볼륨을 불러오고 범위를 검증한다.
     /// </summary>
     private void LoadVolumes()
     {
+        OptionManager optionManager = OptionManager.Instance; // 저장된 오디오 옵션을 제공하는 런타임 매니저입니다.
+        if (optionManager != null)
+        {
+            OptionSaveData optionData = optionManager.GetCurrentOptions();
+            _masterVolume = optionData.Audio.MasterVolume;
+            _bgmVolume = optionData.Audio.BgmVolume;
+            _sfxVolume = optionData.Audio.SfxVolume;
+        }
+        else
+        {
+            Debug.LogWarning("[AudioManager] OptionManager를 찾을 수 없어 Inspector 볼륨 기본값으로 폴백합니다.", this);
+        }
+
         _masterVolume = ClampVolume(_masterVolume, nameof(_masterVolume));
         _bgmVolume = ClampVolume(_bgmVolume, nameof(_bgmVolume));
         _sfxVolume = ClampVolume(_sfxVolume, nameof(_sfxVolume));
     }
 
     /// <summary>
-    /// 저장 시스템 제거 후 볼륨 저장 요청을 수행하지 않습니다.
+    /// 현재 볼륨 값을 저장 시스템에 저장한다.
     /// </summary>
     private void SaveVolumes()
     {
-        Debug.LogWarning("[AudioManager] Save system has been removed. Runtime volume changes are not persisted.", this);
+        OptionManager optionManager = OptionManager.Instance; // 오디오 볼륨을 옵션 런타임에 반영할 매니저입니다.
+        if (optionManager == null)
+        {
+            Debug.LogWarning("[AudioManager] OptionManager를 찾을 수 없어 런타임 볼륨 변경을 저장 데이터에 반영하지 못했습니다.", this);
+            return;
+        }
+
+        OptionSaveData optionData = optionManager.GetCurrentOptions(); // 현재 옵션 스냅샷입니다.
+        optionData.Audio = new AudioOptionsData
+        {
+            MasterVolume = _masterVolume,
+            BgmVolume = _bgmVolume,
+            SfxVolume = _sfxVolume
+        };
+
+        optionManager.SetAllOptions(optionData);
+        optionManager.SaveCurrentOptions("AudioManager.VolumeChanged");
     }
 
     /// <summary>

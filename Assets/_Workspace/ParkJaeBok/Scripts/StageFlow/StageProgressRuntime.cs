@@ -94,7 +94,7 @@ public class StageProgressRuntime : MonoBehaviour
     /// <summary>
     /// 진행도 변경 시 호출되는 이벤트입니다.
     /// </summary>
-    public event Action<string> OnStageProgressChanged;
+    private Action<string> _stageProgressChangedListeners; // StageProgress 변경 알림 리스너 체인입니다.
 
     /// <summary>
     /// 전역 StageProgressRuntime 인스턴스를 반환합니다.
@@ -124,6 +124,22 @@ public class StageProgressRuntime : MonoBehaviour
     {
         runtime = _instance != null ? _instance : FindAnyObjectByType<StageProgressRuntime>();
         return runtime != null;
+    }
+
+    /// <summary>
+    /// StageProgress 변경 알림 리스너를 등록합니다.
+    /// </summary>
+    public void AddListener(Action<string> listener)
+    {
+        _stageProgressChangedListeners += listener;
+    }
+
+    /// <summary>
+    /// StageProgress 변경 알림 리스너를 해제합니다.
+    /// </summary>
+    public void RemoveListener(Action<string> listener)
+    {
+        _stageProgressChangedListeners -= listener;
     }
 
     /// <summary>
@@ -219,7 +235,7 @@ public class StageProgressRuntime : MonoBehaviour
         long unixTimeUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); // 클리어 반영 시각을 기록할 UTC UnixTime 값입니다.
         record.MarkCleared(unixTimeUtc);
 
-        OnStageProgressChanged?.Invoke(stageId);
+        _stageProgressChangedListeners?.Invoke(stageId);
     }
 
     /// <summary>

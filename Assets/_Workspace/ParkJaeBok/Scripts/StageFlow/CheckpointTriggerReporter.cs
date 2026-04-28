@@ -59,7 +59,17 @@ public class CheckpointTriggerReporter : MonoBehaviour
 
         if (_saveRecoveryAfterTrigger)
         {
-            Debug.LogWarning($"[CheckpointTriggerReporter] Save system has been removed. Recovery save request is ignored. context={_saveTriggerContext}", this);
+            SaveDataStore saveDataStore = SaveDataStore.Instance; // 체크포인트 직후 로컬 진행 저장을 처리할 단일 저장소입니다.
+            if (saveDataStore == null)
+            {
+                Debug.LogWarning($"[CheckpointTriggerReporter] SaveDataStore를 찾을 수 없어 체크포인트 저장을 수행하지 못했습니다. context={_saveTriggerContext}", this);
+                return;
+            }
+
+            if (!saveDataStore.Save(_saveTriggerContext))
+            {
+                Debug.LogWarning($"[CheckpointTriggerReporter] 체크포인트 저장 요청이 실패했습니다. context={_saveTriggerContext}", this);
+            }
         }
     }
 
