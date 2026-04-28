@@ -66,5 +66,8 @@ TagManager:
   - name: Broken_Pillar
     uniqueID: 2373667899
     locked: 0
+  - name: Core
+    uniqueID: 2548084689
+    locked: 0
   m_RenderingLayers:
   - Default
