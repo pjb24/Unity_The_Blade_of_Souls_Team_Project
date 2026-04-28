@@ -19,9 +19,6 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("모드 선택 요청을 전달할 GameFlowController 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
     [SerializeField] private GameFlowController _gameFlowController; // 모드 선택 요청을 전달할 게임 흐름 컨트롤러 참조입니다.
 
-    [Tooltip("플레이 시작 전에 활성 슬롯을 지정할 SaveCoordinator 참조입니다. 비어 있으면 SaveCoordinator.Instance를 사용합니다.")]
-    [SerializeField] private SaveCoordinator _saveCoordinator; // 플레이 진입 전에 활성 저장 슬롯을 반영할 SaveCoordinator 참조입니다.
-
     [Tooltip("멀티 세션 생성/참가 흐름을 위임할 MultiplayerSessionOrchestrator 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
     [SerializeField] private MultiplayerSessionOrchestrator _multiplayerSessionOrchestrator; // 멀티 Host/Client 세션 흐름을 처리할 오케스트레이터 참조입니다.
 
@@ -34,7 +31,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Header("Slot Policy")]
     [Tooltip("Play 관련 버튼 클릭 시 공통으로 적용할 기본 슬롯 번호입니다.")]
     [Min(1)]
-    [SerializeField] private int _selectedSlotIndex = 1; // Play 요청 전에 SaveCoordinator에 적용할 현재 선택 슬롯 번호입니다.
+    [SerializeField] private int _selectedSlotIndex = 1; // 저장 시스템 제거 후에도 UI 선택 상태 표시에 사용할 슬롯 번호입니다.
 
     [Tooltip("Continue 클릭 시 마지막 사용 슬롯을 자동으로 선택할지 여부입니다.")]
     [SerializeField] private bool _autoSelectLastUsedSlotForContinue = true; // Continue 요청 전에 마지막 사용 슬롯 자동 선택 정책 플래그입니다.
@@ -101,7 +98,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("디버그용: 마지막 요청 처리 성공 여부입니다.")]
     [SerializeField] private bool _lastRequestSucceeded; // 마지막 요청의 성공/실패 여부를 Inspector에서 확인하기 위한 디버그 값입니다.
 
-    [Tooltip("디버그용: 마지막으로 SaveCoordinator에 반영한 슬롯 번호입니다.")]
+    [Tooltip("디버그용: 마지막으로 선택한 슬롯 번호입니다.")]
     [SerializeField] private int _lastAppliedSlotIndex = 1; // 최근 Play 요청 직전에 활성화한 저장 슬롯 번호입니다.
 
     [Tooltip("디버그용: 슬롯 선택 패널의 현재 처리 모드입니다.")]
@@ -117,11 +114,6 @@ public class TitlePlayModePresenter : MonoBehaviour
             _gameFlowController = GameFlowController.Instance != null
                 ? GameFlowController.Instance
                 : FindAnyObjectByType<GameFlowController>();
-        }
-
-        if (_saveCoordinator == null)
-        {
-            _saveCoordinator = SaveCoordinator.Instance;
         }
 
         if (_multiplayerSessionOrchestrator == null)
@@ -539,9 +531,6 @@ public class TitlePlayModePresenter : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 현재 선택 슬롯을 SaveCoordinator의 활성 슬롯으로 반영합니다.
-    /// </summary>
     private void ApplySelectedSlotBeforePlay()
     {
         ApplySlotBeforePlay(Mathf.Max(1, _selectedSlotIndex));
@@ -600,19 +589,9 @@ public class TitlePlayModePresenter : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 지정 슬롯을 SaveCoordinator 활성 슬롯으로 반영합니다.
-    /// </summary>
     private void ApplySlotBeforePlay(int slotIndex)
     {
-        if (_saveCoordinator == null)
-        {
-            return;
-        }
-
-        int safeSlotIndex = Mathf.Max(1, slotIndex); // SaveCoordinator에 반영할 보정 슬롯 번호입니다.
-        _saveCoordinator.SetActiveSaveSlot(safeSlotIndex, true);
-        _lastAppliedSlotIndex = safeSlotIndex;
+        _lastAppliedSlotIndex = Mathf.Max(1, slotIndex);
     }
 
     /// <summary>
@@ -714,19 +693,6 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     private bool HasAnyProgressData()
     {
-        if (_saveCoordinator == null)
-        {
-            return false;
-        }
-
-        for (int slotIndex = 1; slotIndex <= 3; slotIndex++)
-        {
-            if (_saveCoordinator.TryGetSlotProgressSummary(slotIndex, out SaveSlotProgressSummary summary) && summary.HasUsedData)
-            {
-                return true;
-            }
-        }
-
         return false;
     }
 }

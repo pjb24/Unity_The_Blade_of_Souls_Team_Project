@@ -5,10 +5,6 @@ using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
-    private const string MasterVolumePrefKey = "Audio.MasterVolume";
-    private const string BgmVolumePrefKey = "Audio.BgmVolume";
-    private const string SfxVolumePrefKey = "Audio.SfxVolume";
-
     private static AudioManager _instance; // 전역 접근을 위한 싱글톤 인스턴스
 
     [Header("Database")]
@@ -746,24 +742,21 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// PlayerPrefs에서 볼륨을 불러오고 범위를 검증한다.
+    /// 저장 시스템 제거 후 Inspector 기본 볼륨값만 검증합니다.
     /// </summary>
     private void LoadVolumes()
     {
-        _masterVolume = ClampVolume(PlayerPrefs.GetFloat(MasterVolumePrefKey, _masterVolume), MasterVolumePrefKey);
-        _bgmVolume = ClampVolume(PlayerPrefs.GetFloat(BgmVolumePrefKey, _bgmVolume), BgmVolumePrefKey);
-        _sfxVolume = ClampVolume(PlayerPrefs.GetFloat(SfxVolumePrefKey, _sfxVolume), SfxVolumePrefKey);
+        _masterVolume = ClampVolume(_masterVolume, nameof(_masterVolume));
+        _bgmVolume = ClampVolume(_bgmVolume, nameof(_bgmVolume));
+        _sfxVolume = ClampVolume(_sfxVolume, nameof(_sfxVolume));
     }
 
     /// <summary>
-    /// 현재 볼륨 값을 PlayerPrefs에 저장한다.
+    /// 저장 시스템 제거 후 볼륨 저장 요청을 수행하지 않습니다.
     /// </summary>
     private void SaveVolumes()
     {
-        PlayerPrefs.SetFloat(MasterVolumePrefKey, _masterVolume);
-        PlayerPrefs.SetFloat(BgmVolumePrefKey, _bgmVolume);
-        PlayerPrefs.SetFloat(SfxVolumePrefKey, _sfxVolume);
-        PlayerPrefs.Save();
+        Debug.LogWarning("[AudioManager] Save system has been removed. Runtime volume changes are not persisted.", this);
     }
 
     /// <summary>

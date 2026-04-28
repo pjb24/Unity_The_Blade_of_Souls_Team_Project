@@ -412,7 +412,6 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     {
         return new TitleMenuActionContext(
             _sceneTransitionService,
-            SaveCoordinator.Instance,
             null,
             null,
             null,
