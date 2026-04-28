@@ -163,8 +163,8 @@ public class OptionManager : MonoBehaviour
         }
 
         saveDataStore.CaptureFromRuntime(triggerContext);
-        _lastSaveSucceeded = saveDataStore.Save(triggerContext);
-        _lastSaveFailureReason = _lastSaveSucceeded ? string.Empty : "SaveDataStore.Save failed";
+        _lastSaveSucceeded = saveDataStore.SaveGlobalOptions(triggerContext);
+        _lastSaveFailureReason = _lastSaveSucceeded ? string.Empty : "SaveDataStore.SaveGlobalOptions failed";
         return _lastSaveSucceeded;
     }
 
@@ -180,7 +180,7 @@ public class OptionManager : MonoBehaviour
             return false;
         }
 
-        return saveDataStore.Load(triggerContext);
+        return saveDataStore.LoadGlobalOptions(triggerContext);
     }
 
     public OptionNumericSetting GetGammaBrightnessMetadata() => _defaultProfile.GammaBrightnessSetting;

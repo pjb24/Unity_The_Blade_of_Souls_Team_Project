@@ -284,17 +284,20 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestStartSinglePlayerNewGameInSlot(int slotIndex, bool clearSlotIfUsed)
     {
-        int safeSlotIndex = Mathf.Max(1, slotIndex); // 슬롯 기반 시작에 사용할 보정 슬롯 번호입니다.
+        E_SaveSlot requestedSlot = (E_SaveSlot)slotIndex; // 슬롯 기반 시작에 사용할 요청 슬롯입니다.
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 새 게임 슬롯 선택/초기화에 사용할 저장소입니다.
+        if (saveDataStore == null || !saveDataStore.SetCurrentSlot(requestedSlot))
+        {
+            LogWarning($"유효하지 않은 저장 슬롯이라 새 게임 시작을 중단합니다. slot={slotIndex}");
+            return false;
+        }
+
         if (clearSlotIfUsed)
         {
-            SaveDataStore saveDataStore = ResolveSaveDataStore(); // 새 게임 시작 전 기존 저장 파일 초기화에 사용할 저장소입니다.
-            if (saveDataStore != null)
+            if (!saveDataStore.DeleteSlot(requestedSlot))
             {
-                saveDataStore.ResetSaveData(true, $"NewGame.ClearSlot.{safeSlotIndex}");
-            }
-            else
-            {
-                LogWarning($"SaveDataStore를 찾을 수 없어 슬롯 초기화를 건너뜁니다. slot={safeSlotIndex}");
+                LogWarning($"슬롯 초기화에 실패하여 새 게임 시작을 중단합니다. slot={slotIndex}");
+                return false;
             }
         }
 
@@ -306,6 +309,13 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestStartLoadGameInSlot(int slotIndex)
     {
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // Load Game에서 사용할 슬롯 저장소입니다.
+        if (saveDataStore == null || !saveDataStore.SetCurrentSlot((E_SaveSlot)slotIndex))
+        {
+            LogWarning($"유효하지 않은 저장 슬롯이라 Load Game을 중단합니다. slot={slotIndex}");
+            return false;
+        }
+
         return RequestContinue();
     }
 
@@ -391,7 +401,7 @@ public class GameFlowController : MonoBehaviour
             return false;
         }
 
-        if (!saveDataStore.Load("GameFlow.Continue"))
+        if (!saveDataStore.LoadSlot(saveDataStore.GetCurrentSlot(), "GameFlow.Continue"))
         {
             LogWarning("저장 데이터 로드에 실패하여 Continue를 수행할 수 없습니다.");
             return false;
@@ -1024,7 +1034,7 @@ public class GameFlowController : MonoBehaviour
             return;
         }
 
-        if (!saveDataStore.Save("GameFlow.Exit"))
+        if (!saveDataStore.SaveSlot(saveDataStore.GetCurrentSlot(), "GameFlow.Exit"))
         {
             NotifySaveFailed("GameFlow.Exit");
         }

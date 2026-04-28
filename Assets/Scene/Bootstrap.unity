@@ -802,15 +802,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveDataStore
   _saveFolderName: SaveData
+  _globalOptionsFileName: GlobalOptionsSave.json
+  _slotFileNameFormat: Slot_{0}_Save.json
   _saveFileName: save_data.json
   _optionDefaultProfile: {fileID: 11400000, guid: 8bc1541c5b6b62d4fbabf72b2fb7024c, type: 2}
+  _defaultPlayData:
+    Version: 1
+    SlotIndex: 1
+    StageProgress:
+      Records: []
+    StageSession:
+      SelectedStageId: 
+      TargetStageEntryPointId: 
+      TargetTownReturnPointId: 
+      RequestedBgmContextType: 0
+      LastCheckpointId: 
+      LastCheckpointSceneName: 
+      LastCheckpointWorldPosition: {x: 0, y: 0, z: 0}
+      UseCheckpointForNextSpawn: 0
+    LastPlayedSceneName: 
+    LastSavedUnixTimeUtc: 1777364111
+    HasProgress: 0
+    Currency: 0
+    OwnedItemIds: []
+    UnlockedIds: []
+    PlayTimeSeconds: 0
   _optionManager: {fileID: 8186282541568762150}
   _stageProgressRuntime: {fileID: 854791248119616888}
   _stageSession: {fileID: 854791248119616887}
+  _slotCount: 3
+  _currentSlot: 1
   _dontDestroyOnLoad: 1
   _autoLoadOnAwake: 1
   _autoSaveDirtyData: 1
   _autoSaveDelaySeconds: 30
+  _showSavePathDebug: 0
   _lastOperationSucceeded: 0
   _lastOperationMessage: 
 --- !u!1001 &8186282541568762149

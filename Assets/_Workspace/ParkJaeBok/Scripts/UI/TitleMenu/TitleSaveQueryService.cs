@@ -31,13 +31,8 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     /// </summary>
     public bool HasUsedProgressInSlot(int slotIndex)
     {
-        if (slotIndex != 1)
-        {
-            Debug.LogWarning($"[TitleSaveQueryService] 단일 JSON 저장 파일만 사용하므로 slotIndex=1 외 슬롯은 지원하지 않습니다. slot={slotIndex}", this);
-            return false;
-        }
-
-        return HasLoadableData();
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 슬롯별 진행 데이터 존재 여부를 조회할 저장소입니다.
+        return saveDataStore != null && saveDataStore.HasSlotData((E_SaveSlot)slotIndex);
     }
 
     /// <summary>
@@ -46,7 +41,14 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     public bool TryGetLastUsedSlotIndex(out int slotIndex)
     {
         slotIndex = 1;
-        return HasLoadableData();
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 마지막 사용 슬롯 추정에 사용할 저장소입니다.
+        if (saveDataStore == null)
+        {
+            return false;
+        }
+
+        slotIndex = (int)saveDataStore.GetCurrentSlot();
+        return saveDataStore.HasSlotData(saveDataStore.GetCurrentSlot());
     }
 
     /// <summary>
