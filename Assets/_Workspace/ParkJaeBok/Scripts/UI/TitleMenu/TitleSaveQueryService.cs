@@ -1,51 +1,80 @@
 using UnityEngine;
 
 /// <summary>
-/// 세이브 시스템 제거 상태에서 타이틀 메뉴의 저장 데이터 조회를 일관되게 false로 응답하는 서비스입니다.
+/// Title 메뉴에서 저장 데이터 존재 여부를 조회하는 서비스입니다.
 /// </summary>
 public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
 {
-    [Tooltip("저장 시스템 제거 후 Load/Continue 버튼을 항상 비활성화할지 여부입니다.")]
-    [SerializeField] private bool _disableLoadAndContinue = true; // 저장 기능 제거 정책을 Inspector에서 확인하기 위한 표시용 플래그입니다.
+    [Tooltip("저장 데이터 존재 여부를 조회할 SaveDataStore입니다. 비어 있으면 Instance를 사용합니다.")]
+    [SerializeField] private SaveDataStore _saveDataStore; // Title 메뉴의 Continue/Load 활성화 판단에 사용할 저장소입니다.
 
     /// <summary>
-    /// Continue 가능한 저장 데이터가 없음을 반환합니다.
+    /// Continue 가능한 저장 데이터가 있는지 반환합니다.
     /// </summary>
     public bool HasContinueData()
     {
-        return !_disableLoadAndContinue && false;
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // Continue 데이터 존재 여부를 조회할 저장소입니다.
+        return saveDataStore != null && saveDataStore.HasProgressData();
     }
 
     /// <summary>
-    /// Load Game 가능한 저장 데이터가 없음을 반환합니다.
+    /// Load Game 가능한 저장 데이터가 있는지 반환합니다.
     /// </summary>
     public bool HasLoadableData()
     {
-        return !_disableLoadAndContinue && false;
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // Load Game 데이터 존재 여부를 조회할 저장소입니다.
+        return saveDataStore != null && saveDataStore.HasProgressData();
     }
 
     /// <summary>
-    /// 지정 슬롯에 저장된 진행 데이터가 없음을 반환합니다.
+    /// 지정한 슬롯에 진행 데이터가 있는지 반환합니다.
     /// </summary>
     public bool HasUsedProgressInSlot(int slotIndex)
     {
-        return false;
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 슬롯별 진행 데이터 존재 여부를 조회할 저장소입니다.
+        return saveDataStore != null && saveDataStore.HasSlotData((E_SaveSlot)slotIndex);
     }
 
     /// <summary>
-    /// 저장 시스템이 제거되어 마지막 사용 슬롯을 제공하지 않습니다.
+    /// 마지막으로 사용한 슬롯 번호를 반환합니다.
     /// </summary>
     public bool TryGetLastUsedSlotIndex(out int slotIndex)
     {
         slotIndex = 1;
-        return false;
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 마지막 사용 슬롯 추정에 사용할 저장소입니다.
+        if (saveDataStore == null)
+        {
+            return false;
+        }
+
+        slotIndex = (int)saveDataStore.GetCurrentSlot();
+        return saveDataStore.HasSlotData(saveDataStore.GetCurrentSlot());
     }
 
     /// <summary>
-    /// 저장 시스템이 제거되어 기존 진행 데이터가 없음을 반환합니다.
+    /// 새 게임 덮어쓰기 경고에 사용할 기존 진행 데이터 존재 여부를 반환합니다.
     /// </summary>
     public bool HasExistingProgress()
     {
-        return false;
+        return HasLoadableData();
+    }
+
+    /// <summary>
+    /// 저장 데이터 조회에 사용할 SaveDataStore를 해석합니다.
+    /// </summary>
+    private SaveDataStore ResolveSaveDataStore()
+    {
+        if (_saveDataStore != null)
+        {
+            return _saveDataStore;
+        }
+
+        _saveDataStore = SaveDataStore.Instance;
+        if (_saveDataStore == null)
+        {
+            Debug.LogWarning("[TitleSaveQueryService] SaveDataStore를 찾을 수 없어 저장 데이터 존재 여부를 false로 처리합니다.", this);
+        }
+
+        return _saveDataStore;
     }
 }
