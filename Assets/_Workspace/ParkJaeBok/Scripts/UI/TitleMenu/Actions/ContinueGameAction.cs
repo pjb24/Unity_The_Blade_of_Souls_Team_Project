@@ -24,13 +24,6 @@ public class ContinueGameAction : MonoBehaviour, ITitleMenuAction
             return false;
         }
 
-        SaveCoordinator saveCoordinator = context.SaveCoordinator; // Continue 전에 마지막 사용 슬롯 적용에 사용할 SaveCoordinator 참조입니다.
-        ITitleSaveQueryService saveQueryService = context.SaveQueryService; // 마지막 사용 슬롯 조회에 사용할 타이틀 세이브 쿼리 서비스 참조입니다.
-        if (saveCoordinator != null && saveQueryService != null && saveQueryService.TryGetLastUsedSlotIndex(out int lastUsedSlotIndex))
-        {
-            saveCoordinator.SetActiveSaveSlot(lastUsedSlotIndex, false);
-        }
-
         GameFlowController gameFlowController = context.GameFlowController; // Continue 명령 라우팅에 사용할 GameFlowController 참조입니다.
         if (gameFlowController != null)
         {

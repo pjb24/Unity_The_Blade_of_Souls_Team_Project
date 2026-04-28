@@ -15,9 +15,6 @@ public class GameFlowController : MonoBehaviour
     [Tooltip("씬 전환 요청 실행에 사용할 SceneTransitionService 참조입니다. 비어 있으면 런타임 해석을 시도합니다.")]
     [SerializeField] private SceneTransitionService _sceneTransitionService; // 씬 전환 시작/상태 조회에 사용하는 서비스 참조입니다.
 
-    [Tooltip("저장/복원 호출에 사용할 SaveCoordinator 참조입니다. 비어 있으면 런타임 해석을 시도합니다.")]
-    [SerializeField] private SaveCoordinator _saveCoordinator; // Continue/종료 저장 처리에 사용하는 저장 코디네이터 참조입니다.
-
     [Tooltip("스테이지 세션 문맥을 유지할 StageSession 참조입니다. 비어 있으면 런타임 해석을 시도합니다.")]
     [SerializeField] private StageSession _stageSession; // 스테이지 진입/복귀 문맥을 기록하는 세션 참조입니다.
 
@@ -93,7 +90,6 @@ public class GameFlowController : MonoBehaviour
     private ErrorRecoveryPolicy _runtimeDefaultPolicy; // 정책 에셋 미할당 시 기본값 제공에 사용할 런타임 정책 인스턴스입니다.
     private FlowRetryService _flowRetryService; // 씬 로딩 실패 재시도/추적/소진 처리를 위임할 서비스 참조입니다.
     private FlowFallbackService _flowFallbackService; // 정책 기반 폴백 분기 실행을 위임할 서비스 참조입니다.
-    private readonly FlowSaveSyncAdapter _flowSaveSyncAdapter = new FlowSaveSyncAdapter(); // 저장 실패 동기화 이벤트를 연결할 어댑터 인스턴스입니다.
     private readonly FlowExitGuard _flowExitGuard = new FlowExitGuard(); // 종료 요청 중복 진입을 원자적으로 차단할 가드 인스턴스입니다.
     private GameFlowRuntimeDiagnostics _runtimeDiagnostics; // 운영 가시성 지표를 누적/조회할 런타임 진단 저장소입니다.
     private DateTime _recoveryCircuitOpenUntilUtc; // Recovery 서킷브레이커 오픈 종료 예정 UTC 시각입니다.
@@ -244,7 +240,6 @@ public class GameFlowController : MonoBehaviour
     {
         GameFlowLogger.OnLogEmitted -= HandleGameFlowLogEmitted;
         BindSceneTransitionEvents(false);
-        UnbindSaveCoordinatorEvents();
         _flowRetryService?.StopRetry();
 
         if (Instance == this)
@@ -289,23 +284,10 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestStartSinglePlayerNewGameInSlot(int slotIndex, bool clearSlotIfUsed)
     {
-        if (_saveCoordinator == null)
-        {
-            LogWarning("SaveCoordinator가 없어 슬롯 기반 New Game 시작을 처리할 수 없습니다.");
-            return false;
-        }
-
         int safeSlotIndex = Mathf.Max(1, slotIndex); // 슬롯 기반 시작에 사용할 보정 슬롯 번호입니다.
-        _saveCoordinator.SetActiveSaveSlot(safeSlotIndex, true);
-
-        if (clearSlotIfUsed && _saveCoordinator.HasUsedProgressInSlot(safeSlotIndex))
+        if (clearSlotIfUsed)
         {
-            bool cleared = _saveCoordinator.ClearSlotData(safeSlotIndex, true);
-            if (!cleared)
-            {
-                LogWarning($"슬롯 초기화에 실패해 New Game 시작을 중단합니다. slot={safeSlotIndex}");
-                return false;
-            }
+            LogWarning($"Save system has been removed. Slot clear request is ignored. slot={safeSlotIndex}");
         }
 
         return RequestStartSinglePlayer();
@@ -316,21 +298,8 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestStartLoadGameInSlot(int slotIndex)
     {
-        if (_saveCoordinator == null)
-        {
-            LogWarning("SaveCoordinator가 없어 슬롯 기반 Load Game 시작을 처리할 수 없습니다.");
-            return false;
-        }
-
-        int safeSlotIndex = Mathf.Max(1, slotIndex); // 슬롯 기반 로드에 사용할 보정 슬롯 번호입니다.
-        if (!_saveCoordinator.HasUsedProgressInSlot(safeSlotIndex))
-        {
-            LogWarning($"선택 슬롯에 저장 데이터가 없어 Load Game을 시작할 수 없습니다. slot={safeSlotIndex}");
-            return false;
-        }
-
-        _saveCoordinator.SetActiveSaveSlot(safeSlotIndex, true);
-        return RequestContinue();
+        LogWarning($"Save system has been removed. Load Game is unavailable. slot={Mathf.Max(1, slotIndex)}");
+        return false;
     }
 
     /// <summary>
@@ -338,26 +307,8 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool RequestContinueFromLastUsedSlot()
     {
-        if (_saveCoordinator == null)
-        {
-            LogWarning("SaveCoordinator가 없어 마지막 사용 슬롯 Continue를 처리할 수 없습니다.");
-            return false;
-        }
-
-        if (_saveCoordinator.TryGetLastUsedSlotIndex(out int lastUsedSlotIndex) == false)
-        {
-            LogWarning("마지막 사용 슬롯을 찾지 못해 Continue를 시작할 수 없습니다.");
-            return false;
-        }
-
-        if (!_saveCoordinator.HasUsedProgressInSlot(lastUsedSlotIndex))
-        {
-            LogWarning($"마지막 사용 슬롯에 데이터가 없어 Continue를 시작할 수 없습니다. slot={lastUsedSlotIndex}");
-            return false;
-        }
-
-        _saveCoordinator.SetActiveSaveSlot(lastUsedSlotIndex, true);
-        return RequestContinue();
+        LogWarning("Save system has been removed. Continue from last used slot is unavailable.");
+        return false;
     }
 
     /// <summary>
@@ -427,27 +378,8 @@ public class GameFlowController : MonoBehaviour
     {
         _stateMachine?.DispatchEvent(new GameFlowEvent(GameFlowEventType.ContinueRequested, "RequestContinue"));
 
-        if (_saveCoordinator == null)
-        {
-            LogWarning("SaveCoordinator가 없어 Continue를 수행할 수 없습니다.");
-            return false;
-        }
-
-        bool loadedPersistent = _saveCoordinator.LoadChannel(E_SaveChannelType.Persistent, E_SaveTriggerType.Manual, "GameFlow.Continue.Persistent");
-        bool loadedSession = _saveCoordinator.LoadChannel(E_SaveChannelType.Session, E_SaveTriggerType.Manual, "GameFlow.Continue.Session");
-        if (!loadedPersistent && !loadedSession)
-        {
-            LogWarning(GameFlowWarningCatalog.ContinueSaveNotFound);
-            return false;
-        }
-
-        if (!TryResolveContinueSceneName(out string sceneName))
-        {
-            LogWarning(GameFlowWarningCatalog.ContinueSceneResolveFailed);
-            return false;
-        }
-
-        return TryStartSceneLoad(sceneName, GameFlowState.StagePlaying, "RequestContinue");
+        LogWarning("Save system has been removed. Continue is unavailable.");
+        return false;
     }
 
     /// <summary>
@@ -664,7 +596,6 @@ public class GameFlowController : MonoBehaviour
     {
         _context = new GameFlowContext(
             _sceneTransitionService,
-            _saveCoordinator,
             _stageSession,
             _stageProgressRuntime,
             _stageCatalog);
@@ -672,10 +603,8 @@ public class GameFlowController : MonoBehaviour
         _context.ResolveMissingReferencesIfNeeded();
 
         _sceneTransitionService = _context.SceneTransitionService;
-        _saveCoordinator = _context.SaveCoordinator;
         _stageSession = _context.StageSession;
         _stageProgressRuntime = _context.StageProgressRuntime;
-        BindSaveCoordinatorEvents();
 
         if (_sceneTransitionService == null)
         {
@@ -1045,48 +974,7 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     private void TrySaveBeforeExit()
     {
-        if (_saveCoordinator == null)
-        {
-            LogWarning("SaveCoordinator가 없어 종료 전 저장을 건너뜁니다.");
-            return;
-        }
-
-        bool savedPersistent = _saveCoordinator.SaveChannel(E_SaveChannelType.Persistent, E_SaveTriggerType.Manual, "GameFlow.Exit.Persistent");
-        bool savedSession = _saveCoordinator.SaveChannel(E_SaveChannelType.Session, E_SaveTriggerType.Manual, "GameFlow.Exit.Session");
-
-        if (!savedPersistent || !savedSession)
-        {
-            LogWarning($"종료 전 저장 일부가 실패했습니다. persistent={savedPersistent}, session={savedSession}");
-        }
-    }
-
-    /// <summary>
-    /// SaveCoordinator 저장 결과 이벤트를 구독합니다.
-    /// </summary>
-    private void BindSaveCoordinatorEvents()
-    {
-        _flowSaveSyncAdapter.Bind(_saveCoordinator, HandleSaveOperationCompleted);
-    }
-
-    /// <summary>
-    /// SaveCoordinator 저장 결과 이벤트 구독을 해제합니다.
-    /// </summary>
-    private void UnbindSaveCoordinatorEvents()
-    {
-        _flowSaveSyncAdapter.Unbind();
-    }
-
-    /// <summary>
-    /// SaveCoordinator 저장 결과를 수신해 실패 상태를 동기화합니다.
-    /// </summary>
-    private void HandleSaveOperationCompleted(SaveCoordinator.SaveOperationStatus status)
-    {
-        if (status.Succeeded)
-        {
-            return;
-        }
-
-        NotifySaveFailed($"SaveCoordinatorFailure channel={status.ChannelType}, trigger={status.TriggerType}, context={status.TriggerContext}, reason={status.FailureReason}");
+        LogWarning("Save system has been removed. Exit save is skipped.");
     }
 
     /// <summary>

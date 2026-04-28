@@ -13,9 +13,6 @@ public class TitleMenuPresenter : MonoBehaviour
     [Tooltip("씬 전환 상태 조회에 사용할 SceneTransitionService 참조입니다. 비어 있으면 SceneTransitionService.Instance를 사용합니다.")]
     [SerializeField] private SceneTransitionService _sceneTransitionService; // 씬 전환 중복 입력 가드에 사용할 서비스 참조입니다.
 
-    [Tooltip("저장/로드 실행에 사용할 SaveCoordinator 참조입니다. 비어 있으면 SaveCoordinator.Instance를 사용합니다.")]
-    [SerializeField] private SaveCoordinator _saveCoordinator; // Continue 동작에서 채널 복원에 사용할 서비스 참조입니다.
-
     [Tooltip("상위 게임 흐름 명령을 전달할 GameFlowController 참조입니다. 비어 있으면 GameFlowController.Instance를 사용합니다.")]
     [SerializeField] private GameFlowController _gameFlowController; // 타이틀 액션을 GameFlow 명령 API로 라우팅할 컨트롤러 참조입니다.
 
@@ -231,19 +228,6 @@ public class TitleMenuPresenter : MonoBehaviour
     }
 
     /// <summary>
-    /// 직렬화 참조 또는 싱글톤에서 SaveCoordinator를 해석합니다.
-    /// </summary>
-    private SaveCoordinator ResolveSaveCoordinator()
-    {
-        if (_saveCoordinator != null)
-        {
-            return _saveCoordinator;
-        }
-
-        return SaveCoordinator.Instance;
-    }
-
-    /// <summary>
     /// 직렬화 참조 또는 싱글톤에서 GameFlowController를 해석합니다.
     /// </summary>
     private GameFlowController ResolveGameFlowController()
@@ -263,7 +247,6 @@ public class TitleMenuPresenter : MonoBehaviour
     {
         return new TitleMenuActionContext(
             transitionService,
-            ResolveSaveCoordinator(),
             _saveQueryService,
             _dialogService,
             _stageCatalog,
