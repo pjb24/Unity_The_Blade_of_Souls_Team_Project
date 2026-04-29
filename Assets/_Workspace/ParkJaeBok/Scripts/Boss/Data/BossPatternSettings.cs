@@ -317,6 +317,9 @@ public struct FanProjectilePatternSettings
     [Min(0f)]
     [SerializeField] private float _damage; // Raw damage value for each projectile hit.
 
+    [Tooltip("LayerMask used by spawned projectiles to decide valid collision targets.")]
+    [SerializeField] private LayerMask _projectileCollisionLayerMask; // Collision target layer mask passed to spawned projectiles.
+
     [Tooltip("Status tag included in HitRequest for this pattern.")]
     [SerializeField] private string _statusTag; // Hit status tag used by future damage and reaction routing.
 
@@ -364,6 +367,11 @@ public struct FanProjectilePatternSettings
     /// Gets the raw projectile damage.
     /// </summary>
     public float Damage => _damage;
+
+    /// <summary>
+    /// Gets the projectile collision target layer mask.
+    /// </summary>
+    public LayerMask ProjectileCollisionLayerMask => _projectileCollisionLayerMask;
 
     /// <summary>
     /// Gets the hit status tag.
@@ -418,9 +426,38 @@ public struct GroundSpikePatternSettings
     [Tooltip("Common pattern id that these ground spike settings belong to.")]
     [SerializeField] private string _patternId; // Common pattern id linked to this ground spike setting group.
 
+    [Tooltip("Spike prefab created after the warning duration. This is an asset reference, not a scene reference.")]
+    [SerializeField] private GameObject _spikePrefab; // Spike prefab asset spawned by Pattern 2 after warning presentation.
+
+    [Tooltip("Optional warning VFX prefab shown before the spike hit becomes active.")]
+    [SerializeField] private GameObject _warningVfxPrefab; // Optional warning VFX prefab spawned before spike creation.
+
+    [Tooltip("EffectService id used to play the warning VFX through the existing pooled VFX system.")]
+    [SerializeField] private E_EffectId _warningEffectId; // Existing VFX system id used for pooled warning presentation.
+
+    [Tooltip("Optional attack VFX prefab shown when the spike hit becomes active.")]
+    [SerializeField] private GameObject _attackVfxPrefab; // Optional attack VFX prefab spawned when spike damage timing starts.
+
+    [Tooltip("EffectService id used to play the attack VFX through the existing pooled VFX system.")]
+    [SerializeField] private E_EffectId _attackEffectId; // Existing VFX system id used for pooled attack presentation.
+
+    [Tooltip("Vertical offset added to the target Player position before the downward ground raycast starts.")]
+    [SerializeField] private float _raycastStartYOffset; // Upward offset used to start the ground search above the target Player.
+
+    [Tooltip("Maximum distance used by the downward ground raycast.")]
+    [Min(0f)]
+    [SerializeField] private float _groundRaycastDistance; // Ground search distance used to place the spike on the floor.
+
+    [Tooltip("LayerMask used by the downward ground raycast.")]
+    [SerializeField] private LayerMask _groundLayerMask; // Ground collision layers accepted by Pattern 2 placement raycasts.
+
     [Tooltip("Delay in seconds between warning presentation and damage application.")]
     [Min(0f)]
     [SerializeField] private float _warningSeconds; // Warning duration before future ground spike damage.
+
+    [Tooltip("Duration in seconds while the spawned spike hit collider remains active.")]
+    [Min(0f)]
+    [SerializeField] private float _spikeHitDuration; // Active hit duration before Pattern 2 disables spike collision.
 
     [Tooltip("Number of spike hits generated during this pattern.")]
     [Min(1)]
@@ -433,9 +470,12 @@ public struct GroundSpikePatternSettings
     [Tooltip("Box area size used for each spike hit.")]
     [SerializeField] private Vector2 _boxSize; // Box hit area size for each spike.
 
+    [Tooltip("LayerMask used to find HitReceiver targets hit by the spike.")]
+    [SerializeField] private LayerMask _spikeTargetLayerMask; // Hit target layers used by Pattern 2 authority-side overlap checks.
+
     [Tooltip("Raw damage applied by each spike hit.")]
     [Min(0f)]
-    [SerializeField] private float _damage; // Raw damage value for each ground spike hit.
+    [SerializeField] private float _damage; // Raw SpikeDamage value for each ground spike hit.
 
     [Tooltip("Status tag included in HitRequest for this pattern.")]
     [SerializeField] private string _statusTag; // Hit status tag used by future damage and reaction routing.
@@ -451,9 +491,59 @@ public struct GroundSpikePatternSettings
     public string PatternId => _patternId;
 
     /// <summary>
+    /// Gets the spike prefab asset reference.
+    /// </summary>
+    public GameObject SpikePrefab => _spikePrefab;
+
+    /// <summary>
+    /// Gets the optional warning VFX prefab asset reference.
+    /// </summary>
+    public GameObject WarningVfxPrefab => _warningVfxPrefab;
+
+    /// <summary>
+    /// Gets the pooled warning VFX id.
+    /// </summary>
+    public E_EffectId WarningEffectId => _warningEffectId;
+
+    /// <summary>
+    /// Gets the optional attack VFX prefab asset reference.
+    /// </summary>
+    public GameObject AttackVfxPrefab => _attackVfxPrefab;
+
+    /// <summary>
+    /// Gets the pooled attack VFX id.
+    /// </summary>
+    public E_EffectId AttackEffectId => _attackEffectId;
+
+    /// <summary>
+    /// Gets the vertical offset used before the downward ground raycast starts.
+    /// </summary>
+    public float RaycastStartYOffset => _raycastStartYOffset;
+
+    /// <summary>
+    /// Gets the ground raycast distance.
+    /// </summary>
+    public float GroundRaycastDistance => _groundRaycastDistance;
+
+    /// <summary>
+    /// Gets the ground raycast LayerMask.
+    /// </summary>
+    public LayerMask GroundLayerMask => _groundLayerMask;
+
+    /// <summary>
     /// Gets the warning duration in seconds.
     /// </summary>
     public float WarningSeconds => _warningSeconds;
+
+    /// <summary>
+    /// Gets the warning duration in seconds for Pattern 2 naming compatibility.
+    /// </summary>
+    public float SpikeWarningDuration => _warningSeconds;
+
+    /// <summary>
+    /// Gets the duration while the spike hit collider remains active.
+    /// </summary>
+    public float SpikeHitDuration => _spikeHitDuration;
 
     /// <summary>
     /// Gets the number of spike hits.
@@ -471,9 +561,19 @@ public struct GroundSpikePatternSettings
     public Vector2 BoxSize => _boxSize;
 
     /// <summary>
+    /// Gets the spike hit target LayerMask.
+    /// </summary>
+    public LayerMask SpikeTargetLayerMask => _spikeTargetLayerMask;
+
+    /// <summary>
     /// Gets the raw spike damage.
     /// </summary>
     public float Damage => _damage;
+
+    /// <summary>
+    /// Gets the raw spike damage.
+    /// </summary>
+    public float SpikeDamage => _damage;
 
     /// <summary>
     /// Gets the hit status tag.
@@ -485,10 +585,27 @@ public struct GroundSpikePatternSettings
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext)
     {
+        if (_enabled && _spikePrefab == null)
+        {
+            Debug.LogWarning($"[BossPatternData] GroundSpike pattern is enabled but SpikePrefab is missing. patternId={_patternId}", logContext);
+        }
+
+        if (_groundRaycastDistance < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] Ground spike raycast distance was below zero and clamped. patternId={_patternId}, value={_groundRaycastDistance}", logContext);
+            _groundRaycastDistance = 0f;
+        }
+
         if (_warningSeconds < 0f)
         {
             Debug.LogWarning($"[BossPatternData] Ground spike warning duration was below zero and clamped. patternId={_patternId}, value={_warningSeconds}", logContext);
             _warningSeconds = 0f;
+        }
+
+        if (_spikeHitDuration < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] Ground spike hit duration was below zero and clamped. patternId={_patternId}, value={_spikeHitDuration}", logContext);
+            _spikeHitDuration = 0f;
         }
 
         if (_intervalSeconds < 0f)
@@ -520,9 +637,9 @@ public struct SummonMonsterPatternSettings
     [Tooltip("Monster prefab asset used by a future summon runner.")]
     [SerializeField] private GameObject _monsterPrefab; // Monster prefab asset used for future spawn logic.
 
-    [Tooltip("Number of monster spawn anchors to use from BossPatternAnchorSet.")]
+    [Tooltip("Number of monster spawn anchors to select from BossPatternAnchorSet during one Pattern 3 execution.")]
     [Min(1)]
-    [SerializeField] private int _spawnPointCount; // Number of scene monster spawn anchors to consume at execution time.
+    [SerializeField] private int _spawnPointCount; // SpawnCount value that decides how many monster spawn anchors Pattern 3 selects.
 
     [Tooltip("Maximum alive summoned monsters allowed for this pattern. Zero means no pattern-level cap.")]
     [Min(0)]
@@ -553,6 +670,11 @@ public struct SummonMonsterPatternSettings
     public int SpawnPointCount => _spawnPointCount;
 
     /// <summary>
+    /// Gets the number of monster spawn anchors to select.
+    /// </summary>
+    public int SpawnCount => _spawnPointCount;
+
+    /// <summary>
     /// Gets the maximum alive summon count.
     /// </summary>
     public int MaxAliveCount => _maxAliveCount;
@@ -567,6 +689,12 @@ public struct SummonMonsterPatternSettings
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext)
     {
+        if (_spawnPointCount < 1)
+        {
+            Debug.LogWarning($"[BossPatternData] Summon monster SpawnCount was less than 1 and clamped. patternId={_patternId}, value={_spawnPointCount}", logContext);
+            _spawnPointCount = 1;
+        }
+
         if (_spawnIntervalSeconds < 0f)
         {
             Debug.LogWarning($"[BossPatternData] Summon monster interval duration was below zero and clamped. patternId={_patternId}, value={_spawnIntervalSeconds}", logContext);

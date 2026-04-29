@@ -165,8 +165,8 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: -2116480239
+  m_SortingLayer: 8
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -6904695267742895399, guid: b460e905236970444b292d3f4e88e460, type: 3}
@@ -224,7 +224,11 @@ MonoBehaviour:
   _playerMovement: {fileID: 0}
   _networkObject: {fileID: 0}
   _lockAttackActionsByDefault: 1
-  _defaultLockActions: 0d0000001600000017000000180000001d0000001e0000001f000000
+  _lockHitActionsByDefault: 1
+  _lockDeathActionsByDefault: 1
+  _defaultAttackLockActions: 0d0000001600000017000000180000001d0000001e0000001f000000
+  _defaultHitLockActions: 0e00000013000000
+  _defaultDeathLockActions: 0f000000
   _clearHorizontalVelocityOnLock: 1
   _warnWhenOwnershipUnavailable: 1
   _enableRuntimeLog: 0

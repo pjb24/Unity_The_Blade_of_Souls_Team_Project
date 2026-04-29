@@ -306,9 +306,14 @@ public class StationaryRangedEnemyController : NetworkBehaviour
     /// <summary>
     /// 서버가 확정한 전투 상태를 관찰자 인스턴스에 복제합니다.
     /// </summary>
-    [Rpc(SendTo.NotServer)]
+    [Rpc(SendTo.ClientsAndHost)]
     private void SetCurrentStateRpc(int stateValue)
     {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
         _currentState = (E_StationaryRangedEnemyState)stateValue;
         SyncAnimatorState();
     }
@@ -316,27 +321,42 @@ public class StationaryRangedEnemyController : NetworkBehaviour
     /// <summary>
     /// 서버가 확정한 공격 시작 트리거를 관찰자 인스턴스 Animator에 전달합니다.
     /// </summary>
-    [Rpc(SendTo.NotServer)]
+    [Rpc(SendTo.ClientsAndHost)]
     private void TriggerAttackVisualRpc()
     {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
         _animator?.SetTrigger(AttackTriggerHash);
     }
 
     /// <summary>
     /// 서버가 확정한 피격 트리거를 관찰자 인스턴스 Animator에 전달합니다.
     /// </summary>
-    [Rpc(SendTo.NotServer)]
+    [Rpc(SendTo.ClientsAndHost)]
     private void TriggerHitVisualRpc()
     {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
         TriggerHitAnimation();
     }
 
     /// <summary>
     /// 서버가 확정한 사망 트리거를 관찰자 인스턴스 Animator에 전달합니다.
     /// </summary>
-    [Rpc(SendTo.NotServer)]
+    [Rpc(SendTo.ClientsAndHost)]
     private void TriggerDieVisualRpc()
     {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
         TriggerDieAnimation();
         _deathController?.TryEnterDeath();
     }
@@ -344,9 +364,14 @@ public class StationaryRangedEnemyController : NetworkBehaviour
     /// <summary>
     /// 서버가 확정한 투사체 발사 결과를 관찰자 인스턴스에 전달해 동일한 시각 투사체를 생성합니다.
     /// </summary>
-    [Rpc(SendTo.NotServer)]
+    [Rpc(SendTo.ClientsAndHost)]
     private void SpawnProjectileVisualRpc(int projectileVisualId, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
     {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
         if (_projectileSpawnService == null)
         {
             ResolveDependencies();
@@ -372,9 +397,14 @@ public class StationaryRangedEnemyController : NetworkBehaviour
     /// <summary>
     /// 서버가 확정한 Projectile 종료 결과를 관찰자 인스턴스에 적용합니다.
     /// </summary>
-    [Rpc(SendTo.NotServer)]
+    [Rpc(SendTo.ClientsAndHost)]
     private void DespawnProjectileVisualRpc(int projectileVisualId)
     {
+        if (EnemyNetworkAuthorityUtility.ShouldRunServerAuthoritativeLogic(_networkObject))
+        {
+            return;
+        }
+
         if (_projectileSpawnService == null)
         {
             ResolveDependencies();
@@ -548,7 +578,7 @@ public class StationaryRangedEnemyController : NetworkBehaviour
             return;
         }
 
-        spawnedProjectile.Despawned += HandleAuthoritativeProjectileDespawned;
+        spawnedProjectile.AddListener(HandleAuthoritativeProjectileDespawned);
 
         if (ShouldReplicateVisuals())
         {
@@ -818,7 +848,7 @@ public class StationaryRangedEnemyController : NetworkBehaviour
             return;
         }
 
-        projectile.Despawned -= HandleAuthoritativeProjectileDespawned;
+        projectile.RemoveListener(HandleAuthoritativeProjectileDespawned);
 
         if (!ShouldReplicateVisuals() || projectile.VisualInstanceId <= 0)
         {

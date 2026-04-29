@@ -59,7 +59,7 @@ public class PooledRangedProjectile : MonoBehaviour
     /// <summary>
     /// 투사체가 소멸할 때 소멸 사유를 통지하는 이벤트입니다.
     /// </summary>
-    public event Action<PooledRangedProjectile, E_ProjectileDespawnReason> Despawned;
+    private Action<PooledRangedProjectile, E_ProjectileDespawnReason> _despawned; // Despawn listeners registered through AddListener.
 
     /// <summary>
     /// 현재 복제 시각 투사체 ID를 반환합니다.
@@ -106,7 +106,7 @@ public class PooledRangedProjectile : MonoBehaviour
         }
 
         _hitTargetIds.Clear();
-        Despawned = null;
+        _despawned = null;
     }
 
     /// <summary>
@@ -131,6 +131,45 @@ public class PooledRangedProjectile : MonoBehaviour
         _expireAt = Time.time + _lifetime;
         _isInitialized = true;
         _hitTargetIds.Clear();
+    }
+
+    /// <summary>
+    /// 런타임 발사 주체가 투사체의 타격 값과 충돌 대상을 설정합니다.
+    /// </summary>
+    public void ConfigureHitSettings(float damage, LayerMask targetLayerMask, string statusTag)
+    {
+        _damage = Mathf.Max(0f, damage);
+        _targetLayerMask = targetLayerMask;
+        _statusTag = string.IsNullOrWhiteSpace(statusTag) ? _statusTag : statusTag;
+    }
+
+    /// <summary>
+    /// 투사체 Despawn 알림 리스너를 등록합니다.
+    /// </summary>
+    public void AddListener(Action<PooledRangedProjectile, E_ProjectileDespawnReason> listener)
+    {
+        if (listener == null)
+        {
+            Debug.LogWarning($"[PooledRangedProjectile] AddListener received null on {name}.", this);
+            return;
+        }
+
+        _despawned -= listener;
+        _despawned += listener;
+    }
+
+    /// <summary>
+    /// 투사체 Despawn 알림 리스너를 해제합니다.
+    /// </summary>
+    public void RemoveListener(Action<PooledRangedProjectile, E_ProjectileDespawnReason> listener)
+    {
+        if (listener == null)
+        {
+            Debug.LogWarning($"[PooledRangedProjectile] RemoveListener received null on {name}.", this);
+            return;
+        }
+
+        _despawned -= listener;
     }
 
     /// <summary>
@@ -366,7 +405,7 @@ public class PooledRangedProjectile : MonoBehaviour
     /// </summary>
     private void Despawn(E_ProjectileDespawnReason reason)
     {
-        Despawned?.Invoke(this, reason);
+        _despawned?.Invoke(this, reason);
 
         if (_returnHandler != null)
         {

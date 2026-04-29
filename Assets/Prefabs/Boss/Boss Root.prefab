@@ -481,60 +481,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!1 &3775665059640074539
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3577508759113280198}
-  - component: {fileID: 1580270106326445797}
-  m_Layer: 0
-  m_Name: Boss Pattern Anchor Set
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3577508759113280198
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3775665059640074539}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2326021272048947885}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1580270106326445797
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3775665059640074539}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f79bc921a2681e48bdb7f0dabc35607, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossPatternAnchorSet
-  _projectileSpawnPoints:
-  - {fileID: 7474836220088837180}
-  - {fileID: 6394989705101873544}
-  - {fileID: 3908699581411286737}
-  _monsterSpawnPoints:
-  - {fileID: 5750140265442710181}
-  - {fileID: 2657302360688030827}
-  _weakPointAreas:
-  - {fileID: 4388793903370896448}
-  - {fileID: 4209361050764380217}
 --- !u!1 &4193551644374271046
 GameObject:
   m_ObjectHideFlags: 0
@@ -923,6 +869,10 @@ GameObject:
   - component: {fileID: 2001514356791471925}
   - component: {fileID: 8855505317964246999}
   - component: {fileID: 2506688360464795491}
+  - component: {fileID: 8004796325948814738}
+  - component: {fileID: 2201502889722818408}
+  - component: {fileID: 338479934886841198}
+  - component: {fileID: 7964338826940540576}
   m_Layer: 0
   m_Name: Boss Root
   m_TagString: Untagged
@@ -946,7 +896,6 @@ Transform:
   - {fileID: 6941816693685173686}
   - {fileID: 9104514744016605757}
   - {fileID: 1651012146556187474}
-  - {fileID: 3577508759113280198}
   - {fileID: 3003428555051071245}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1020,7 +969,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossController
   ShowTopMostFoldoutHeaderGroup: 1
   _patternData: {fileID: 11400000, guid: dea45232cb584554f8e508c2ab5d7d27, type: 2}
-  _anchorSet: {fileID: 1580270106326445797}
+  _anchorSet: {fileID: 8004796325948814738}
   _healthComponent: {fileID: 7499435228633890958}
   _hitReceiver: {fileID: 6078429381991306388}
   _playerTargetProvider: {fileID: 8855505317964246999}
@@ -1070,6 +1019,84 @@ MonoBehaviour:
     m_Bits: 128
   _targetTag: Player
   _searchBufferSize: 16
+--- !u!114 &8004796325948814738
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f79bc921a2681e48bdb7f0dabc35607, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossPatternAnchorSet
+  _projectileSpawnPoints:
+  - {fileID: 7474836220088837180}
+  - {fileID: 6394989705101873544}
+  - {fileID: 3908699581411286737}
+  _monsterSpawnPoints:
+  - {fileID: 5750140265442710181}
+  - {fileID: 2657302360688030827}
+  _weakPointAreas:
+  - {fileID: 4388793903370896448}
+  - {fileID: 4209361050764380217}
+--- !u!114 &2201502889722818408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bf31f06a07aa024db7a3c35ea9ab61e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossFanProjectilePattern
+  ShowTopMostFoldoutHeaderGroup: 1
+  _patternType: 0
+  _patternLogLabel: 
+  _bossController: {fileID: 2001514356791471925}
+  _anchorSet: {fileID: 8004796325948814738}
+  _projectileSpawnServiceSource: {fileID: 0}
+  _executionRange: 20
+  _allowSceneProjectileSpawnServiceFallback: 1
+--- !u!114 &338479934886841198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50c1b279a3893f94a97616a1f5dce57b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossGroundSpikePattern
+  ShowTopMostFoldoutHeaderGroup: 1
+  _patternType: 0
+  _patternLogLabel: 
+  _bossController: {fileID: 2001514356791471925}
+  _executionRange: 20
+  _maxHitColliderCandidates: 16
+--- !u!114 &7964338826940540576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80de713f798b4a947bfc22a8a75d1402, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossSummonMonsterPattern
+  ShowTopMostFoldoutHeaderGroup: 1
+  _patternType: 0
+  _patternLogLabel: 
+  _bossController: {fileID: 2001514356791471925}
+  _anchorSet: {fileID: 8004796325948814738}
+  _warnWhenUsingInstantiateFallback: 1
 --- !u!1 &8075390241886384120
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,10 +1,11 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
 /// Base class for boss patterns that reports lifecycle results without deciding final boss state.
 /// </summary>
-public abstract class BossPatternBase : MonoBehaviour
+public abstract class BossPatternBase : NetworkBehaviour
 {
     [Header("Pattern Identity")]
     [Tooltip("Pattern type reported to BossController during execution lifecycle callbacks.")]
@@ -109,6 +110,7 @@ public abstract class BossPatternBase : MonoBehaviour
             return;
         }
 
+        OnPatternExecutionCancelled(reason);
         ReportPatternCancelled(reason);
     }
 
@@ -116,6 +118,13 @@ public abstract class BossPatternBase : MonoBehaviour
     /// Allows derived patterns to react when execution starts without deciding boss state.
     /// </summary>
     protected virtual void OnPatternExecutionStarted()
+    {
+    }
+
+    /// <summary>
+    /// Allows derived patterns to clean up execution resources before a common cancellation report is sent.
+    /// </summary>
+    protected virtual void OnPatternExecutionCancelled(string reason)
     {
     }
 

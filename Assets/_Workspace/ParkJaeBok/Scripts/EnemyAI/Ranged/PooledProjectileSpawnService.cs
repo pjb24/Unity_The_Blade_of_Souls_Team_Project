@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -21,6 +22,8 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
     private readonly Dictionary<PooledRangedProjectile, GameObject> _sourcePrefabByInstance = new Dictionary<PooledRangedProjectile, GameObject>(); // 인스턴스-프리팹 역참조 맵입니다.
     [Tooltip("관찰자 시각 전용 Projectile을 복제 ID로 추적하는 맵입니다.")]
     private readonly Dictionary<int, PooledRangedProjectile> _visualProjectileById = new Dictionary<int, PooledRangedProjectile>(); // 복제 시각 Projectile 조회 맵입니다.
+    private bool _hasLoggedNetworkObjectPoolMissingWarning; // Prevents repeated warnings when NetworkObject pooling is unavailable.
+    private bool _hasLoggedClientNetworkSpawnBlockedWarning; // Prevents repeated warnings when a client tries to spawn a NetworkObject projectile.
 
     /// <summary>
     /// 요청된 조건으로 Projectile을 스폰하고 인스턴스를 반환합니다.
@@ -33,15 +36,32 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
             return null;
         }
 
+        bool shouldSpawnNetworkObject = ShouldSpawnNetworkObjectProjectile(prefab, isVisualOnly);
+        if (shouldSpawnNetworkObject && !CanSpawnNetworkObjectProjectile())
+        {
+            return null;
+        }
+
         PooledRangedProjectile projectile = Acquire(prefab);
         if (projectile == null)
         {
             return null;
         }
 
+        if (shouldSpawnNetworkObject)
+        {
+            projectile.transform.SetParent(null);
+        }
+
         projectile.transform.position = position;
         projectile.gameObject.SetActive(true);
         projectile.Initialize(direction, speed, lifetime, owner, isVisualOnly, visualInstanceId);
+
+        if (shouldSpawnNetworkObject && !TrySpawnNetworkObjectProjectile(projectile))
+        {
+            ReturnToPool(projectile);
+            return null;
+        }
 
         if (isVisualOnly && visualInstanceId > 0)
         {
@@ -140,6 +160,8 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
             return;
         }
 
+        DespawnNetworkObjectIfNeeded(projectile);
+
         Queue<PooledRangedProjectile> pool = GetOrCreatePool(prefab);
         projectile.gameObject.SetActive(false);
         projectile.transform.SetParent(transform);
@@ -149,6 +171,98 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
     /// <summary>
     /// 지정 프리팹의 풀 큐를 반환하거나 새로 생성합니다.
     /// </summary>
+    /// <summary>
+    /// Returns whether the requested projectile should be spawned through NGO.
+    /// </summary>
+    private bool ShouldSpawnNetworkObjectProjectile(GameObject prefab, bool isVisualOnly)
+    {
+        if (isVisualOnly || prefab == null || prefab.GetComponent<NetworkObject>() == null)
+        {
+            return false;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO singleton used to distinguish single-player from networked sessions.
+        return networkManager != null && networkManager.IsListening;
+    }
+
+    /// <summary>
+    /// Returns whether this instance is allowed to spawn authoritative NetworkObject projectiles.
+    /// </summary>
+    private bool CanSpawnNetworkObjectProjectile()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO singleton used to validate server authority.
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return true;
+        }
+
+        if (networkManager.IsServer)
+        {
+            if (!_hasLoggedNetworkObjectPoolMissingWarning)
+            {
+                Debug.LogWarning("[PooledProjectileSpawnService] NetworkObject Pool was not found. Host/Server will use pooled instances and NetworkObject.Spawn.");
+                _hasLoggedNetworkObjectPoolMissingWarning = true;
+            }
+
+            return true;
+        }
+
+        if (!_hasLoggedClientNetworkSpawnBlockedWarning)
+        {
+            Debug.LogWarning("[PooledProjectileSpawnService] Client projectile NetworkObject spawn request was blocked.");
+            _hasLoggedClientNetworkSpawnBlockedWarning = true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Spawns a projectile NetworkObject from the server when required.
+    /// </summary>
+    private bool TrySpawnNetworkObjectProjectile(PooledRangedProjectile projectile)
+    {
+        if (projectile == null)
+        {
+            return false;
+        }
+
+        NetworkObject networkObject = projectile.GetComponent<NetworkObject>(); // NetworkObject attached to the projectile instance.
+        if (networkObject == null)
+        {
+            Debug.LogWarning($"[PooledProjectileSpawnService] Network projectile spawn failed because NetworkObject is missing. projectile={projectile.name}");
+            return false;
+        }
+
+        if (networkObject.IsSpawned)
+        {
+            return true;
+        }
+
+        networkObject.Spawn(true);
+        return true;
+    }
+
+    /// <summary>
+    /// Despawns a projectile NetworkObject before returning it to the local pool.
+    /// </summary>
+    private void DespawnNetworkObjectIfNeeded(PooledRangedProjectile projectile)
+    {
+        NetworkObject networkObject = projectile.GetComponent<NetworkObject>(); // NetworkObject attached to the pooled projectile instance.
+        if (networkObject == null || !networkObject.IsSpawned)
+        {
+            return;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO singleton used to ensure only server despawns authoritative projectiles.
+        if (networkManager != null && networkManager.IsListening && !networkManager.IsServer)
+        {
+            Debug.LogWarning($"[PooledProjectileSpawnService] Client attempted to return a spawned NetworkObject projectile. projectile={projectile.name}");
+            return;
+        }
+
+        networkObject.Despawn(false);
+    }
+
     private Queue<PooledRangedProjectile> GetOrCreatePool(GameObject prefab)
     {
         if (!_poolByPrefab.TryGetValue(prefab, out Queue<PooledRangedProjectile> pool))
