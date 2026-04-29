@@ -375,6 +375,37 @@ public class SaveDataStore : MonoBehaviour
     }
 
     /// <summary>
+    /// 멀티플레이 Client의 개인 체크포인트 진행도가 Host보다 낮을 때 로컬 슬롯 파일을 갱신합니다.
+    /// </summary>
+    public bool SaveClientPersonalPlayData(string triggerContext = "ClientPersonalCheckpoint")
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 네트워크 세션 상태를 확인할 NetworkManager입니다.
+        if (networkManager == null || !networkManager.IsListening || networkManager.IsServer)
+        {
+            return SaveSlot(_currentSlot, triggerContext);
+        }
+
+        CapturePlayDataFromRuntime();
+
+        try
+        {
+            string path = GetSlotFilePath(_currentSlot);
+            SlotPlaySaveData saveData = _runtimeData.ToSlotPlayData(CurrentVersion, _currentSlot);
+            WriteJson(path, saveData);
+            SetLastResult(true, $"Client personal slot saved. slot={(int)_currentSlot}, context={triggerContext}");
+            Debug.Log($"[SaveDataStore] Client personal slot save completed. slot={(int)_currentSlot}, path={path}, context={triggerContext}", this);
+            NotifyChanged();
+            return true;
+        }
+        catch (Exception exception)
+        {
+            SetLastResult(false, exception.Message);
+            Debug.LogError($"[SaveDataStore] Client personal slot save failed. slot={(int)_currentSlot}, path={GetSlotFilePath(_currentSlot)}, context={triggerContext}, error={exception}", this);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// 로컬 글로벌 옵션을 로드하고, 파일이 없으면 기본 옵션 파일을 생성합니다.
     /// </summary>
     public bool LoadGlobalOptions(string triggerContext)

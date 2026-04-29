@@ -8,56 +8,38 @@ using UnityEngine;
 [Serializable]
 public class StageProgressRecord
 {
-    [Tooltip("진행도를 기록할 대상 스테이지 ID입니다.")]
-    [SerializeField] private string _stageId; // 진행 레코드가 가리키는 스테이지 ID입니다.
+    [Tooltip("진행도를 기록할 대상 Stage ID입니다.")]
+    [SerializeField] private string _stageId; // 진행 레코드가 가리키는 Stage ID입니다.
 
-    [Tooltip("해당 스테이지를 1회 이상 클리어했는지 여부입니다.")]
+    [Tooltip("해당 Stage를 1회 이상 클리어했는지 여부입니다.")]
     [SerializeField] private bool _isCleared; // 최초 클리어 달성 여부입니다.
 
-    [Tooltip("해당 스테이지 누적 클리어 횟수입니다.")]
+    [Tooltip("해당 Stage의 누적 클리어 횟수입니다.")]
     [Min(0)]
     [SerializeField] private int _clearCount; // 반복 플레이를 포함한 누적 클리어 횟수입니다.
 
-    [Tooltip("마지막 클리어 시각(UnixTime UTC, 초 단위)입니다.")]
-    [SerializeField] private long _lastClearUnixTimeUtc; // 마지막 클리어 시각을 저장하는 UTC UnixTime 값입니다.
+    [Tooltip("마지막 클리어 시각입니다. UTC Unix 초 단위로 기록합니다.")]
+    [SerializeField] private long _lastClearUnixTimeUtc; // 마지막 클리어 시각을 UTC UnixTime으로 저장합니다.
 
-    /// <summary>
-    /// 직렬화/역직렬화용 기본 생성자입니다.
-    /// </summary>
     public StageProgressRecord()
     {
     }
 
     /// <summary>
-    /// 스테이지 ID를 지정해 진행 레코드를 초기화합니다.
+    /// Stage ID를 지정해 진행 레코드를 초기화합니다.
     /// </summary>
     public StageProgressRecord(string stageId)
     {
         _stageId = stageId;
     }
 
-    /// <summary>
-    /// 레코드가 가리키는 스테이지 ID를 반환합니다.
-    /// </summary>
     public string StageId => _stageId;
-
-    /// <summary>
-    /// 스테이지 클리어 여부를 반환합니다.
-    /// </summary>
     public bool IsCleared => _isCleared;
-
-    /// <summary>
-    /// 누적 클리어 횟수를 반환합니다.
-    /// </summary>
     public int ClearCount => _clearCount;
-
-    /// <summary>
-    /// 마지막 클리어 시각(UnixTime UTC)을 반환합니다.
-    /// </summary>
     public long LastClearUnixTimeUtc => _lastClearUnixTimeUtc;
 
     /// <summary>
-    /// 클리어 결과를 반영해 레코드를 갱신합니다.
+    /// 클리어 결과를 진행도에 반영합니다.
     /// </summary>
     public void MarkCleared(long unixTimeUtc)
     {
@@ -68,37 +50,89 @@ public class StageProgressRecord
 }
 
 /// <summary>
-/// 플레이어의 스테이지 진행도를 런타임에서 관리하는 서비스입니다.
+/// Stage 단위 체크포인트 진행 상태를 저장하는 레코드입니다.
+/// </summary>
+[Serializable]
+public class CheckpointProgressRecord
+{
+    [Tooltip("체크포인트 진행 상태가 속한 Stage ID입니다.")]
+    [SerializeField] private string _stageId; // 체크포인트 진행 상태가 속한 Stage ID입니다.
+
+    [Tooltip("마지막으로 상호작용한 Checkpoint ID입니다.")]
+    [SerializeField] private string _lastInteractedCheckpointId; // 현재 리스폰 지점으로 사용하는 마지막 상호작용 Checkpoint ID입니다.
+
+    [Tooltip("활성화된 Checkpoint ID 목록입니다.")]
+    [SerializeField] private List<string> _activatedCheckpointIds = new List<string>(); // Stage 안에서 활성화된 Checkpoint ID 목록입니다.
+
+    public CheckpointProgressRecord()
+    {
+    }
+
+    /// <summary>
+    /// Stage ID를 기준으로 체크포인트 진행 레코드를 생성합니다.
+    /// </summary>
+    public CheckpointProgressRecord(string stageId)
+    {
+        _stageId = stageId;
+    }
+
+    public string StageId => _stageId;
+    public string LastInteractedCheckpointId => _lastInteractedCheckpointId;
+    public IReadOnlyList<string> ActivatedCheckpointIds => _activatedCheckpointIds;
+
+    /// <summary>
+    /// 체크포인트 진행 스냅샷을 레코드에 반영합니다.
+    /// </summary>
+    public void ApplySnapshot(string lastInteractedCheckpointId, IEnumerable<string> activatedCheckpointIds)
+    {
+        _lastInteractedCheckpointId = lastInteractedCheckpointId ?? string.Empty;
+        _activatedCheckpointIds = new List<string>();
+
+        if (activatedCheckpointIds == null)
+        {
+            return;
+        }
+
+        HashSet<string> dedupe = new HashSet<string>();
+        foreach (string checkpointId in activatedCheckpointIds)
+        {
+            if (string.IsNullOrWhiteSpace(checkpointId) || !dedupe.Add(checkpointId))
+            {
+                continue;
+            }
+
+            _activatedCheckpointIds.Add(checkpointId);
+        }
+    }
+}
+
+/// <summary>
+/// 플레이어의 스테이지 진행도를 런타임과 저장소 사이에서 관리하는 서비스입니다.
 /// </summary>
 public class StageProgressRuntime : MonoBehaviour
 {
-    /// <summary>
-    /// StageProgressRuntime 스냅샷 데이터입니다.
-    /// </summary>
     [Serializable]
     public struct SnapshotData
     {
-        public List<StageProgressRecord> Records; // 저장/복원에 사용할 스테이지 진행도 레코드 목록입니다.
+        public List<StageProgressRecord> Records; // 저장 복원에 사용할 스테이지 진행도 레코드 목록입니다.
+        public List<CheckpointProgressRecord> CheckpointRecords; // 저장 복원에 사용할 체크포인트 진행도 레코드 목록입니다.
     }
 
-    private static StageProgressRuntime _instance; // 전역 접근을 위한 StageProgressRuntime 싱글톤 인스턴스입니다.
+    private static StageProgressRuntime _instance; // 전역 접근을 위한 StageProgressRuntime 단일 인스턴스입니다.
 
-    [Tooltip("씬 전환 후에도 진행도 런타임 오브젝트를 유지할지 여부입니다.")]
-    [SerializeField] private bool _dontDestroyOnLoad = true; // 씬 전환 후 진행도 데이터 유지 여부입니다.
+    [Tooltip("씬 전환 뒤에도 진행도 런타임 오브젝트를 유지할지 여부입니다.")]
+    [SerializeField] private bool _dontDestroyOnLoad = true; // 씬 전환 중 진행도 데이터를 유지할지 여부입니다.
 
-    [Tooltip("디버그 확인용 스테이지 진행 레코드 목록입니다.")]
-    [SerializeField] private List<StageProgressRecord> _records = new List<StageProgressRecord>(); // 런타임에서 유지하는 스테이지 진행 레코드 목록입니다.
+    [Tooltip("디버그용: 스테이지 진행 레코드 목록입니다.")]
+    [SerializeField] private List<StageProgressRecord> _records = new List<StageProgressRecord>(); // 런타임에 유지되는 스테이지 진행 레코드 목록입니다.
 
-    private readonly Dictionary<string, StageProgressRecord> _indexByStageId = new Dictionary<string, StageProgressRecord>(); // stageId 기반 빠른 조회를 위한 인덱스입니다.
+    [Tooltip("디버그용: Stage 단위 체크포인트 진행 레코드 목록입니다.")]
+    [SerializeField] private List<CheckpointProgressRecord> _checkpointRecords = new List<CheckpointProgressRecord>(); // 런타임에 유지되는 체크포인트 진행 레코드 목록입니다.
 
-    /// <summary>
-    /// 진행도 변경 시 호출되는 이벤트입니다.
-    /// </summary>
+    private readonly Dictionary<string, StageProgressRecord> _indexByStageId = new Dictionary<string, StageProgressRecord>(); // stageId 기반 빠른 조회 인덱스입니다.
+    private readonly Dictionary<string, CheckpointProgressRecord> _checkpointIndexByStageId = new Dictionary<string, CheckpointProgressRecord>(); // stageId 기반 체크포인트 진행 조회 인덱스입니다.
     private Action<string> _stageProgressChangedListeners; // StageProgress 변경 알림 리스너 체인입니다.
 
-    /// <summary>
-    /// 전역 StageProgressRuntime 인스턴스를 반환합니다.
-    /// </summary>
     public static StageProgressRuntime Instance
     {
         get
@@ -108,7 +142,7 @@ public class StageProgressRuntime : MonoBehaviour
                 _instance = FindAnyObjectByType<StageProgressRuntime>();
                 if (_instance == null)
                 {
-                    GameObject runtimeObject = new GameObject("--- Stage Progress Runtime ---"); // 런타임 자동 생성용 진행도 오브젝트입니다.
+                    GameObject runtimeObject = new GameObject("--- Stage Progress Runtime ---"); // 진행도 런타임 자동 생성 오브젝트입니다.
                     _instance = runtimeObject.AddComponent<StageProgressRuntime>();
                 }
             }
@@ -118,7 +152,7 @@ public class StageProgressRuntime : MonoBehaviour
     }
 
     /// <summary>
-    /// 새 인스턴스를 생성하지 않고 현재 존재하는 StageProgressRuntime을 반환합니다.
+    /// 새 인스턴스를 만들지 않고 현재 존재하는 StageProgressRuntime을 반환합니다.
     /// </summary>
     public static bool TryGetExistingInstance(out StageProgressRuntime runtime)
     {
@@ -165,7 +199,7 @@ public class StageProgressRuntime : MonoBehaviour
     }
 
     /// <summary>
-    /// 특정 스테이지의 클리어 여부를 반환합니다.
+    /// 특정 Stage가 클리어되었는지 반환합니다.
     /// </summary>
     public bool IsStageCleared(string stageId)
     {
@@ -174,16 +208,11 @@ public class StageProgressRuntime : MonoBehaviour
             return false;
         }
 
-        if (_indexByStageId.TryGetValue(stageId, out StageProgressRecord record) == false || record == null)
-        {
-            return false;
-        }
-
-        return record.IsCleared;
+        return _indexByStageId.TryGetValue(stageId, out StageProgressRecord record) && record != null && record.IsCleared;
     }
 
     /// <summary>
-    /// 특정 스테이지의 누적 클리어 횟수를 반환합니다.
+    /// 특정 Stage의 누적 클리어 횟수를 반환합니다.
     /// </summary>
     public int GetClearCount(string stageId)
     {
@@ -192,24 +221,18 @@ public class StageProgressRuntime : MonoBehaviour
             return 0;
         }
 
-        if (_indexByStageId.TryGetValue(stageId, out StageProgressRecord record) == false || record == null)
-        {
-            return 0;
-        }
-
-        return record.ClearCount;
+        return _indexByStageId.TryGetValue(stageId, out StageProgressRecord record) && record != null ? record.ClearCount : 0;
     }
 
     /// <summary>
-    /// 전체 스테이지 누적 클리어 횟수를 반환합니다.
+    /// 전체 Stage 누적 클리어 횟수를 반환합니다.
     /// </summary>
     public int GetTotalClearCount()
     {
         int total = 0;
-
         for (int i = 0; i < _records.Count; i++)
         {
-            StageProgressRecord record = _records[i]; // 합산 중인 진행도 레코드입니다.
+            StageProgressRecord record = _records[i]; // 합산 중인 진행 레코드입니다.
             if (record == null)
             {
                 continue;
@@ -222,7 +245,7 @@ public class StageProgressRuntime : MonoBehaviour
     }
 
     /// <summary>
-    /// 스테이지 클리어 결과를 진행도에 반영합니다.
+    /// Stage 클리어 결과를 진행도에 반영합니다.
     /// </summary>
     public void MarkStageCleared(string stageId)
     {
@@ -232,20 +255,50 @@ public class StageProgressRuntime : MonoBehaviour
         }
 
         StageProgressRecord record = GetOrCreateRecord(stageId);
-        long unixTimeUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); // 클리어 반영 시각을 기록할 UTC UnixTime 값입니다.
-        record.MarkCleared(unixTimeUtc);
-
+        record.MarkCleared(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         _stageProgressChangedListeners?.Invoke(stageId);
     }
 
     /// <summary>
-    /// 현재 진행도 상태를 스냅샷으로 생성합니다.
+    /// Stage ID에 해당하는 체크포인트 진행 레코드를 조회합니다.
+    /// </summary>
+    public bool TryGetCheckpointProgress(string stageId, out CheckpointProgressRecord record)
+    {
+        record = null;
+        if (string.IsNullOrWhiteSpace(stageId))
+        {
+            Debug.LogWarning("[StageProgressRuntime] Stage ID가 비어 있어 체크포인트 진행 조회를 중단합니다.", this);
+            return false;
+        }
+
+        return _checkpointIndexByStageId.TryGetValue(stageId, out record) && record != null;
+    }
+
+    /// <summary>
+    /// Stage ID에 해당하는 체크포인트 진행 상태를 저장하고 변경 알림을 발생시킵니다.
+    /// </summary>
+    public void SetCheckpointProgress(string stageId, string lastInteractedCheckpointId, IEnumerable<string> activatedCheckpointIds)
+    {
+        if (string.IsNullOrWhiteSpace(stageId))
+        {
+            Debug.LogWarning("[StageProgressRuntime] Stage ID가 비어 있어 체크포인트 진행 저장을 중단합니다.", this);
+            return;
+        }
+
+        CheckpointProgressRecord record = GetOrCreateCheckpointRecord(stageId);
+        record.ApplySnapshot(lastInteractedCheckpointId, activatedCheckpointIds);
+        _stageProgressChangedListeners?.Invoke(stageId);
+    }
+
+    /// <summary>
+    /// 현재 진행도 상태를 저장 가능한 스냅샷으로 생성합니다.
     /// </summary>
     public SnapshotData CreateSnapshot()
     {
         return new SnapshotData
         {
-            Records = new List<StageProgressRecord>(_records)
+            Records = new List<StageProgressRecord>(_records),
+            CheckpointRecords = new List<CheckpointProgressRecord>(_checkpointRecords)
         };
     }
 
@@ -255,11 +308,12 @@ public class StageProgressRuntime : MonoBehaviour
     public void ApplySnapshot(SnapshotData snapshot)
     {
         _records = snapshot.Records ?? new List<StageProgressRecord>();
+        _checkpointRecords = snapshot.CheckpointRecords ?? new List<CheckpointProgressRecord>();
         RebuildIndex();
     }
 
     /// <summary>
-    /// stageId에 해당하는 진행도 레코드를 조회하거나 생성합니다.
+    /// stageId에 해당하는 진행 레코드를 조회하거나 생성합니다.
     /// </summary>
     private StageProgressRecord GetOrCreateRecord(string stageId)
     {
@@ -268,9 +322,25 @@ public class StageProgressRuntime : MonoBehaviour
             return existing;
         }
 
-        StageProgressRecord created = new StageProgressRecord(stageId); // 신규 생성한 진행도 레코드입니다.
+        StageProgressRecord created = new StageProgressRecord(stageId); // 새 진행 레코드입니다.
         _records.Add(created);
         _indexByStageId[stageId] = created;
+        return created;
+    }
+
+    /// <summary>
+    /// stageId에 해당하는 체크포인트 진행 레코드를 조회하거나 생성합니다.
+    /// </summary>
+    private CheckpointProgressRecord GetOrCreateCheckpointRecord(string stageId)
+    {
+        if (_checkpointIndexByStageId.TryGetValue(stageId, out CheckpointProgressRecord existing) && existing != null)
+        {
+            return existing;
+        }
+
+        CheckpointProgressRecord created = new CheckpointProgressRecord(stageId); // 새 체크포인트 진행 레코드입니다.
+        _checkpointRecords.Add(created);
+        _checkpointIndexByStageId[stageId] = created;
         return created;
     }
 
@@ -280,16 +350,38 @@ public class StageProgressRuntime : MonoBehaviour
     private void RebuildIndex()
     {
         _indexByStageId.Clear();
+        _checkpointIndexByStageId.Clear();
+
+        if (_records == null)
+        {
+            _records = new List<StageProgressRecord>();
+        }
 
         for (int i = 0; i < _records.Count; i++)
         {
-            StageProgressRecord record = _records[i]; // 인덱스에 반영할 진행도 레코드입니다.
+            StageProgressRecord record = _records[i]; // 진행 인덱스에 반영할 레코드입니다.
             if (record == null || string.IsNullOrWhiteSpace(record.StageId))
             {
                 continue;
             }
 
             _indexByStageId[record.StageId] = record;
+        }
+
+        if (_checkpointRecords == null)
+        {
+            _checkpointRecords = new List<CheckpointProgressRecord>();
+        }
+
+        for (int i = 0; i < _checkpointRecords.Count; i++)
+        {
+            CheckpointProgressRecord record = _checkpointRecords[i]; // 체크포인트 인덱스에 반영할 레코드입니다.
+            if (record == null || string.IsNullOrWhiteSpace(record.StageId))
+            {
+                continue;
+            }
+
+            _checkpointIndexByStageId[record.StageId] = record;
         }
     }
 }

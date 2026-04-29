@@ -15264,6 +15264,20 @@ MonoBehaviour:
   m_Area: 1
   m_IgnoreFromBuild: 0
   m_AffectedAgents: ffffffff
+--- !u!114 &615360954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc1515ab76e54f068e2f2207940fab32, type: 3}
+  m_Name: Player/Interaction
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
+  m_Asset: {fileID: -944628639613478452, guid: 2c93d8b7d7348f342902a296f35fa9fc, type: 3}
+  m_ActionId: 09e05d37-2c55-4f93-911c-3ea9f2f61074
 --- !u!1 &618709757
 GameObject:
   m_ObjectHideFlags: 0
@@ -27415,6 +27429,68 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!1001 &1157897689
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1850419177}
+    m_Modifications:
+    - target: {fileID: 3579365690193072115, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_Name
+      value: Checkpoint Object
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+--- !u!4 &1157897690 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+  m_PrefabInstance: {fileID: 1157897689}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1166286666
 GameObject:
   m_ObjectHideFlags: 0
@@ -44152,6 +44228,119 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1850419175
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1850419177}
+  - component: {fileID: 1850419176}
+  - component: {fileID: 1850419180}
+  - component: {fileID: 1850419179}
+  - component: {fileID: 1850419178}
+  m_Layer: 0
+  m_Name: Checkpoint Stage Controller
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1850419176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850419175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 3527036529
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!4 &1850419177
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850419175}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1157897690}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1850419178
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850419175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cc9de6d3c1bfe54f9e01e97f6220a3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheckpointMonsterResetter
+  _autoCollectOnStart: 1
+  _includeInactive: 1
+--- !u!114 &1850419179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850419175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a63da2cd278b1648acb54218684bc6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheckpointRecoveryProcessor
+  _interactionMovementBlockSeconds: 3
+  _respawnMovementBlockSeconds: 3
+  _interactionInvincibleSeconds: 3
+  _respawnInvincibleSeconds: 3
+  _clearRigidbodyVelocity: 1
+  _blockGameplayInput: 0
+  _monsterResetter: {fileID: 1850419178}
+--- !u!114 &1850419180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1850419175}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2c522daaad27644b8924169c7100c2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheckpointStageController
+  ShowTopMostFoldoutHeaderGroup: 1
+  _stageId: stage_01
+  _autoCollectCheckpoints: 1
+  _collectSceneCheckpoints: 1
+  _sharedInteractAction: {fileID: 615360954}
+  _sharedInteractActionName: Interaction
+  _recoveryProcessor: {fileID: 1850419179}
 --- !u!1 &1859437043
 GameObject:
   m_ObjectHideFlags: 0
@@ -51616,8 +51805,9 @@ SceneRoots:
   - {fileID: 890210752}
   - {fileID: 816423518}
   - {fileID: 129971193}
-  - {fileID: 1724631874}
   - {fileID: 564453431}
+  - {fileID: 1724631874}
   - {fileID: 1448528700}
   - {fileID: 112470733}
   - {fileID: 1838042335}
+  - {fileID: 1850419177}
