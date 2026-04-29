@@ -45,9 +45,6 @@ TagManager:
   - name: BackGround
     uniqueID: 1490782237
     locked: 0
-  - name: Player
-    uniqueID: 2178487057
-    locked: 0
   - name: Boss
     uniqueID: 1595461513
     locked: 0
@@ -60,14 +57,17 @@ TagManager:
   - name: Pillar_Top
     uniqueID: 1396044803
     locked: 0
-  - name: Pillar
-    uniqueID: 618617319
-    locked: 0
   - name: Broken_Pillar
     uniqueID: 2373667899
     locked: 0
   - name: Core
     uniqueID: 2548084689
+    locked: 0
+  - name: Player
+    uniqueID: 2178487057
+    locked: 0
+  - name: Pillar
+    uniqueID: 618617319
     locked: 0
   m_RenderingLayers:
   - Default
