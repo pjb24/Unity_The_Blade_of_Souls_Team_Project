@@ -45,11 +45,11 @@ TagManager:
   - name: BackGround
     uniqueID: 1490782237
     locked: 0
-  - name: Boss
-    uniqueID: 1595461513
-    locked: 0
   - name: Altar
     uniqueID: 2411164379
+    locked: 0
+  - name: Boss
+    uniqueID: 1595461513
     locked: 0
   - name: Object
     uniqueID: 382832513

@@ -1,0 +1,147 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d78c181e44e2c3c42a10643de8cfd8fb, type: 3}
+  m_Name: BossPatternData
+  m_EditorClassIdentifier: Assembly-CSharp::BossPatternData
+  _commonSettings:
+  - _patternId: FanProjectile
+    _enabled: 1
+    _patternType: 1
+    _selectionWeight: 0
+    _priority: 0
+    _requireTarget: 1
+    _allowDuringWeakPointActive: 1
+    _cooldownSeconds: 4
+    _minimumTargetSqrDistance: 0
+    _maximumTargetSqrDistance: 12
+    _startupSeconds: 0
+    _activeSeconds: 0
+    _recoverySeconds: 0
+  - _patternId: GroundSpike
+    _enabled: 1
+    _patternType: 2
+    _selectionWeight: 0
+    _priority: 0
+    _requireTarget: 1
+    _allowDuringWeakPointActive: 1
+    _cooldownSeconds: 12
+    _minimumTargetSqrDistance: 0
+    _maximumTargetSqrDistance: 6
+    _startupSeconds: 0
+    _activeSeconds: 0
+    _recoverySeconds: 0
+  - _patternId: SummonMonster
+    _enabled: 1
+    _patternType: 3
+    _selectionWeight: 0
+    _priority: 0
+    _requireTarget: 0
+    _allowDuringWeakPointActive: 1
+    _cooldownSeconds: 25
+    _minimumTargetSqrDistance: 0
+    _maximumTargetSqrDistance: 0
+    _startupSeconds: 0
+    _activeSeconds: 0
+    _recoverySeconds: 0
+  - _patternId: WeakPoint
+    _enabled: 1
+    _patternType: 4
+    _selectionWeight: 0
+    _priority: 1
+    _requireTarget: 0
+    _allowDuringWeakPointActive: 0
+    _cooldownSeconds: 45
+    _minimumTargetSqrDistance: 0
+    _maximumTargetSqrDistance: 0
+    _startupSeconds: 0
+    _activeSeconds: 0
+    _recoverySeconds: 0
+  - _patternId: WeakPoint_LowHealth
+    _enabled: 1
+    _patternType: 4
+    _selectionWeight: 0
+    _priority: 1
+    _requireTarget: 0
+    _allowDuringWeakPointActive: 0
+    _cooldownSeconds: 45
+    _minimumTargetSqrDistance: 0
+    _maximumTargetSqrDistance: 0
+    _startupSeconds: 0
+    _activeSeconds: 0
+    _recoverySeconds: 0
+  _healthPhaseSettings:
+  - _phaseIndex: 0
+    _minHealthRatio: 0.7
+    _maxHealthRatio: 1
+    _availablePatternIds:
+    - FanProjectile
+    - GroundSpike
+  - _phaseIndex: 1
+    _minHealthRatio: 0
+    _maxHealthRatio: 0.7
+    _availablePatternIds:
+    - WeakPoint
+    - FanProjectile
+    - GroundSpike
+    - SummonMonster
+  - _phaseIndex: 2
+    _minHealthRatio: 0
+    _maxHealthRatio: 0.3
+    _availablePatternIds:
+    - WeakPoint_LowHealth
+    - FanProjectile
+    - GroundSpike
+    - SummonMonster
+  _usageLimits:
+  - _patternId: WeakPoint
+    _maxConsecutiveUseCount: 1
+    _maxEncounterUseCount: 1
+    _minimumOtherPatternCountBeforeRepeat: 0
+  - _patternId: WeakPoint_LowHealth
+    _maxConsecutiveUseCount: 0
+    _maxEncounterUseCount: 0
+    _minimumOtherPatternCountBeforeRepeat: 0
+  _fanProjectilePattern:
+    _enabled: 0
+    _patternId: 
+    _projectilePrefab: {fileID: 0}
+    _spawnPointCount: 0
+    _projectileCount: 1
+    _fanAngleDegrees: 0
+    _projectileSpeed: 0
+    _projectileLifetime: 0
+    _damage: 0
+    _statusTag: 
+  _groundSpikePattern:
+    _enabled: 0
+    _patternId: 
+    _warningSeconds: 0
+    _spikeCount: 0
+    _intervalSeconds: 0
+    _boxSize: {x: 0, y: 0}
+    _damage: 0
+    _statusTag: 
+  _summonMonsterPattern:
+    _enabled: 0
+    _patternId: 
+    _monsterPrefab: {fileID: 0}
+    _spawnPointCount: 0
+    _maxAliveCount: 0
+    _spawnIntervalSeconds: 0
+  _weakPointPattern:
+    _enabled: 0
+    _patternId: 
+    _weakPointCount: 0
+    _weakPointPositionRetryCount: 1
+    _activeSeconds: 0
+    _incomingDamageMultiplier: 0
+    _weakPointStatusTag: 
