@@ -100,7 +100,7 @@ public abstract class BossPatternBase : NetworkBehaviour
     }
 
     /// <summary>
-    /// Cancels the current pattern execution through the common cancellation API.
+    /// Cancels the current pattern execution through the common cancellation API and clears scheduled work owned by this pattern component.
     /// </summary>
     public void CancelPattern(string reason)
     {
@@ -111,6 +111,7 @@ public abstract class BossPatternBase : NetworkBehaviour
         }
 
         OnPatternExecutionCancelled(reason);
+        ClearScheduledPatternWork();
         ReportPatternCancelled(reason);
     }
 
@@ -126,6 +127,15 @@ public abstract class BossPatternBase : NetworkBehaviour
     /// </summary>
     protected virtual void OnPatternExecutionCancelled(string reason)
     {
+    }
+
+    /// <summary>
+    /// Clears coroutines and Invoke calls scheduled by this pattern without touching spawned combat objects owned by other components.
+    /// </summary>
+    private void ClearScheduledPatternWork()
+    {
+        StopAllCoroutines();
+        CancelInvoke();
     }
 
     /// <summary>

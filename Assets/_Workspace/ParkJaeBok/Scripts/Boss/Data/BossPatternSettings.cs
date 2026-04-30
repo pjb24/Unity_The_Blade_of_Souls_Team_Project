@@ -720,6 +720,15 @@ public struct WeakPointPatternSettings
     [Tooltip("Common pattern id that these weak point settings belong to.")]
     [SerializeField] private string _patternId; // Common pattern id linked to this weak point setting group.
 
+    [Tooltip("Weak point prefab spawned at selected Pattern 4 positions. This prefab should use HealthComponent and HitReceiver.")]
+    [SerializeField] private GameObject _weakPointPrefab; // Weak point prefab asset spawned at selected positions.
+
+    [Tooltip("Optional destruction VFX prefab played when a weak point is destroyed.")]
+    [SerializeField] private GameObject _weakPointDestroyVfxPrefab; // Optional fallback VFX prefab for weak point destruction.
+
+    [Tooltip("EffectService id played when a weak point is destroyed.")]
+    [SerializeField] private E_EffectId _weakPointDestroyEffectId; // Existing pooled VFX id used for weak point destruction.
+
     [Tooltip("Number of weak point areas to activate from BossPatternAnchorSet.")]
     [Min(0)]
     [SerializeField] private int _weakPointCount; // Number of scene weak point areas to activate at execution time.
@@ -728,9 +737,29 @@ public struct WeakPointPatternSettings
     [Min(1)]
     [SerializeField] private int _weakPointPositionRetryCount; // Retry count for future weak point placement validation.
 
+    [Tooltip("Minimum distance in world units required between selected weak point positions.")]
+    [Min(0f)]
+    [SerializeField] private float _minDistanceBetweenWeakPoints; // Minimum spacing applied while selecting weak point positions.
+
     [Tooltip("Duration in seconds while weak point areas remain active.")]
     [Min(0f)]
     [SerializeField] private float _activeSeconds; // Duration of future weak point vulnerability.
+
+    [Tooltip("Time limit in seconds for destroying all spawned weak points after Pattern 4 entry completes.")]
+    [Min(0f)]
+    [SerializeField] private float _weakPointTimeLimit; // Time limit that resolves Pattern 4 as a boss-favorable timeout.
+
+    [Tooltip("Damage applied to every living Player when the Pattern 4 weak point time limit expires.")]
+    [Min(0f)]
+    [SerializeField] private float _weakPointTimeLimitDamage; // Authority-side damage applied to all valid Players on Pattern 4 timeout.
+
+    [Tooltip("Fallback time in seconds used when the Pattern 4 entry animation event is not received.")]
+    [Min(0f)]
+    [SerializeField] private float _entryAnimationFallbackSeconds; // Animation Event fallback duration for Pattern 4 entry completion.
+
+    [Tooltip("Duration in seconds while the boss remains Groggy after Pattern 4 resolves into Groggy.")]
+    [Min(0f)]
+    [SerializeField] private float _groggyDurationSeconds; // Groggy state duration after weak point flow resolves.
 
     [Tooltip("Damage multiplier applied while weak points are active.")]
     [Min(0f)]
@@ -750,6 +779,21 @@ public struct WeakPointPatternSettings
     public string PatternId => _patternId;
 
     /// <summary>
+    /// Gets the weak point prefab asset reference.
+    /// </summary>
+    public GameObject WeakPointPrefab => _weakPointPrefab;
+
+    /// <summary>
+    /// Gets the optional weak point destruction VFX prefab.
+    /// </summary>
+    public GameObject WeakPointDestroyVfxPrefab => _weakPointDestroyVfxPrefab;
+
+    /// <summary>
+    /// Gets the weak point destruction EffectService id.
+    /// </summary>
+    public E_EffectId WeakPointDestroyEffectId => _weakPointDestroyEffectId;
+
+    /// <summary>
     /// Gets the number of weak point areas to activate.
     /// </summary>
     public int WeakPointCount => _weakPointCount;
@@ -765,9 +809,34 @@ public struct WeakPointPatternSettings
     public int WeakPointPositionRetryCount => _weakPointPositionRetryCount;
 
     /// <summary>
+    /// Gets the minimum distance required between weak point positions.
+    /// </summary>
+    public float MinDistanceBetweenWeakPoints => _minDistanceBetweenWeakPoints;
+
+    /// <summary>
     /// Gets the active duration in seconds.
     /// </summary>
     public float ActiveSeconds => _activeSeconds;
+
+    /// <summary>
+    /// Gets the Pattern 4 weak point destruction time limit in seconds.
+    /// </summary>
+    public float WeakPointTimeLimit => _weakPointTimeLimit;
+
+    /// <summary>
+    /// Gets the damage applied to living Players when Pattern 4 times out.
+    /// </summary>
+    public float WeakPointTimeLimitDamage => _weakPointTimeLimitDamage;
+
+    /// <summary>
+    /// Gets the Pattern 4 entry animation fallback duration.
+    /// </summary>
+    public float EntryAnimationFallbackSeconds => _entryAnimationFallbackSeconds;
+
+    /// <summary>
+    /// Gets the Groggy duration in seconds.
+    /// </summary>
+    public float GroggyDurationSeconds => _groggyDurationSeconds;
 
     /// <summary>
     /// Gets the incoming damage multiplier.
@@ -790,16 +859,51 @@ public struct WeakPointPatternSettings
             _weakPointCount = 0;
         }
 
+        if (_enabled && _weakPointPrefab == null)
+        {
+            Debug.LogWarning($"[BossPatternData] WeakPoint pattern is enabled but WeakPointPrefab is missing. patternId={_patternId}", logContext);
+        }
+
         if (_weakPointPositionRetryCount < 1)
         {
             Debug.LogWarning($"[BossPatternData] WeakPointPositionRetryCount was less than 1 and clamped. patternId={_patternId}, value={_weakPointPositionRetryCount}", logContext);
             _weakPointPositionRetryCount = 1;
         }
 
+        if (_minDistanceBetweenWeakPoints < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] MinDistanceBetweenWeakPoints was below zero and clamped. patternId={_patternId}, value={_minDistanceBetweenWeakPoints}", logContext);
+            _minDistanceBetweenWeakPoints = 0f;
+        }
+
         if (_activeSeconds < 0f)
         {
             Debug.LogWarning($"[BossPatternData] Weak point active duration was below zero and clamped. patternId={_patternId}, value={_activeSeconds}", logContext);
             _activeSeconds = 0f;
+        }
+
+        if (_weakPointTimeLimit < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] WeakPointTimeLimit was below zero and clamped. patternId={_patternId}, value={_weakPointTimeLimit}", logContext);
+            _weakPointTimeLimit = 0f;
+        }
+
+        if (_weakPointTimeLimitDamage < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] WeakPointTimeLimitDamage was below zero and clamped. patternId={_patternId}, value={_weakPointTimeLimitDamage}", logContext);
+            _weakPointTimeLimitDamage = 0f;
+        }
+
+        if (_entryAnimationFallbackSeconds < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] Weak point entry animation fallback duration was below zero and clamped. patternId={_patternId}, value={_entryAnimationFallbackSeconds}", logContext);
+            _entryAnimationFallbackSeconds = 0f;
+        }
+
+        if (_groggyDurationSeconds < 0f)
+        {
+            Debug.LogWarning($"[BossPatternData] Groggy duration was below zero and clamped. patternId={_patternId}, value={_groggyDurationSeconds}", logContext);
+            _groggyDurationSeconds = 0f;
         }
     }
 }

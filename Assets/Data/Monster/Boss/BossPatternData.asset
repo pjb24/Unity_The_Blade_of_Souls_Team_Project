@@ -86,7 +86,7 @@ MonoBehaviour:
     - FanProjectile
     - GroundSpike
   - _phaseIndex: 1
-    _minHealthRatio: 0
+    _minHealthRatio: 0.3
     _maxHealthRatio: 0.7
     _availablePatternIds:
     - WeakPoint
@@ -113,7 +113,7 @@ MonoBehaviour:
   _fanProjectilePattern:
     _enabled: 1
     _patternId: FanProjectile
-    _projectilePrefab: {fileID: 4188268375735499229, guid: 5db9d8b6552d7844aa3eece835f8e88a, type: 3}
+    _projectilePrefab: {fileID: 4632990942025474203, guid: fbfeed0092fbdc14e81a12c9c1a57dbb, type: 3}
     _spawnPointCount: 3
     _projectileCount: 5
     _fanAngleDegrees: 60
@@ -155,10 +155,18 @@ MonoBehaviour:
     _maxAliveCount: 0
     _spawnIntervalSeconds: 0
   _weakPointPattern:
-    _enabled: 0
+    _enabled: 1
     _patternId: WeakPoint
-    _weakPointCount: 0
+    _weakPointPrefab: {fileID: 3319988911712295143, guid: 6a98607952811f94b87b9ba25501a79f, type: 3}
+    _weakPointDestroyVfxPrefab: {fileID: 0}
+    _weakPointDestroyEffectId: 0
+    _weakPointCount: 3
     _weakPointPositionRetryCount: 1
-    _activeSeconds: 0
+    _minDistanceBetweenWeakPoints: 0
+    _activeSeconds: 20
+    _weakPointTimeLimit: 20
+    _weakPointTimeLimitDamage: 200
+    _entryAnimationFallbackSeconds: 0
+    _groggyDurationSeconds: 10
     _incomingDamageMultiplier: 0
     _weakPointStatusTag: 

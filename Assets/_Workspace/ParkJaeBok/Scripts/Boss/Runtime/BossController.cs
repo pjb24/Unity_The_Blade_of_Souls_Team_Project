@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -52,6 +53,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     private Coroutine _patternSelectionCoroutine; // Coroutine handle reserved for future pattern selection timing.
     private Coroutine _currentPatternCoroutine; // Coroutine handle reserved for future active pattern execution.
     private Coroutine _commonCooldownCoroutine; // Coroutine handle reserved for future common cooldown timing.
+    private Coroutine _groggyTimerCoroutine; // Coroutine handle used by Pattern 4 Groggy duration timing.
     private readonly BossPatternSelector _patternSelector = new BossPatternSelector(); // Reusable selector that owns candidate buffers for pattern selection.
     private int _healthPhaseUsageResetVersion; // Reset marker for future health phase usage counters.
     private int _individualCooldownResetVersion; // Reset marker for future per-pattern cooldown state.
@@ -294,6 +296,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return false;
         }
 
+        if (pattern.PatternType == E_BossPatternType.WeakPoint && _isWeakPointPatternActive)
+        {
+            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked because Pattern 4 is already active. object={name}", this);
+            return false;
+        }
+
         if (IsGlobalCooldownActive())
         {
             Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by global cooldown. object={name}, patternType={pattern.PatternType}, remaining={GetGlobalCooldownRemainingSeconds()}", this);
@@ -412,7 +420,22 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         }
 
         _isWeakPointPatternActive = true;
+        _isInvincible = true;
         StartGlobalCooldownInternal("Pattern4EntryCompleted");
+    }
+
+    /// <summary>
+    /// Records that Pattern 4 entry started without activating weak points or starting the weak point timer.
+    /// </summary>
+    public void NotifyPatternFourEntryStarted()
+    {
+        if (!TryEnsureAuthority("NotifyPatternFourEntryStarted"))
+        {
+            return;
+        }
+
+        _isWeakPointPatternActive = false;
+        _isInvincible = false;
     }
 
     /// <summary>
@@ -425,7 +448,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        CancelCurrentRegularPatternForPatternFourEnd("Pattern4TimedOut");
         _isWeakPointPatternActive = false;
+        _isInvincible = false;
+        _isPatternSelectionEnabled = true;
+        EnterIdleState();
         StartGlobalCooldownInternal("Pattern4TimedOut");
     }
 
@@ -440,6 +467,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         }
 
         _isWeakPointPatternActive = false;
+        _isInvincible = false;
         StartGlobalCooldownInternal("Pattern4EntryFailed");
     }
 
@@ -453,7 +481,33 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        CancelCurrentRegularPatternForPatternFourEnd("Pattern4AllWeakPointsDestroyed");
         _isWeakPointPatternActive = false;
+        _isInvincible = false;
+    }
+
+    /// <summary>
+    /// Enters Groggy state for a fixed duration and lets the authority return to Idle afterward.
+    /// </summary>
+    public void StartGroggyForDuration(float groggyDurationSeconds, string reason)
+    {
+        if (!TryEnsureAuthority("StartGroggyForDuration"))
+        {
+            return;
+        }
+
+        float safeDuration = groggyDurationSeconds; // Duration used by the authority-owned Groggy timer.
+        if (safeDuration < 0f)
+        {
+            Debug.LogWarning($"[BossController] Groggy duration was below zero at runtime and clamped. object={name}, value={safeDuration}", this);
+            safeDuration = 0f;
+        }
+
+        StopRuntimeCoroutine(ref _groggyTimerCoroutine);
+        _isWeakPointPatternActive = false;
+        _isInvincible = false;
+        EnterGroggyState();
+        _groggyTimerCoroutine = StartCoroutine(RunGroggyTimer(safeDuration, reason));
     }
 
     /// <summary>
@@ -515,6 +569,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return false;
         }
 
+        if (patternType == E_BossPatternType.WeakPoint && _isWeakPointPatternActive)
+        {
+            return false;
+        }
+
         if (IsPatternCooldownActive(patternType))
         {
             return false;
@@ -534,6 +593,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         }
 
         if (GetPatternCooldownIndex(settings.PatternType) < 0)
+        {
+            return false;
+        }
+
+        if (settings.PatternType == E_BossPatternType.WeakPoint && _isWeakPointPatternActive)
         {
             return false;
         }
@@ -856,6 +920,26 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     }
 
     /// <summary>
+    /// Cancels only the currently executing non-Pattern-4 pattern through the common cancellation API.
+    /// </summary>
+    private void CancelCurrentRegularPatternForPatternFourEnd(string reason)
+    {
+        if (_currentPattern == null || !_currentPattern.IsExecuting)
+        {
+            ClearCurrentPatternReference();
+            return;
+        }
+
+        if (IsPatternFourPatternType(_currentPatternType))
+        {
+            Debug.LogWarning($"[BossController] Pattern 4 end skipped self-cancellation for the weak point pattern. object={name}, reason={reason}", this);
+            return;
+        }
+
+        _currentPattern.CancelPattern(reason);
+    }
+
+    /// <summary>
     /// Clears current pattern references and unregisters this controller from reports.
     /// </summary>
     private void ClearCurrentPatternReference()
@@ -927,6 +1011,21 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         StopRuntimeCoroutine(ref _patternSelectionCoroutine);
         StopRuntimeCoroutine(ref _currentPatternCoroutine);
         StopRuntimeCoroutine(ref _commonCooldownCoroutine);
+        StopRuntimeCoroutine(ref _groggyTimerCoroutine);
+    }
+
+    /// <summary>
+    /// Waits for GroggyDuration and returns the boss to Idle with a global cooldown.
+    /// </summary>
+    private IEnumerator RunGroggyTimer(float groggyDurationSeconds, string reason)
+    {
+        if (groggyDurationSeconds > 0f)
+        {
+            yield return new WaitForSeconds(groggyDurationSeconds);
+        }
+
+        _groggyTimerCoroutine = null;
+        EndGroggyState();
     }
 
     /// <summary>

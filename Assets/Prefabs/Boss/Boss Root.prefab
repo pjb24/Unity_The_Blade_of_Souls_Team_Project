@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5750140265442710181}
   - component: {fileID: 6315991255787019922}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Monster Spawn 01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 6543211349610505223}
   - component: {fileID: 4209361050764380217}
   - component: {fileID: 8721436366750917008}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Weak Point Area 02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -240,7 +240,7 @@ GameObject:
   - component: {fileID: 3003428555051071245}
   - component: {fileID: 3616721490534595347}
   - component: {fileID: 6139070501727823020}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Visual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -354,7 +354,7 @@ GameObject:
   - component: {fileID: 6323022380306372188}
   - component: {fileID: 4388793903370896448}
   - component: {fileID: 5359035564677255698}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Weak Point Area 01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -490,7 +490,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6941816693685173686}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile Spawn Points
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -524,7 +524,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1651012146556187474}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Weak Point Areas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -558,7 +558,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6394989705101873544}
   - component: {fileID: 197673985725442795}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile Spawn 02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -649,7 +649,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7474836220088837180}
   - component: {fileID: 5993724977877237472}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile Spawn 01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -739,7 +739,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 9104514744016605757}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Monster Spawn Points
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -773,7 +773,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2657302360688030827}
   - component: {fileID: 3877938593958107530}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Monster Spawn 02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -873,7 +873,9 @@ GameObject:
   - component: {fileID: 2201502889722818408}
   - component: {fileID: 338479934886841198}
   - component: {fileID: 7964338826940540576}
-  m_Layer: 0
+  - component: {fileID: 1194544836538915617}
+  - component: {fileID: 163197937894529695}
+  m_Layer: 8
   m_Name: Boss Root
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1001,6 +1003,7 @@ MonoBehaviour:
   _playerTag: Player
   _defaultExecutionRange: 20
   _candidateBufferSize: 16
+  _playerHealthBufferSize: 4
   _warnWhenFallbackScanUsed: 1
 --- !u!114 &2506688360464795491
 MonoBehaviour:
@@ -1054,7 +1057,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFanProjectilePattern
   ShowTopMostFoldoutHeaderGroup: 1
-  _patternType: 0
+  _patternType: 1
   _patternLogLabel: 
   _bossController: {fileID: 2001514356791471925}
   _anchorSet: {fileID: 8004796325948814738}
@@ -1074,7 +1077,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossGroundSpikePattern
   ShowTopMostFoldoutHeaderGroup: 1
-  _patternType: 0
+  _patternType: 2
   _patternLogLabel: 
   _bossController: {fileID: 2001514356791471925}
   _executionRange: 20
@@ -1092,11 +1095,46 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossSummonMonsterPattern
   ShowTopMostFoldoutHeaderGroup: 1
-  _patternType: 0
+  _patternType: 3
   _patternLogLabel: 
   _bossController: {fileID: 2001514356791471925}
   _anchorSet: {fileID: 8004796325948814738}
   _warnWhenUsingInstantiateFallback: 1
+--- !u!114 &1194544836538915617
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a360e9958372f34dace0c577b633a61, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossWeakPointPattern
+  ShowTopMostFoldoutHeaderGroup: 1
+  _patternType: 4
+  _patternLogLabel: 
+  _bossController: {fileID: 2001514356791471925}
+  _anchorSet: {fileID: 8004796325948814738}
+--- !u!114 &163197937894529695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5962f11cb6435794f977b4090dc9f26b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossBattleTestStarter
+  _bossController: {fileID: 2001514356791471925}
+  _fanProjectilePattern: {fileID: 2201502889722818408}
+  _groundSpikePattern: {fileID: 338479934886841198}
+  _summonMonsterPattern: {fileID: 7964338826940540576}
+  _startBattleOnStart: 1
+  _autoStartDelaySeconds: 0
 --- !u!1 &8075390241886384120
 GameObject:
   m_ObjectHideFlags: 0
@@ -1107,7 +1145,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3908699581411286737}
   - component: {fileID: 2284506511484906096}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Projectile Spawn 03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
