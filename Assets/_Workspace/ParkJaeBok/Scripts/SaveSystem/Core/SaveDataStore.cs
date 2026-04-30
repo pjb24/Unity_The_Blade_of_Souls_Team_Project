@@ -232,6 +232,30 @@ public class SaveDataStore : MonoBehaviour
     }
 
     /// <summary>
+    /// Returns whether at least one save slot contains valid playable progress data.
+    /// </summary>
+    public bool HasAnySlotData()
+    {
+        for (int slotIndex = 1; slotIndex <= RequiredSlotCount; slotIndex++)
+        {
+            if (HasSlotData((E_SaveSlot)slotIndex))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns whether the last selected slot points to valid playable progress data.
+    /// </summary>
+    public bool HasLastUsedSlotData()
+    {
+        return HasSlotData(_currentSlot);
+    }
+
+    /// <summary>
     /// 기본 호출 문맥으로 글로벌 옵션 데이터를 로드합니다.
     /// </summary>
     public bool LoadGlobalOptions()
@@ -268,28 +292,47 @@ public class SaveDataStore : MonoBehaviour
     /// </summary>
     public bool HasSlotData(E_SaveSlot slot)
     {
+        return TryReadValidSlotData(slot, out _);
+    }
+
+    /// <summary>
+    /// Loads a valid slot into runtime data without creating fallback data for missing or invalid slots.
+    /// </summary>
+    public bool TryLoadSlotData(E_SaveSlot slot, out SlotPlaySaveData slotData)
+    {
+        slotData = null;
+        if (!TryReadValidSlotData(slot, out SlotPlaySaveData loadedSlotData))
+        {
+            return false;
+        }
+
         if (!TryValidateSlot(slot, out int slotIndex))
         {
             return false;
         }
 
-        string path = GetSlotFilePath(slot);
-        if (!File.Exists(path))
+        if (!CanUsePlayData($"TryLoadSlotData.{slotIndex}"))
         {
             return false;
         }
 
-        try
-        {
-            string json = File.ReadAllText(path);
-            SlotPlaySaveData saveData = JsonUtility.FromJson<SlotPlaySaveData>(json);
-            return saveData != null && saveData.Version == CurrentVersion && saveData.SlotIndex == slotIndex && saveData.HasProgress;
-        }
-        catch (Exception exception)
-        {
-            Debug.LogWarning($"[SaveDataStore] Failed to inspect slot data. Treating as no progress. slot={slotIndex}, path={path}, error={exception.Message}", this);
-            return false;
-        }
+        _currentSlot = slot;
+        _runtimeData.ApplyPlayData(loadedSlotData);
+        ApplyRuntimePlayDataToSystems($"TryLoadSlotData.{slotIndex}");
+        SetLastResult(true, $"Slot loaded. slot={slotIndex}, context=TryLoadSlotData");
+        Debug.Log($"[SaveDataStore] Slot load completed. slot={slotIndex}, context=TryLoadSlotData", this);
+        NotifyChanged();
+
+        slotData = loadedSlotData;
+        return true;
+    }
+
+    /// <summary>
+    /// Loads the last selected valid slot into runtime data.
+    /// </summary>
+    public bool TryLoadLastUsedSlotData(out SlotPlaySaveData slotData)
+    {
+        return TryLoadSlotData(_currentSlot, out slotData);
     }
 
     /// <summary>
@@ -322,6 +365,7 @@ public class SaveDataStore : MonoBehaviour
                 ApplyRuntimePlayDataToSystems("DeleteSlot.CurrentSlot");
             }
 
+            NotifyChanged();
             return true;
         }
         catch (Exception exception)
@@ -745,6 +789,63 @@ public class SaveDataStore : MonoBehaviour
         }
 
         return loadedData;
+    }
+
+    /// <summary>
+    /// Reads and validates a slot save file without mutating runtime data or creating fallback files.
+    /// </summary>
+    private bool TryReadValidSlotData(E_SaveSlot slot, out SlotPlaySaveData slotData)
+    {
+        slotData = null;
+        if (!TryValidateSlot(slot, out int slotIndex))
+        {
+            return false;
+        }
+
+        string path = GetSlotFilePath(slot);
+        if (!File.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            string json = File.ReadAllText(path);
+            SlotPlaySaveData loadedData = JsonUtility.FromJson<SlotPlaySaveData>(json);
+            bool isValid = loadedData != null
+                && loadedData.Version == CurrentVersion
+                && loadedData.SlotIndex == slotIndex
+                && loadedData.HasProgress
+                && loadedData.StageProgress.Records != null;
+
+            if (!isValid)
+            {
+                return false;
+            }
+
+            if (loadedData.LastPlayedSceneName == null)
+            {
+                loadedData.LastPlayedSceneName = string.Empty;
+            }
+
+            if (loadedData.OwnedItemIds == null)
+            {
+                loadedData.OwnedItemIds = new System.Collections.Generic.List<string>();
+            }
+
+            if (loadedData.UnlockedIds == null)
+            {
+                loadedData.UnlockedIds = new System.Collections.Generic.List<string>();
+            }
+
+            slotData = loadedData;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning($"[SaveDataStore] Failed to inspect slot data. Treating as no progress. slot={slotIndex}, path={path}, error={exception.Message}", this);
+            return false;
+        }
     }
 
     /// <summary>

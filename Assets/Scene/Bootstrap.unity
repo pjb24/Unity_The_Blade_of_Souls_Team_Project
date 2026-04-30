@@ -748,50 +748,21 @@ PrefabInstance:
       propertyPath: _networkManager
       value: 
       objectReference: {fileID: 1482065451}
-    m_RemovedComponents:
-    - {fileID: 8820946515419213869, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-    - {fileID: 6911285384685930252, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-    - {fileID: 4588995805741180383, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
+    - target: {fileID: 6152396801037239380, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
+      propertyPath: _optionManager
+      value: 
+      objectReference: {fileID: 8186282541568762150}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 517370791919577952, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 854791248119616892}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
---- !u!114 &854791248119616887 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4397434496589944427, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-  m_PrefabInstance: {fileID: 854791248119616886}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 854791248119616889}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbc2ab9f9c0e2dc4d9e53ad1318df38f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageSession
---- !u!114 &854791248119616888 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 16871069682181859, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-  m_PrefabInstance: {fileID: 854791248119616886}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 854791248119616889}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b6eb13ee15f91b4cacde13ce9a2f441, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StageProgressRuntime
---- !u!1 &854791248119616889 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 517370791919577952, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
-  m_PrefabInstance: {fileID: 854791248119616886}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &854791248119616890 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6349070038292939143, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
   m_PrefabInstance: {fileID: 854791248119616886}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 854791248119616889}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 57e900d018fa3a04cacad621dd8e3be9, type: 3}
@@ -802,55 +773,12 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4599951219679633824, guid: 8647e2336330ffd4d9140d148cac8dd6, type: 3}
   m_PrefabInstance: {fileID: 854791248119616886}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 854791248119616889}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: db2579f0b51567a4b95020fff4a3d19d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionService
---- !u!114 &854791248119616892
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 854791248119616889}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4c055129cbf4e4748ae760a8c949212c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SaveDataStore
-  _saveFolderName: SaveData
-  _globalOptionsFileName: GlobalOptionsSave.json
-  _slotFileNameFormat: Slot_{0}_Save.json
-  _optionDefaultProfile: {fileID: 11400000, guid: 8bc1541c5b6b62d4fbabf72b2fb7024c, type: 2}
-  _defaultPlayData:
-    Version: 1
-    SlotIndex: 1
-    StageProgress:
-      Records: []
-    StageSession:
-      SelectedStageId: 
-      RequestedBgmContextType: 0
-    LastPlayedSceneName: 
-    LastSavedUnixTimeUtc: 1777364111
-    HasProgress: 0
-    Currency: 0
-    OwnedItemIds: []
-    UnlockedIds: []
-    PlayTimeSeconds: 0
-  _optionManager: {fileID: 8186282541568762150}
-  _stageProgressRuntime: {fileID: 854791248119616888}
-  _stageSession: {fileID: 854791248119616887}
-  _slotCount: 3
-  _currentSlot: 1
-  _dontDestroyOnLoad: 1
-  _autoLoadOnAwake: 1
-  _autoSaveDirtyData: 1
-  _autoSaveDelaySeconds: 30
-  _showSavePathDebug: 0
-  _lastOperationSucceeded: 0
-  _lastOperationMessage: 
 --- !u!1001 &8186282541568762149
 PrefabInstance:
   m_ObjectHideFlags: 0

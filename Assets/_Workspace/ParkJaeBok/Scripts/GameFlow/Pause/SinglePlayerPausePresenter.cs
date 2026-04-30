@@ -215,13 +215,13 @@ public class SinglePlayerPausePresenter : MonoBehaviour
             return;
         }
 
-        _settingsBridge?.HandleBeforeOpen(BuildSettingsActionContext());
+        _settingsBridge?.HandleBeforeOpen();
 
         SetSettingsVisible(true);
         _isSettingsOpenedFromPause = true;
         HidePausePanel();
 
-        _settingsBridge?.HandleAfterOpen(BuildSettingsActionContext());
+        _settingsBridge?.HandleAfterOpen();
         if (_verboseLog)
         {
             Debug.Log("[SinglePlayerPausePresenter] Settings opened from pause.", this);
@@ -403,21 +403,6 @@ public class SinglePlayerPausePresenter : MonoBehaviour
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// SettingsRoot 오픈 전 브리지 호출에 전달할 문맥 객체를 생성합니다.
-    /// </summary>
-    private TitleMenuActionContext BuildSettingsActionContext()
-    {
-        return new TitleMenuActionContext(
-            _sceneTransitionService,
-            null,
-            null,
-            null,
-            _gameFlowController,
-            string.Empty,
-            GameFlowState.Town);
     }
 
     /// <summary>

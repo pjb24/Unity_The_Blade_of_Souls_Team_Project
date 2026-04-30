@@ -1,30 +1,37 @@
+using System;
+
 /// <summary>
-/// 타이틀 메뉴에서 저장 데이터 존재 여부를 조회하는 인터페이스입니다.
+/// Provides title menu save data queries without exposing save file parsing to UI controllers.
 /// </summary>
 public interface ITitleSaveQueryService
 {
     /// <summary>
-    /// Continue 버튼 활성화에 사용할 데이터 존재 여부를 반환합니다.
+    /// Raised when save slot data or the last selected slot changes.
+    /// </summary>
+    event Action SaveDataChanged;
+
+    /// <summary>
+    /// Returns whether Continue can use the last selected slot data.
     /// </summary>
     bool HasContinueData();
 
     /// <summary>
-    /// Load Game 버튼 활성화에 사용할 데이터 존재 여부를 반환합니다.
+    /// Returns whether Load Game has at least one valid slot to show.
     /// </summary>
     bool HasLoadableData();
 
     /// <summary>
-    /// 지정 슬롯에 진행 데이터가 있는지 반환합니다.
+    /// Returns whether the requested slot contains valid progress data.
     /// </summary>
     bool HasUsedProgressInSlot(int slotIndex);
 
     /// <summary>
-    /// 마지막으로 사용한 슬롯 번호를 반환합니다.
+    /// Returns the last selected slot index when that slot is valid.
     /// </summary>
     bool TryGetLastUsedSlotIndex(out int slotIndex);
 
     /// <summary>
-    /// New Game 덮어쓰기 경고에 사용할 기존 진행 데이터 존재 여부를 반환합니다.
+    /// Returns whether an existing progress save should trigger New Game overwrite warnings.
     /// </summary>
     bool HasExistingProgress();
 }

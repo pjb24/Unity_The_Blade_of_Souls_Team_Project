@@ -49,7 +49,7 @@ public class TitleMenuOptionsPanelBridge : MonoBehaviour, ITitleMenuOptionsPanel
     /// <summary>
     /// 옵션 패널 활성화 전에 옵션 로드와 UI 바인딩 준비를 수행합니다.
     /// </summary>
-    public void HandleBeforeOpen(TitleMenuActionContext context)
+    public void HandleBeforeOpen()
     {
         OptionManager optionManager = ResolveOptionManager(); // 옵션 동기화에 사용할 런타임 OptionManager 참조입니다.
         if (optionManager == null)
@@ -78,7 +78,7 @@ public class TitleMenuOptionsPanelBridge : MonoBehaviour, ITitleMenuOptionsPanel
     /// <summary>
     /// 옵션 패널 활성화 직후 후처리를 수행합니다.
     /// </summary>
-    public void HandleAfterOpen(TitleMenuActionContext context)
+    public void HandleAfterOpen()
     {
     }
 

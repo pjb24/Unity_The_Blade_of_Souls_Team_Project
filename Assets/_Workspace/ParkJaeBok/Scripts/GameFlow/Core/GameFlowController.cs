@@ -310,7 +310,20 @@ public class GameFlowController : MonoBehaviour
     public bool RequestStartLoadGameInSlot(int slotIndex)
     {
         SaveDataStore saveDataStore = ResolveSaveDataStore(); // Load Game에서 사용할 슬롯 저장소입니다.
-        if (saveDataStore == null || !saveDataStore.SetCurrentSlot((E_SaveSlot)slotIndex))
+        E_SaveSlot requestedSlot = (E_SaveSlot)slotIndex; // Load Game slot selected by the title slot list.
+        if (saveDataStore == null)
+        {
+            LogWarning($"LoadGame failed because SaveDataStore was missing. slot={slotIndex}");
+            return false;
+        }
+
+        if (!saveDataStore.HasSlotData(requestedSlot))
+        {
+            LogWarning($"LoadGame failed because selected slot data was missing or invalid. slot={slotIndex}");
+            return false;
+        }
+
+        if (!saveDataStore.SetCurrentSlot(requestedSlot))
         {
             LogWarning($"유효하지 않은 저장 슬롯이라 Load Game을 중단합니다. slot={slotIndex}");
             return false;
@@ -401,15 +414,16 @@ public class GameFlowController : MonoBehaviour
             return false;
         }
 
-        if (!saveDataStore.LoadSlot(saveDataStore.GetCurrentSlot(), "GameFlow.Continue"))
+        if (!saveDataStore.TryLoadLastUsedSlotData(out SlotPlaySaveData loadedSlotData))
         {
+            LogWarning($"Continue failed because last used slot data was missing or invalid. slot={(int)saveDataStore.GetCurrentSlot()}");
             LogWarning("저장 데이터 로드에 실패하여 Continue를 수행할 수 없습니다.");
             return false;
         }
 
         if (!TryResolveContinueSceneName(out string sceneName))
         {
-            sceneName = saveDataStore.RuntimeData.LastPlayedSceneName;
+            sceneName = loadedSlotData.LastPlayedSceneName;
         }
 
         if (string.IsNullOrWhiteSpace(sceneName))

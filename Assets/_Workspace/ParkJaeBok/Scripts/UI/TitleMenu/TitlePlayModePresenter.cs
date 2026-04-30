@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// 타이틀 화면에서 싱글/멀티 플레이 모드 선택을 GameFlowController에 전달하는 프레젠터입니다.
@@ -15,6 +17,23 @@ public class TitlePlayModePresenter : MonoBehaviour
         Multiplay = 3
     }
 
+    [Serializable]
+    private class SlotItemView
+    {
+        [Tooltip("This UI item save slot index. Valid range is 1 to 3.")]
+        [Min(1)]
+        public int SlotIndex = 1; // Save slot index controlled by this title slot UI item.
+
+        [Tooltip("Button used to select this slot.")]
+        public Button SelectButton; // Slot select button whose availability follows the current slot flow mode.
+
+        [Tooltip("Text displaying whether this slot has valid save data.")]
+        public TextMeshProUGUI StateText; // Slot state label for Saved or Empty.
+
+        [Tooltip("Text displaying a short slot summary.")]
+        public TextMeshProUGUI ProgressText; // Slot summary label displayed to designers and players.
+    }
+
     [Header("Dependencies")]
     [Tooltip("모드 선택 요청을 전달할 GameFlowController 참조입니다. 비어 있으면 런타임에서 자동 탐색합니다.")]
     [SerializeField] private GameFlowController _gameFlowController; // 모드 선택 요청을 전달할 게임 흐름 컨트롤러 참조입니다.
@@ -24,6 +43,9 @@ public class TitlePlayModePresenter : MonoBehaviour
 
     [Tooltip("타이틀 Host 시작 요청을 단일 진입점으로 통제할 흐름 제어기입니다.")]
     [SerializeField] private TitleMultiplayerHostFlowController _hostFlowController; // Host 시작 요청 단일 진입점/상태 전이/Busy UI를 담당할 흐름 제어기 참조입니다.
+
+    [Tooltip("Save query service component used to decide Continue, Load Game, and slot button availability.")]
+    [SerializeField] private MonoBehaviour _saveQueryComponent; // ITitleSaveQueryService component used for title save state queries.
 
     [Tooltip("멀티 관련 UI 액션 시 오케스트레이터 참조가 비어 있으면 DDOL 영역까지 자동 재탐색할지 여부입니다.")]
     [SerializeField] private bool _autoResolveMultiplayerSessionOrchestratorOnUse = true; // 멀티 버튼 클릭 시 오케스트레이터 자동 재탐색 활성화 여부를 제어하는 플래그입니다.
@@ -74,6 +96,10 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("Load Game 버튼 참조입니다. 데이터가 없으면 비활성화됩니다.")]
     [SerializeField] private Button _singleLoadGameButton; // Load Game 가능 여부를 반영할 싱글 메뉴 Load 버튼 참조입니다.
 
+    [Header("Slot Select Items")]
+    [Tooltip("Slot buttons and labels shown by the shared slot selection panel.")]
+    [SerializeField] private SlotItemView[] _slotItems = Array.Empty<SlotItemView>(); // Shared slot UI items for New Game, Load Game, and Multiplayer slot selection.
+
     [Header("Multiplayer")]
     [Tooltip("Host 세션 생성 시 사용할 Host 식별자 문자열입니다.")]
     [SerializeField] private string _hostClientId = "Host_A"; // Host 세션 생성 요청에서 사용할 로컬 Host 식별자입니다.
@@ -108,6 +134,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     [SerializeField] private E_TitleSlotFlowMode _currentSlotFlowMode = E_TitleSlotFlowMode.None; // 슬롯 선택 패널에서 어떤 흐름을 처리 중인지 추적하는 런타임 상태입니다.
 
     private ITitleMenuOptionsPanelBridge _legacyOptionsBridge; // 레거시 Options 패널 오픈 전후 동기화를 수행할 브리지 인터페이스 참조입니다.
+    private ITitleSaveQueryService _saveQueryService; // Save query service used to keep title buttons synchronized with actual save data.
 
     /// <summary>
     /// Inspector 미할당 시 GameFlowController를 자동으로 해석합니다.
@@ -131,6 +158,7 @@ public class TitlePlayModePresenter : MonoBehaviour
             _hostFlowController = GetComponent<TitleMultiplayerHostFlowController>();
         }
 
+        ResolveSaveQueryService();
         ResolveLegacyOptionsBridge();
     }
 
@@ -139,7 +167,16 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     private void OnEnable()
     {
+        BindSaveQueryEvents(true);
         OpenTopMenu();
+    }
+
+    /// <summary>
+    /// Removes save data event subscriptions when the title presenter is disabled.
+    /// </summary>
+    private void OnDisable()
+    {
+        BindSaveQueryEvents(false);
     }
 
     /// <summary>
@@ -153,6 +190,7 @@ public class TitlePlayModePresenter : MonoBehaviour
         SetPanelVisible(_panelMultiplayMode, false);
         SetPanelVisible(_multiplayerPanelRoot, false);
         _currentSlotFlowMode = E_TitleSlotFlowMode.None;
+        RefreshSingleMenuInteractivity();
     }
 
     /// <summary>
@@ -224,6 +262,13 @@ public class TitlePlayModePresenter : MonoBehaviour
 
         if (_currentSlotFlowMode == E_TitleSlotFlowMode.SingleLoadGame)
         {
+            if (!HasProgressDataInSlot(slotIndex))
+            {
+                Debug.LogWarning($"[TitlePlayModePresenter] LoadGame failed because selected slot data was missing or invalid. slot={slotIndex}", this);
+                RefreshSlotSelectViews();
+                return;
+            }
+
             OnClickSingleLoadGame();
             return;
         }
@@ -570,6 +615,7 @@ public class TitlePlayModePresenter : MonoBehaviour
         SetPanelVisible(_panelSlotSelect, true);
         SetPanelVisible(_panelMultiplayMode, false);
         SetPanelVisible(_multiplayerPanelRoot, false);
+        RefreshSlotSelectViews();
     }
 
     /// <summary>
@@ -635,12 +681,73 @@ public class TitlePlayModePresenter : MonoBehaviour
     }
 
     /// <summary>
+    /// Resolves the title save query service from the assigned component or the same GameObject.
+    /// </summary>
+    private ITitleSaveQueryService ResolveSaveQueryService()
+    {
+        if (_saveQueryService != null)
+        {
+            return _saveQueryService;
+        }
+
+        _saveQueryService = _saveQueryComponent as ITitleSaveQueryService;
+        if (_saveQueryService != null)
+        {
+            return _saveQueryService;
+        }
+
+        MonoBehaviour[] candidates = GetComponents<MonoBehaviour>(); // Components on the title root that can implement save query behavior.
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            if (candidates[i] is ITitleSaveQueryService service)
+            {
+                _saveQueryComponent = candidates[i];
+                _saveQueryService = service;
+                return _saveQueryService;
+            }
+        }
+
+        Debug.LogWarning("[TitlePlayModePresenter] Save query service was not found. Continue and Load Game buttons are disabled.", this);
+        return null;
+    }
+
+    /// <summary>
+    /// Subscribes or unsubscribes from save data changes that affect title UI availability.
+    /// </summary>
+    private void BindSaveQueryEvents(bool shouldBind)
+    {
+        ITitleSaveQueryService saveQueryService = shouldBind ? ResolveSaveQueryService() : _saveQueryService;
+        if (saveQueryService == null)
+        {
+            return;
+        }
+
+        if (shouldBind)
+        {
+            saveQueryService.SaveDataChanged -= HandleSaveDataChanged;
+            saveQueryService.SaveDataChanged += HandleSaveDataChanged;
+            return;
+        }
+
+        saveQueryService.SaveDataChanged -= HandleSaveDataChanged;
+    }
+
+    /// <summary>
+    /// Refreshes save-dependent title controls after save data changes.
+    /// </summary>
+    private void HandleSaveDataChanged()
+    {
+        RefreshSingleMenuInteractivity();
+        RefreshSlotSelectViews();
+    }
+
+    /// <summary>
     /// 레거시 Options 패널을 열기 전에 저장된 런타임 옵션을 UI에 반영합니다.
     /// </summary>
     private void SynchronizeLegacyOptionsPanelBeforeOpen()
     {
         ITitleMenuOptionsPanelBridge bridge = ResolveLegacyOptionsBridge(); // Options 패널 오픈 전 동기화를 담당할 브리지입니다.
-        bridge?.HandleBeforeOpen(null);
+        bridge?.HandleBeforeOpen();
     }
 
     /// <summary>
@@ -649,7 +756,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     private void SynchronizeLegacyOptionsPanelAfterOpen()
     {
         ITitleMenuOptionsPanelBridge bridge = ResolveLegacyOptionsBridge(); // Options 패널 오픈 후 처리를 담당할 브리지입니다.
-        bridge?.HandleAfterOpen(null);
+        bridge?.HandleAfterOpen();
     }
 
     private void ApplySlotBeforePlay(int slotIndex)
@@ -738,24 +845,64 @@ public class TitlePlayModePresenter : MonoBehaviour
     /// </summary>
     private void RefreshSingleMenuInteractivity()
     {
-        bool hasAnyProgress = HasAnyProgressData(); // Continue/Load 활성화에 사용할 데이터 존재 여부입니다.
+        ITitleSaveQueryService saveQueryService = ResolveSaveQueryService(); // Save-backed query service used for button availability.
+        bool canContinue = saveQueryService != null && saveQueryService.HasContinueData(); // Continue is available only when the last used slot is valid.
+        bool canLoad = saveQueryService != null && saveQueryService.HasLoadableData(); // Load Game is available when any slot is valid.
 
         if (_singleContinueButton != null)
         {
-            _singleContinueButton.interactable = hasAnyProgress;
+            _singleContinueButton.interactable = canContinue;
         }
 
         if (_singleLoadGameButton != null)
         {
-            _singleLoadGameButton.interactable = hasAnyProgress;
+            _singleLoadGameButton.interactable = canLoad;
         }
     }
 
     /// <summary>
     /// 저장 슬롯 전체를 순회해 진행 데이터 존재 여부를 확인합니다.
     /// </summary>
-    private bool HasAnyProgressData()
+    private void RefreshSlotSelectViews()
     {
-        return false;
+        for (int i = 0; i < _slotItems.Length; i++)
+        {
+            SlotItemView slotItem = _slotItems[i]; // Current slot UI item being refreshed.
+            if (slotItem == null)
+            {
+                continue;
+            }
+
+            bool hasSlotData = HasProgressDataInSlot(slotItem.SlotIndex);
+            bool canSelect = _currentSlotFlowMode != E_TitleSlotFlowMode.SingleLoadGame || hasSlotData;
+
+            if (slotItem.SelectButton != null)
+            {
+                slotItem.SelectButton.interactable = canSelect;
+            }
+            else
+            {
+                Debug.LogWarning($"[TitlePlayModePresenter] Slot select button reference is missing. slot={slotItem.SlotIndex}", this);
+            }
+
+            if (slotItem.StateText != null)
+            {
+                slotItem.StateText.text = hasSlotData ? "Saved" : "Empty";
+            }
+
+            if (slotItem.ProgressText != null)
+            {
+                slotItem.ProgressText.text = hasSlotData ? $"Slot {slotItem.SlotIndex}" : "No Data";
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns whether the requested slot contains valid save progress.
+    /// </summary>
+    private bool HasProgressDataInSlot(int slotIndex)
+    {
+        ITitleSaveQueryService saveQueryService = ResolveSaveQueryService(); // Save query service used to inspect individual slot data.
+        return saveQueryService != null && saveQueryService.HasUsedProgressInSlot(slotIndex);
     }
 }
