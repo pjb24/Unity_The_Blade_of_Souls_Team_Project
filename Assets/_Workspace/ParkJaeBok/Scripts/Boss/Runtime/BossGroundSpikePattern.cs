@@ -4,36 +4,36 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Executes Pattern 2 by warning under the nearest valid Player and then spawning a temporary ground spike hit.
+/// 가장 가까운 유효한 Player 아래에 경고를 표시한 후 임시 지면 스파이크 공격을 생성하여 패턴 2를 실행한다.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class BossGroundSpikePattern : BossPatternBase
 {
-    [Header("Required References")]
-    [Tooltip("Boss controller that owns authority, pattern data, and Player search.")]
-    [SerializeField] private BossController _bossController; // Boss authority and shared data source for Pattern 2.
+    [Header("필수 참조")]
+    [Tooltip("권한, 패턴 데이터, Player 탐색을 소유하는 보스 컨트롤러")]
+    [SerializeField] private BossController _bossController; // 패턴 2에서 사용하는 보스 권한 및 공통 데이터 소스
 
-    [Header("Execution")]
-    [Tooltip("Range used to search the nearest Player when Pattern 2 starts.")]
+    [Header("실행")]
+    [Tooltip("패턴 2 시작 시 가장 가까운 Player를 탐색할 범위")]
     [Min(0f)]
-    [SerializeField] private float _executionRange = 20f; // Player search range used only at Pattern 2 execution time.
+    [SerializeField] private float _executionRange = 20f; // 패턴 2 실행 시에만 사용하는 Player 탐색 거리
 
-    [Tooltip("Maximum Collider2D candidates checked by one spike hit without allocating execution-time arrays.")]
+    [Tooltip("실행 시 배열 할당 없이 하나의 스파이크 히트에서 검사할 최대 Collider2D 개수")]
     [Min(1)]
-    [SerializeField] private int _maxHitColliderCandidates = 16; // Non-alloc hit detection buffer size used by Pattern 2.
+    [SerializeField] private int _maxHitColliderCandidates = 16; // 패턴 2에서 사용하는 Non-alloc 히트 검사 버퍼 크기
 
-    private Coroutine _executionCoroutine; // Running Pattern 2 coroutine that owns warning delay and hit duration.
-    private Collider2D _activeSpikeHitCollider; // Spike hit collider currently enabled for Pattern 2 damage timing.
-    private int _nextSpikeHitSerial; // Incrementing hit serial used to build unique HitRequest ids for Pattern 2.
-    private bool _hasLoggedSpikeObjectPoolFallback; // Prevents repeated direct Instantiate fallback warnings for spike spawning.
-    private bool _hasLoggedNetworkSpawnFallback; // Prevents repeated NetworkObject spawn fallback warnings from this pattern.
+    private Coroutine _executionCoroutine; // 경고 지연 및 히트 지속 시간을 관리하는 패턴 2 실행 코루틴
+    private Collider2D _activeSpikeHitCollider; // 패턴 2 데미지 타이밍 동안 활성화되는 스파이크 히트 콜라이더
+    private int _nextSpikeHitSerial; // 패턴 2 HitRequest 고유 ID 생성을 위한 증가형 시리얼
+    private bool _hasLoggedSpikeObjectPoolFallback; // 스파이크 생성 시 직접 Instantiate fallback 경고 중복 방지
+    private bool _hasLoggedNetworkSpawnFallback; // NetworkObject Spawn fallback 경고 중복 방지
 
     private readonly List<Collider2D> _hitColliderList = new List<Collider2D>(16);
     private readonly List<HitReceiver> _hitReceiverList = new List<HitReceiver>(16);
     private ContactFilter2D _spikeHitFilter;
 
     /// <summary>
-    /// Resolves required runtime references before Pattern 2 starts.
+    /// 패턴 2 시작 전에 필요한 런타임 참조를 해결한다.
     /// </summary>
     private void Awake()
     {
@@ -41,19 +41,19 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Corrects invalid Pattern 2 inspector values and refreshes references.
+    /// 잘못된 인스펙터 값을 보정하고 참조를 갱신한다.
     /// </summary>
     private void OnValidate()
     {
         if (_executionRange < 0f)
         {
-            Debug.LogWarning($"[BossGroundSpikePattern] ExecutionRange was below zero and clamped. object={name}, value={_executionRange}", this);
+            Debug.LogWarning($"[BossGroundSpikePattern] ExecutionRange가 0보다 작아서 보정됨. object={name}, value={_executionRange}", this);
             _executionRange = 0f;
         }
 
         if (_maxHitColliderCandidates < 1)
         {
-            Debug.LogWarning($"[BossGroundSpikePattern] MaxHitColliderCandidates was less than 1 and clamped. object={name}, value={_maxHitColliderCandidates}", this);
+            Debug.LogWarning($"[BossGroundSpikePattern] MaxHitColliderCandidates가 1보다 작아서 보정됨. object={name}, value={_maxHitColliderCandidates}", this);
             _maxHitColliderCandidates = 1;
         }
 
@@ -61,7 +61,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Starts Pattern 2 once through the common pattern execution API.
+    /// 공통 패턴 실행 API를 통해 패턴 2를 1회 실행한다.
     /// </summary>
     protected override void OnPatternExecutionStarted()
     {
@@ -91,13 +91,13 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return;
         }
 
-        Vector3 spikePosition = ResolveSpikePosition(settings, targetTransform); // Final world position where the warning, spike, and attack VFX are played.
+        Vector3 spikePosition = ResolveSpikePosition(settings, targetTransform); // 경고, 스파이크, 공격 VFX가 재생될 최종 월드 위치
         _nextSpikeHitSerial = 0;
         _executionCoroutine = StartCoroutine(ExecuteSpikeSequence(settings, spikePosition));
     }
 
     /// <summary>
-    /// Stops active Pattern 2 timing and disables active hit data when cancellation comes from BossController.
+    /// BossController에서 취소가 들어오면 패턴 2 실행과 히트 상태를 정리한다.
     /// </summary>
     protected override void OnPatternExecutionCancelled(string reason)
     {
@@ -106,7 +106,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves Pattern 2 settings from the boss pattern data asset.
+    /// 보스 패턴 데이터에서 패턴 2 설정을 가져온다.
     /// </summary>
     private bool TryGetSettings(out GroundSpikePatternSettings settings)
     {
@@ -120,7 +120,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
 
         if (!_bossController.PatternData.TryGetGroundSpikePattern(_bossController.CurrentPatternId, out settings))
         {
-            Debug.LogWarning($"[BossGroundSpikePattern] GroundSpike settings were not found for PatternId. object={name}, patternId={_bossController.CurrentPatternId}", this);
+            Debug.LogWarning($"[BossGroundSpikePattern] PatternId에 해당하는 GroundSpike 설정이 없음. object={name}, patternId={_bossController.CurrentPatternId}", this);
             return false;
         }
 
@@ -128,7 +128,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Finds the nearest valid Player through the shared boss Player target provider.
+    /// 공통 Player 타겟 제공자를 통해 가장 가까운 Player를 찾는다.
     /// </summary>
     private bool TryResolveTarget(out Transform targetTransform)
     {
@@ -142,13 +142,14 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves the spike placement position by raycasting downward from above the target Player.
+    /// 타겟 Player 위에서 아래로 Raycast하여 스파이크 위치를 결정한다.
     /// </summary>
     private Vector3 ResolveSpikePosition(GroundSpikePatternSettings settings, Transform targetTransform)
     {
-        Vector3 targetPosition = targetTransform.position; // Target Player position used as fallback spike placement.
-        Vector2 raycastStart = new Vector2(targetPosition.x, targetPosition.y + settings.RaycastStartYOffset); // Raycast origin placed above the target Player.
-        RaycastHit2D groundHit = Physics2D.Raycast(raycastStart, Vector2.down, settings.GroundRaycastDistance, settings.GroundLayerMask); // Ground hit result used to snap the spike to the floor.
+        Vector3 targetPosition = targetTransform.position; // 기본 스파이크 위치 (fallback)
+        Vector2 raycastStart = new Vector2(targetPosition.x, targetPosition.y + settings.RaycastStartYOffset); // Player 위쪽에서 시작하는 Raycast 시작점
+        RaycastHit2D groundHit = Physics2D.Raycast(raycastStart, Vector2.down, settings.GroundRaycastDistance, settings.GroundLayerMask); // 지면을 찾기 위한 Raycast
+
         if (groundHit.collider != null)
         {
             return groundHit.point;
@@ -159,7 +160,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Runs warning presentation, spike creation, attack presentation, hit duration, and completion reporting.
+    /// 경고 → 스파이크 생성 → 공격 → 히트 유지 → 종료까지 전체 시퀀스를 실행한다.
     /// </summary>
     private IEnumerator ExecuteSpikeSequence(GroundSpikePatternSettings settings, Vector3 spikePosition)
     {
@@ -194,12 +195,13 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Plays Pattern 2 VFX locally or broadcasts it to clients when the boss pattern NetworkObject is spawned.
+    /// 보스 패턴 NetworkObject가 Spawn된 상태이면 패턴 2 VFX를 클라이언트에 브로드캐스트하고, 아니면 로컬에서 재생한다.
     /// </summary>
     private void PlaySynchronizedVfxOrWarn(E_EffectId effectId, GameObject vfxPrefab, Vector3 position, string missingReason, bool isWarningVfx)
     {
-        NetworkManager networkManager = NetworkManager.Singleton; // Current NGO session used to decide whether RPC presentation sync is available.
+        NetworkManager networkManager = NetworkManager.Singleton; // RPC 연출 동기화 사용 가능 여부를 판단하기 위한 현재 NGO 세션
         bool shouldUseNetwork = networkManager != null && networkManager.IsListening;
+
         if (shouldUseNetwork && IsSpawned)
         {
             BroadcastGroundSpikeVfxRpc((int)effectId, position, isWarningVfx);
@@ -215,24 +217,28 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Receives server-confirmed Pattern 2 VFX playback and only performs local presentation on clients and host.
+    /// 서버에서 확정한 패턴 2 VFX 재생 요청을 수신하고 클라이언트와 Host에서 로컬 연출만 수행한다.
     /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
     private void BroadcastGroundSpikeVfxRpc(int effectIdValue, Vector3 position, bool isWarningVfx)
     {
         ResolveReferences();
-        GroundSpikePatternSettings settings = default; // Local settings copy used only to resolve optional prefab fallback presentation.
+
+        GroundSpikePatternSettings settings = default; // 선택적 프리팹 fallback 연출을 찾기 위한 로컬 설정 복사본
+
         if (_bossController != null && _bossController.PatternData != null)
         {
             _bossController.PatternData.TryGetGroundSpikePattern(_bossController.CurrentPatternId, out settings);
         }
-        GameObject fallbackPrefab = isWarningVfx ? settings.WarningVfxPrefab : settings.AttackVfxPrefab; // Optional prefab fallback when EffectService id is not configured.
-        string missingReason = isWarningVfx ? "WarningVFXMissing" : "AttackVFXMissing"; // Warning reason reported if neither EffectService id nor prefab fallback is available.
+
+        GameObject fallbackPrefab = isWarningVfx ? settings.WarningVfxPrefab : settings.AttackVfxPrefab; // EffectService ID가 없을 때 사용할 선택적 프리팹 fallback
+        string missingReason = isWarningVfx ? "WarningVFXMissing" : "AttackVFXMissing"; // EffectService ID와 프리팹 fallback이 모두 없을 때 기록할 사유
+
         PlayLocalVfxOrWarn((E_EffectId)effectIdValue, fallbackPrefab, position, missingReason);
     }
 
     /// <summary>
-    /// Plays a Pattern 2 VFX through EffectService first and falls back to prefab instantiation only when no EffectId is configured.
+    /// 패턴 2 VFX를 EffectService 우선으로 재생하고, EffectId가 없을 경우에만 프리팹 생성 fallback을 사용한다.
     /// </summary>
     private void PlayLocalVfxOrWarn(E_EffectId effectId, GameObject vfxPrefab, Vector3 position, string missingReason)
     {
@@ -260,7 +266,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Spawns the spike object on the authority instance and spawns its NetworkObject when the prefab requires network replication.
+    /// 권한 인스턴스에서 스파이크 오브젝트를 생성하고 필요 시 NetworkObject를 Spawn한다.
     /// </summary>
     private bool TrySpawnSpike(GameObject spikePrefab, Vector3 spikePosition, out GameObject spikeInstance)
     {
@@ -270,9 +276,9 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return false;
         }
 
-        NetworkManager networkManager = NetworkManager.Singleton; // Current NGO session used to decide whether NetworkObject Spawn is required.
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션 상태
         bool shouldUseNetwork = networkManager != null && networkManager.IsListening;
-        NetworkObject prefabNetworkObject = spikePrefab.GetComponent<NetworkObject>(); // NetworkObject marker that decides network spawn flow.
+        NetworkObject prefabNetworkObject = spikePrefab.GetComponent<NetworkObject>(); // 네트워크 스폰 여부 판단 기준
 
         if (shouldUseNetwork && !_bossController.IsBossLogicAuthority())
         {
@@ -294,11 +300,11 @@ public sealed class BossGroundSpikePattern : BossPatternBase
 
         if (prefabNetworkObject == null)
         {
-            LogNetworkSpawnFallbackOnce("Spike prefab has no NetworkObject, so only the authority instance created the spike presentation.");
+            LogNetworkSpawnFallbackOnce("Spike 프리팹에 NetworkObject가 없어 권한 인스턴스에서만 생성됨.");
             return true;
         }
 
-        NetworkObject spawnedNetworkObject = spikeInstance.GetComponent<NetworkObject>(); // Runtime NetworkObject instance spawned by the authority.
+        NetworkObject spawnedNetworkObject = spikeInstance.GetComponent<NetworkObject>(); // 런타임 생성된 NetworkObject
         if (spawnedNetworkObject == null)
         {
             LogFailureOnce("SpawnedSpikeNetworkObjectMissing");
@@ -307,7 +313,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
 
         if (!spawnedNetworkObject.IsSpawned)
         {
-            LogNetworkSpawnFallbackOnce("NetworkObject Pool was not found; Pattern 2 spawned the spike with NGO Instantiate plus Spawn.");
+            LogNetworkSpawnFallbackOnce("NetworkObject Pool이 없어 Instantiate + Spawn 방식 사용됨.");
             spawnedNetworkObject.Spawn(true);
         }
 
@@ -315,7 +321,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Enables the first available Collider2D on the spawned spike as the temporary attack hit.
+    /// 생성된 스파이크에서 사용할 Collider2D를 찾아 활성화한다.
     /// </summary>
     private void EnableSpikeHitCollider(GameObject spikeInstance)
     {
@@ -341,7 +347,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Applies Pattern 2 spike damage to HitReceiver targets found by the configured overlap box.
+    /// 설정된 OverlapBox를 통해 HitReceiver 대상에게 스파이크 피해를 적용한다.
     /// </summary>
     private void ApplySpikeHit(GroundSpikePatternSettings settings, Vector3 spikePosition)
     {
@@ -357,11 +363,11 @@ public sealed class BossGroundSpikePattern : BossPatternBase
         ConfigureSpikeHitFilter(settings.SpikeTargetLayerMask);
 
         Physics2D.OverlapBox(
-        spikePosition,
-        settings.BoxSize,
-        0f,
-        _spikeHitFilter,
-        _hitColliderList);
+            spikePosition,
+            settings.BoxSize,
+            0f,
+            _spikeHitFilter,
+            _hitColliderList);
 
         for (int index = 0; index < _hitColliderList.Count; index++)
         {
@@ -383,12 +389,13 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Sends one HitRequest through the existing HitReceiver and HealthComponent damage path.
+    /// 기존 Hit 시스템을 통해 단일 HitRequest를 전달한다.
     /// </summary>
     private void SendSpikeHit(GroundSpikePatternSettings settings, Vector3 spikePosition, HitReceiver receiver)
     {
-        Vector3 targetPosition = receiver.transform.position; // Target position used as HitPoint and direction source.
-        Vector3 hitDirection = targetPosition - spikePosition; // Direction from spike origin to the target.
+        Vector3 targetPosition = receiver.transform.position; // 히트 위치
+        Vector3 hitDirection = targetPosition - spikePosition; // 방향 계산
+
         if (hitDirection.sqrMagnitude <= Mathf.Epsilon)
         {
             hitDirection = Vector3.up;
@@ -413,19 +420,20 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Builds a unique Pattern 2 HitId so the existing HitReceiver duplicate guard remains active.
+    /// 기존 HitReceiver 중복 방지 로직을 유지하기 위한 고유 HitId를 생성한다.
     /// </summary>
     private string BuildSpikeHitId(HitReceiver receiver)
     {
-        int receiverId = receiver != null ? receiver.gameObject.GetInstanceID() : 0; // Receiver instance id included in the hit id for duplicate protection.
-        int executionId = CurrentExecutionId; // Current BossPatternBase execution id used to scope duplicate protection.
-        int hitSerial = _nextSpikeHitSerial; // Per-execution serial used when several receivers are hit.
+        int receiverId = receiver != null ? receiver.gameObject.GetInstanceID() : 0; // Receiver ID
+        int executionId = CurrentExecutionId; // 패턴 실행 ID
+        int hitSerial = _nextSpikeHitSerial; // 개별 히트 시리얼
         _nextSpikeHitSerial++;
+
         return $"{gameObject.GetInstanceID()}:{executionId}:{receiverId}:GroundSpike:{hitSerial}";
     }
 
     /// <summary>
-    /// Resolves a HitReceiver from a collider by reusing the existing HitSystem receiver component.
+    /// Collider에서 HitReceiver를 찾는다.
     /// </summary>
     private HitReceiver ResolveHitReceiver(Collider2D candidateCollider)
     {
@@ -434,7 +442,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return null;
         }
 
-        HitReceiver receiver = candidateCollider.GetComponent<HitReceiver>(); // Direct receiver on the collider object.
+        HitReceiver receiver = candidateCollider.GetComponent<HitReceiver>();
         if (receiver != null)
         {
             return receiver;
@@ -450,7 +458,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Disables the active spike hit collider when the hit duration ends or the pattern is cancelled.
+    /// 활성화된 스파이크 히트 콜라이더를 비활성화한다.
     /// </summary>
     private void DisableActiveSpikeHitCollider()
     {
@@ -464,7 +472,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Stops the running execution coroutine and clears the stored handle.
+    /// 실행 중인 코루틴을 중지하고 참조를 초기화한다.
     /// </summary>
     private void StopExecutionCoroutine()
     {
@@ -478,7 +486,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Logs the missing NetworkObject pool fallback once for this pattern instance.
+    /// NetworkObject fallback 경고를 1회만 출력한다.
     /// </summary>
     private void LogNetworkSpawnFallbackOnce(string message)
     {
@@ -492,7 +500,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Logs the direct spike Instantiate fallback once because this repository has no reusable generic ObjectPool for spike objects.
+    /// ObjectPool 미사용 fallback 경고를 1회만 출력한다.
     /// </summary>
     private void LogSpikeObjectPoolFallbackOnce()
     {
@@ -501,12 +509,12 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return;
         }
 
-        Debug.LogWarning($"[BossGroundSpikePattern] No reusable spike ObjectPool was found; Pattern 2 uses direct Instantiate for SpikePrefab. object={name}", this);
+        Debug.LogWarning($"[BossGroundSpikePattern] ObjectPool이 없어 Instantiate 사용. object={name}", this);
         _hasLoggedSpikeObjectPoolFallback = true;
     }
 
     /// <summary>
-    /// Reports a cancellation reason with a one-time warning for this execution.
+    /// 경고 로그를 1회 출력 후 패턴 취소를 수행한다.
     /// </summary>
     private void CancelPatternWithWarning(string reason)
     {
@@ -515,7 +523,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves optional references from the same boss GameObject.
+    /// 동일 GameObject에서 참조를 해결한다.
     /// </summary>
     private void ResolveReferences()
     {
@@ -525,6 +533,9 @@ public sealed class BossGroundSpikePattern : BossPatternBase
         }
     }
 
+    /// <summary>
+    /// 스파이크 히트용 ContactFilter를 구성한다.
+    /// </summary>
     private void ConfigureSpikeHitFilter(LayerMask targetLayerMask)
     {
         _spikeHitFilter = new ContactFilter2D

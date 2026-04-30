@@ -3,36 +3,36 @@ using UnityEngine;
 
 #if UNITY_EDITOR
 /// <summary>
-/// Provides designer-friendly test entry points for calling BossController.StartBattle during Play Mode.
+/// Play Mode에서 BossController.StartBattle을 호출하기 위한 디자이너용 테스트 진입 지점을 제공한다.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class BossBattleTestStarter : MonoBehaviour
 {
-    [Header("Required References")]
-    [Tooltip("BossController that receives the test StartBattle call. If empty, this component searches the same GameObject.")]
-    [SerializeField] private BossController _bossController; // BossController target used by StartBattle test calls.
+    [Header("필수 참조")]
+    [Tooltip("테스트용 StartBattle 호출을 받을 BossController입니다. 비어있으면 동일한 GameObject에서 자동으로 찾습니다.")]
+    [SerializeField] private BossController _bossController; // StartBattle 테스트 호출에 사용할 BossController 대상
 
-    [Tooltip("Fan Projectile pattern component used by the Pattern 1 test command.")]
-    [SerializeField] private BossFanProjectilePattern _fanProjectilePattern; // Pattern 1 component used by the context menu test command.
+    [Tooltip("패턴 1 테스트 명령에서 사용할 Fan Projectile 패턴 컴포넌트")]
+    [SerializeField] private BossFanProjectilePattern _fanProjectilePattern; // ContextMenu 테스트 명령에서 사용하는 패턴 1 컴포넌트
 
-    [Tooltip("Ground Spike pattern component used by the Pattern 2 test command.")]
-    [SerializeField] private BossGroundSpikePattern _groundSpikePattern; // Pattern 2 component used by the context menu test command.
+    [Tooltip("패턴 2 테스트 명령에서 사용할 Ground Spike 패턴 컴포넌트")]
+    [SerializeField] private BossGroundSpikePattern _groundSpikePattern; // ContextMenu 테스트 명령에서 사용하는 패턴 2 컴포넌트
 
-    [Tooltip("Summon Monster pattern component used by the Pattern 3 test command.")]
-    [SerializeField] private BossSummonMonsterPattern _summonMonsterPattern; // Pattern 3 component used by the context menu test command.
+    [Tooltip("패턴 3 테스트 명령에서 사용할 Summon Monster 패턴 컴포넌트")]
+    [SerializeField] private BossSummonMonsterPattern _summonMonsterPattern; // ContextMenu 테스트 명령에서 사용하는 패턴 3 컴포넌트
 
-    [Header("Start Options")]
-    [Tooltip("Whether StartBattle should be called automatically when this component starts in Play Mode.")]
-    [SerializeField] private bool _startBattleOnStart; // Enables automatic StartBattle test execution during Play Mode.
+    [Header("시작 옵션")]
+    [Tooltip("Play Mode 시작 시 자동으로 StartBattle을 호출할지 여부")]
+    [SerializeField] private bool _startBattleOnStart; // Play Mode에서 자동 StartBattle 테스트 실행 여부
 
-    [Tooltip("Delay in seconds before automatic StartBattle is called.")]
+    [Tooltip("자동 StartBattle 호출 전 대기 시간(초)")]
     [Min(0f)]
-    [SerializeField] private float _autoStartDelaySeconds; // Optional delay before automatic StartBattle test execution.
+    [SerializeField] private float _autoStartDelaySeconds; // 자동 StartBattle 실행 전 대기 시간
 
-    private Coroutine _autoStartCoroutine; // Running delayed auto-start coroutine handle.
+    private Coroutine _autoStartCoroutine; // 지연 실행 코루틴 핸들
 
     /// <summary>
-    /// Resolves the BossController reference before runtime test calls.
+    /// 런타임 테스트 호출 전에 BossController 참조를 설정한다.
     /// </summary>
     private void Awake()
     {
@@ -40,7 +40,7 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts the optional automatic StartBattle test flow.
+    /// 자동 StartBattle 테스트 실행을 시작한다.
     /// </summary>
     private void Start()
     {
@@ -59,7 +59,7 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Stops the delayed auto-start coroutine when this tester is disabled.
+    /// 이 컴포넌트가 비활성화될 때 지연 실행 코루틴을 중지한다.
     /// </summary>
     private void OnDisable()
     {
@@ -73,13 +73,13 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Corrects invalid inspector values and refreshes references.
+    /// 잘못된 인스펙터 값을 보정하고 참조를 다시 설정한다.
     /// </summary>
     private void OnValidate()
     {
         if (_autoStartDelaySeconds < 0f)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] AutoStartDelaySeconds was below zero and clamped. object={name}, value={_autoStartDelaySeconds}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] AutoStartDelaySeconds가 0보다 작아서 보정됨. object={name}, value={_autoStartDelaySeconds}", this);
             _autoStartDelaySeconds = 0f;
         }
 
@@ -87,7 +87,7 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Calls BossController.StartBattle from the component context menu.
+    /// ContextMenu에서 BossController.StartBattle을 호출한다.
     /// </summary>
     [ContextMenu("Test StartBattle")]
     public void StartBattleFromTest()
@@ -95,16 +95,16 @@ public sealed class BossBattleTestStarter : MonoBehaviour
         ResolveReferences();
         if (_bossController == null)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] StartBattle test failed because BossController is missing. object={name}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] BossController가 없어서 StartBattle 테스트 실패. object={name}", this);
             return;
         }
 
         _bossController.StartBattle();
-        Debug.Log($"[BossBattleTestStarter] StartBattle test requested. object={name}, state={_bossController.CurrentState}, battleActive={_bossController.IsBattleActive}", this);
+        Debug.Log($"[BossBattleTestStarter] StartBattle 테스트 요청됨. object={name}, state={_bossController.CurrentState}, battleActive={_bossController.IsBattleActive}", this);
     }
 
     /// <summary>
-    /// Calls BossController.ResetBattle from the component context menu for repeated testing.
+    /// 반복 테스트를 위해 ContextMenu에서 BossController.ResetBattle을 호출한다.
     /// </summary>
     [ContextMenu("Test ResetBattle")]
     public void ResetBattleFromTest()
@@ -112,16 +112,16 @@ public sealed class BossBattleTestStarter : MonoBehaviour
         ResolveReferences();
         if (_bossController == null)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] ResetBattle test failed because BossController is missing. object={name}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] BossController가 없어서 ResetBattle 테스트 실패. object={name}", this);
             return;
         }
 
         _bossController.ResetBattle();
-        Debug.Log($"[BossBattleTestStarter] ResetBattle test requested. object={name}, state={_bossController.CurrentState}, battleActive={_bossController.IsBattleActive}", this);
+        Debug.Log($"[BossBattleTestStarter] ResetBattle 테스트 요청됨. object={name}, state={_bossController.CurrentState}, battleActive={_bossController.IsBattleActive}", this);
     }
 
     /// <summary>
-    /// Calls BossController.StopBattle from the component context menu for repeated testing.
+    /// 반복 테스트를 위해 ContextMenu에서 BossController.StopBattle을 호출한다.
     /// </summary>
     [ContextMenu("Test StopBattle")]
     public void StopBattleFromTest()
@@ -129,16 +129,16 @@ public sealed class BossBattleTestStarter : MonoBehaviour
         ResolveReferences();
         if (_bossController == null)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] StopBattle test failed because BossController is missing. object={name}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] BossController가 없어서 StopBattle 테스트 실패. object={name}", this);
             return;
         }
 
         _bossController.StopBattle();
-        Debug.Log($"[BossBattleTestStarter] StopBattle test requested. object={name}, state={_bossController.CurrentState}, battleActive={_bossController.IsBattleActive}", this);
+        Debug.Log($"[BossBattleTestStarter] StopBattle 테스트 요청됨. object={name}, state={_bossController.CurrentState}, battleActive={_bossController.IsBattleActive}", this);
     }
 
     /// <summary>
-    /// Starts the Fan Projectile boss pattern through BossController for Pattern 1 testing.
+    /// 패턴 1 테스트를 위해 Fan Projectile 패턴을 실행한다.
     /// </summary>
     [ContextMenu("Test Pattern 1 - Fan Projectile")]
     public void StartFanProjectilePatternFromTest()
@@ -147,7 +147,7 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts the Ground Spike boss pattern through BossController for Pattern 2 testing.
+    /// 패턴 2 테스트를 위해 Ground Spike 패턴을 실행한다.
     /// </summary>
     [ContextMenu("Test Pattern 2 - Ground Spike")]
     public void StartGroundSpikePatternFromTest()
@@ -156,7 +156,7 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts the Summon Monster boss pattern through BossController for Pattern 3 testing.
+    /// 패턴 3 테스트를 위해 Summon Monster 패턴을 실행한다.
     /// </summary>
     [ContextMenu("Test Pattern 3 - Summon Monster")]
     public void StartSummonMonsterPatternFromTest()
@@ -165,7 +165,7 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Waits for the configured delay before calling StartBattle.
+    /// 설정된 지연 시간 후 StartBattle을 호출한다.
     /// </summary>
     private IEnumerator StartBattleAfterDelay()
     {
@@ -175,35 +175,35 @@ public sealed class BossBattleTestStarter : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts a boss pattern through the shared BossController execution path.
+    /// 공통 BossController 실행 경로를 통해 보스 패턴을 실행한다.
     /// </summary>
     private void TryStartPatternFromTest(BossPatternBase pattern, string patternLabel)
     {
         ResolveReferences();
         if (_bossController == null)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] Pattern test failed because BossController is missing. object={name}, pattern={patternLabel}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] BossController가 없어서 패턴 테스트 실패. object={name}, pattern={patternLabel}", this);
             return;
         }
 
         if (pattern == null)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] Pattern test failed because pattern reference is missing. object={name}, pattern={patternLabel}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] 패턴 참조가 없어서 테스트 실패. object={name}, pattern={patternLabel}", this);
             return;
         }
 
         if (!_bossController.IsBattleActive)
         {
-            Debug.LogWarning($"[BossBattleTestStarter] Pattern test is starting battle first because battle is inactive. object={name}, pattern={patternLabel}", this);
+            Debug.LogWarning($"[BossBattleTestStarter] 전투가 비활성 상태라 먼저 StartBattle 실행. object={name}, pattern={patternLabel}", this);
             _bossController.StartBattle();
         }
 
-        bool started = _bossController.TryStartPatternExecution(pattern); // Pattern start result returned by the authoritative BossController path.
-        Debug.Log($"[BossBattleTestStarter] Pattern test requested. object={name}, pattern={patternLabel}, started={started}, state={_bossController.CurrentState}", this);
+        bool started = _bossController.TryStartPatternExecution(pattern); // 권한을 가진 BossController 경로에서 반환된 패턴 시작 결과
+        Debug.Log($"[BossBattleTestStarter] 패턴 테스트 요청됨. object={name}, pattern={patternLabel}, started={started}, state={_bossController.CurrentState}", this);
     }
 
     /// <summary>
-    /// Resolves BossController from the same GameObject when the field is not assigned.
+    /// BossController가 할당되지 않았을 경우 동일한 GameObject에서 자동으로 찾는다.
     /// </summary>
     private void ResolveReferences()
     {

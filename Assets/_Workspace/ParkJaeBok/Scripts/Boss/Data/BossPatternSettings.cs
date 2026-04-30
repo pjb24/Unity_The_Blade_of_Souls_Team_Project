@@ -2,233 +2,233 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Stores common designer-tuned values shared by every boss pattern.
+/// 모든 보스 패턴에서 공통으로 사용하는 디자이너 설정 값을 저장한다.
 /// </summary>
 [Serializable]
 public struct PatternCommonSettings
 {
-    [Tooltip("Stable id used to identify this pattern in logs and runtime lookup.")]
-    [SerializeField] private string _patternId; // Stable id used to distinguish this pattern from other boss patterns.
+    [Tooltip("로그 및 런타임에서 이 패턴을 식별하기 위한 고정 ID")]
+    [SerializeField] private string _patternId; // 다른 보스 패턴과 구분하기 위한 고정 ID
 
-    [Tooltip("Whether this pattern entry is available for validation and future selection.")]
-    [SerializeField] private bool _enabled; // Availability flag used by validation and future pattern selection.
+    [Tooltip("이 패턴이 검증 및 선택 대상에 포함되는지 여부")]
+    [SerializeField] private bool _enabled; // 검증 및 패턴 선택에 사용되는 활성화 여부
 
-    [Tooltip("Pattern behavior category that decides which detailed settings group is used.")]
-    [SerializeField] private E_BossPatternType _patternType; // Pattern category used to route execution to the correct future runner.
+    [Tooltip("패턴 실행 로직을 결정하는 패턴 타입")]
+    [SerializeField] private E_BossPatternType _patternType; // 실행 분기를 결정하는 패턴 타입
 
-    [Tooltip("Base score used by future pattern selection logic.")]
+    [Tooltip("패턴 선택 로직에서 사용하는 기본 가중치")]
     [Min(0f)]
-    [SerializeField] private float _selectionWeight; // Designer-controlled selection weight for future pattern choice.
+    [SerializeField] private float _selectionWeight; // 패턴 선택 시 사용하는 가중치
 
-    [Tooltip("Priority used by boss pattern selection. The highest priority candidate is selected first.")]
+    [Tooltip("패턴 선택 시 우선순위 (높을수록 먼저 선택됨)")]
     [Min(0)]
-    [SerializeField] private int _priority; // Priority value used by BossPatternSelector to pick the strongest candidate.
+    [SerializeField] private int _priority; // 선택 우선순위
 
-    [Tooltip("Whether this pattern requires a valid target Transform to be selected.")]
-    [SerializeField] private bool _requireTarget; // Target requirement used by BossPatternSelector before distance checks.
+    [Tooltip("이 패턴이 선택되기 위해 타겟이 필요한지 여부")]
+    [SerializeField] private bool _requireTarget; // 타겟 필요 여부
 
-    [Tooltip("Whether this pattern can be selected while the weak point pattern is active.")]
-    [SerializeField] private bool _allowDuringWeakPointActive; // Weak point overlap rule used by BossPatternSelector.
+    [Tooltip("약점 패턴 활성 상태에서도 이 패턴을 선택할 수 있는지 여부")]
+    [SerializeField] private bool _allowDuringWeakPointActive; // 약점 패턴 중복 허용 여부
 
-    [Tooltip("Minimum cooldown in seconds before this pattern can be selected again.")]
+    [Tooltip("이 패턴을 다시 사용할 수 있기까지의 최소 쿨타임 (초)")]
     [Min(0f)]
-    [SerializeField] private float _cooldownSeconds; // Cooldown value that future selection logic will read.
+    [SerializeField] private float _cooldownSeconds; // 패턴 재사용 쿨타임
 
-    [Tooltip("Minimum squared distance from target required to allow this pattern.")]
+    [Tooltip("이 패턴을 사용할 수 있는 최소 타겟 거리 (제곱 거리)")]
     [Min(0f)]
-    [SerializeField] private float _minimumTargetSqrDistance; // Minimum target distance threshold stored as squared distance.
+    [SerializeField] private float _minimumTargetSqrDistance; // 최소 거리 조건 (제곱 값)
 
-    [Tooltip("Maximum squared distance from target allowed for this pattern.")]
+    [Tooltip("이 패턴을 사용할 수 있는 최대 타겟 거리 (제곱 거리)")]
     [Min(0f)]
-    [SerializeField] private float _maximumTargetSqrDistance; // Maximum target distance threshold stored as squared distance.
+    [SerializeField] private float _maximumTargetSqrDistance; // 최대 거리 조건 (제곱 값)
 
-    [Tooltip("Delay in seconds before the pattern starts its active timing.")]
+    [Tooltip("패턴 시작 전 대기 시간 (초)")]
     [Min(0f)]
-    [SerializeField] private float _startupSeconds; // Startup duration before a future pattern runner applies the main action.
+    [SerializeField] private float _startupSeconds; // 시작 전 딜레이
 
-    [Tooltip("Active duration in seconds used by future pattern execution.")]
+    [Tooltip("패턴이 실제로 동작하는 시간 (초)")]
     [Min(0f)]
-    [SerializeField] private float _activeSeconds; // Active duration that future pattern execution will use.
+    [SerializeField] private float _activeSeconds; // 활성 시간
 
-    [Tooltip("Recovery duration in seconds after the pattern finishes.")]
+    [Tooltip("패턴 종료 후 회복 시간 (초)")]
     [Min(0f)]
-    [SerializeField] private float _recoverySeconds; // Recovery duration after the pattern active window ends.
+    [SerializeField] private float _recoverySeconds; // 회복 시간
 
     /// <summary>
-    /// Gets the stable pattern id.
+    /// 패턴 ID 반환
     /// </summary>
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets whether this pattern entry is enabled.
+    /// 활성화 여부 반환
     /// </summary>
     public bool Enabled => _enabled;
 
     /// <summary>
-    /// Gets the pattern behavior category.
+    /// 패턴 타입 반환
     /// </summary>
     public E_BossPatternType PatternType => _patternType;
 
     /// <summary>
-    /// Gets the designer selection weight.
+    /// 선택 가중치 반환
     /// </summary>
     public float SelectionWeight => _selectionWeight;
 
     /// <summary>
-    /// Gets the pattern selection priority.
+    /// 우선순위 반환
     /// </summary>
     public int Priority => _priority;
 
     /// <summary>
-    /// Gets whether this pattern requires a target.
+    /// 타겟 필요 여부 반환
     /// </summary>
     public bool RequireTarget => _requireTarget;
 
     /// <summary>
-    /// Gets whether this pattern can be selected while weak points are active.
+    /// 약점 패턴 중 선택 가능 여부 반환
     /// </summary>
     public bool AllowDuringWeakPointActive => _allowDuringWeakPointActive;
 
     /// <summary>
-    /// Gets the cooldown duration in seconds.
+    /// 쿨타임 반환
     /// </summary>
     public float CooldownSeconds => _cooldownSeconds;
 
     /// <summary>
-    /// Gets the minimum target distance threshold as squared distance.
+    /// 최소 거리 반환
     /// </summary>
     public float MinimumTargetSqrDistance => _minimumTargetSqrDistance;
 
     /// <summary>
-    /// Gets the maximum target distance threshold as squared distance.
+    /// 최대 거리 반환
     /// </summary>
     public float MaximumTargetSqrDistance => _maximumTargetSqrDistance;
 
     /// <summary>
-    /// Gets the startup duration in seconds.
+    /// 시작 시간 반환
     /// </summary>
     public float StartupSeconds => _startupSeconds;
 
     /// <summary>
-    /// Gets the active duration in seconds.
+    /// 활성 시간 반환
     /// </summary>
     public float ActiveSeconds => _activeSeconds;
 
     /// <summary>
-    /// Gets the recovery duration in seconds.
+    /// 회복 시간 반환
     /// </summary>
     public float RecoverySeconds => _recoverySeconds;
 
     /// <summary>
-    /// Corrects invalid values for this common settings entry.
+    /// 잘못된 값을 보정한다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext, int index)
     {
         if (_cooldownSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Pattern cooldown was below zero and clamped. index={index}, patternId={_patternId}, value={_cooldownSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 쿨타임이 0보다 작아서 보정됨. index={index}, patternId={_patternId}, value={_cooldownSeconds}", logContext);
             _cooldownSeconds = 0f;
         }
 
         if (_priority < 0)
         {
-            Debug.LogWarning($"[BossPatternData] Pattern priority was below zero and clamped. index={index}, patternId={_patternId}, value={_priority}", logContext);
+            Debug.LogWarning($"[BossPatternData] 우선순위가 0보다 작아서 보정됨. index={index}, patternId={_patternId}, value={_priority}", logContext);
             _priority = 0;
         }
 
         if (_startupSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Startup duration was below zero and clamped. index={index}, patternId={_patternId}, value={_startupSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 시작 시간이 0보다 작아서 보정됨. index={index}, patternId={_patternId}, value={_startupSeconds}", logContext);
             _startupSeconds = 0f;
         }
 
         if (_activeSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Active duration was below zero and clamped. index={index}, patternId={_patternId}, value={_activeSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 활성 시간이 0보다 작아서 보정됨. index={index}, patternId={_patternId}, value={_activeSeconds}", logContext);
             _activeSeconds = 0f;
         }
 
         if (_recoverySeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Recovery duration was below zero and clamped. index={index}, patternId={_patternId}, value={_recoverySeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 회복 시간이 0보다 작아서 보정됨. index={index}, patternId={_patternId}, value={_recoverySeconds}", logContext);
             _recoverySeconds = 0f;
         }
     }
 }
 
 /// <summary>
-/// Stores health-ratio conditions that define boss phase ranges.
+/// 보스의 체력 비율 조건으로 페이즈 범위를 정의하는 설정을 저장한다.
 /// </summary>
 [Serializable]
 public struct HealthPhaseSettings
 {
-    [Tooltip("Phase number used by future boss phase logic.")]
+    [Tooltip("보스 페이즈 로직에서 사용할 페이즈 번호")]
     [Min(0)]
-    [SerializeField] private int _phaseIndex; // Phase index used to group pattern availability.
+    [SerializeField] private int _phaseIndex; // 패턴 사용 가능 여부를 묶는 페이즈 인덱스
 
-    [Tooltip("Exclusive minimum normalized health ratio for this phase.")]
+    [Tooltip("이 페이즈가 활성화되는 최소 체력 비율입니다. 이 값은 포함하지 않습니다.")]
     [Range(0f, 1f)]
-    [SerializeField] private float _minHealthRatio; // Minimum normalized health ratio for phase activation.
+    [SerializeField] private float _minHealthRatio; // 페이즈 활성화에 사용하는 최소 정규화 체력 비율
 
-    [Tooltip("Inclusive maximum normalized health ratio for this phase.")]
+    [Tooltip("이 페이즈가 활성화되는 최대 체력 비율입니다. 이 값은 포함합니다.")]
     [Range(0f, 1f)]
-    [SerializeField] private float _maxHealthRatio; // Maximum normalized health ratio for phase activation.
+    [SerializeField] private float _maxHealthRatio; // 페이즈 활성화에 사용하는 최대 정규화 체력 비율
 
-    [Tooltip("Pattern ids that can be used while this health phase is active.")]
-    [SerializeField] private string[] _availablePatternIds; // Pattern ids available during this phase.
+    [Tooltip("이 체력 페이즈가 활성화된 동안 사용할 수 있는 패턴 ID 목록")]
+    [SerializeField] private string[] _availablePatternIds; // 이 페이즈에서 사용할 수 있는 패턴 ID 목록
 
     /// <summary>
-    /// Gets the phase index.
+    /// 페이즈 인덱스를 반환한다.
     /// </summary>
     public int PhaseIndex => _phaseIndex;
 
     /// <summary>
-    /// Gets the minimum normalized health ratio.
+    /// 최소 정규화 체력 비율을 반환한다.
     /// </summary>
     public float MinHealthRatio => _minHealthRatio;
 
     /// <summary>
-    /// Gets the maximum normalized health ratio.
+    /// 최대 정규화 체력 비율을 반환한다.
     /// </summary>
     public float MaxHealthRatio => _maxHealthRatio;
 
     /// <summary>
-    /// Gets the lower normalized health bound for compatibility with previous data reads.
+    /// 기존 데이터 읽기 호환성을 위해 정규화 체력 하한값을 반환한다.
     /// </summary>
     public float HealthRatioLowerBound => _minHealthRatio;
 
     /// <summary>
-    /// Gets the upper normalized health bound for compatibility with previous data reads.
+    /// 기존 데이터 읽기 호환성을 위해 정규화 체력 상한값을 반환한다.
     /// </summary>
     public float HealthRatioUpperBound => _maxHealthRatio;
 
     /// <summary>
-    /// Gets the available pattern id array for this phase.
+    /// 이 페이즈에서 사용할 수 있는 패턴 ID 배열을 반환한다.
     /// </summary>
     public string[] AvailablePatternIds => _availablePatternIds;
 
     /// <summary>
-    /// Corrects invalid health ratio values for this phase settings entry.
+    /// 이 페이즈 설정 항목의 잘못된 체력 비율 값을 보정한다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext, int index)
     {
         float clampedMin = Mathf.Clamp01(_minHealthRatio);
         if (!Mathf.Approximately(clampedMin, _minHealthRatio))
         {
-            Debug.LogWarning($"[BossPatternData] MinHealthRatio was outside 0..1 and clamped. index={index}, phase={_phaseIndex}, value={_minHealthRatio}", logContext);
+            Debug.LogWarning($"[BossPatternData] MinHealthRatio가 0..1 범위를 벗어나 보정됨. index={index}, phase={_phaseIndex}, value={_minHealthRatio}", logContext);
             _minHealthRatio = clampedMin;
         }
 
         float clampedMax = Mathf.Clamp01(_maxHealthRatio);
         if (!Mathf.Approximately(clampedMax, _maxHealthRatio))
         {
-            Debug.LogWarning($"[BossPatternData] MaxHealthRatio was outside 0..1 and clamped. index={index}, phase={_phaseIndex}, value={_maxHealthRatio}", logContext);
+            Debug.LogWarning($"[BossPatternData] MaxHealthRatio가 0..1 범위를 벗어나 보정됨. index={index}, phase={_phaseIndex}, value={_maxHealthRatio}", logContext);
             _maxHealthRatio = clampedMax;
         }
 
         if (_minHealthRatio >= _maxHealthRatio)
         {
-            Debug.LogWarning($"[BossPatternData] MinHealthRatio must be lower than MaxHealthRatio and was corrected. index={index}, phase={_phaseIndex}, min={_minHealthRatio}, max={_maxHealthRatio}", logContext);
+            Debug.LogWarning($"[BossPatternData] MinHealthRatio는 MaxHealthRatio보다 작아야 하므로 보정됨. index={index}, phase={_phaseIndex}, min={_minHealthRatio}, max={_maxHealthRatio}", logContext);
             _maxHealthRatio = Mathf.Clamp01(_minHealthRatio + 0.01f);
             if (_maxHealthRatio <= _minHealthRatio)
             {
@@ -239,684 +239,684 @@ public struct HealthPhaseSettings
 }
 
 /// <summary>
-/// Stores usage limit settings for a single boss pattern.
+/// 단일 보스 패턴의 사용 제한 설정을 저장한다.
 /// </summary>
 [Serializable]
 public struct PatternUsageLimit
 {
-    [Tooltip("Health phase index that owns this usage limit.")]
+    [Tooltip("이 사용 제한을 소유하는 체력 페이즈 인덱스")]
     [Min(0)]
-    [SerializeField] private int _phaseIndex; // HealthPhaseSettings PhaseIndex that owns this PatternId usage cap.
+    [SerializeField] private int _phaseIndex; // 이 PatternId 사용 제한을 소유하는 HealthPhaseSettings의 PhaseIndex
 
-    [Tooltip("Common pattern id that these usage limits belong to.")]
-    [SerializeField] private string _patternId; // Common pattern id linked to this usage limit.
+    [Tooltip("이 사용 제한이 적용되는 공통 패턴 ID")]
+    [SerializeField] private string _patternId; // 이 사용 제한과 연결된 공통 패턴 ID
 
-    [Tooltip("Maximum uses allowed in this health phase. Zero disables this pattern in the phase, negative means unlimited.")]
-    [SerializeField] private int _maxUseCount; // Phase-local maximum use count for this PatternId.
+    [Tooltip("이 체력 페이즈에서 허용되는 최대 사용 횟수입니다. 0이면 이 페이즈에서 패턴을 비활성화하고, 음수이면 무제한입니다.")]
+    [SerializeField] private int _maxUseCount; // 이 PatternId에 대한 페이즈 내 최대 사용 횟수
 
     /// <summary>
-    /// Gets the health phase index that owns this usage limit.
+    /// 이 사용 제한을 소유하는 체력 페이즈 인덱스를 반환한다.
     /// </summary>
     public int PhaseIndex => _phaseIndex;
 
     /// <summary>
-    /// Gets the common pattern id for this usage limit.
+    /// 이 사용 제한의 공통 패턴 ID를 반환한다.
     /// </summary>
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets the maximum use count for this PatternId inside the configured health phase.
+    /// 설정된 체력 페이즈 안에서 이 PatternId가 사용할 수 있는 최대 횟수를 반환한다.
     /// </summary>
     public int MaxUseCount => _maxUseCount;
 
     /// <summary>
-    /// Gets the maximum encounter use count for compatibility with older code paths.
+    /// 이전 코드 경로와의 호환성을 위해 전투 내 최대 사용 횟수를 반환한다.
     /// </summary>
     public int MaxEncounterUseCount => _maxUseCount;
 
     /// <summary>
-    /// Corrects invalid usage limit values and reports authoring issues.
+    /// 잘못된 사용 제한 값을 보정하고 데이터 작성 문제를 로그로 알린다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext, int index)
     {
         if (_phaseIndex < 0)
         {
-            Debug.LogWarning($"[BossPatternData] UsageLimit PhaseIndex was below zero and clamped. index={index}, patternId={_patternId}, value={_phaseIndex}", logContext);
+            Debug.LogWarning($"[BossPatternData] UsageLimit PhaseIndex가 0보다 작아서 보정됨. index={index}, patternId={_patternId}, value={_phaseIndex}", logContext);
             _phaseIndex = 0;
         }
 
         if (string.IsNullOrWhiteSpace(_patternId))
         {
-            Debug.LogWarning($"[BossPatternData] UsageLimit PatternId is empty. index={index}, phaseIndex={_phaseIndex}", logContext);
+            Debug.LogWarning($"[BossPatternData] UsageLimit PatternId가 비어있다. index={index}, phaseIndex={_phaseIndex}", logContext);
         }
     }
 }
 
 /// <summary>
-/// Stores pure configuration values for a fan-shaped projectile pattern.
+/// 부채꼴 투사체 패턴의 순수 설정 값을 저장한다.
 /// </summary>
 [Serializable]
 public struct FanProjectilePatternSettings
 {
-    [Tooltip("Whether this fan projectile pattern is enabled.")]
-    [SerializeField] private bool _enabled; // Enables validation for required fan projectile references.
+    [Tooltip("이 부채꼴 투사체 패턴의 활성화 여부")]
+    [SerializeField] private bool _enabled; // 필수 부채꼴 투사체 참조 검증을 활성화한다.
 
-    [Tooltip("Common pattern id that these fan projectile settings belong to.")]
-    [SerializeField] private string _patternId; // Common pattern id linked to this fan projectile setting group.
+    [Tooltip("이 부채꼴 투사체 설정이 속한 공통 패턴 ID")]
+    [SerializeField] private string _patternId; // 이 부채꼴 투사체 설정 그룹과 연결된 공통 패턴 ID
 
-    [Tooltip("Projectile prefab used by a future runner. This is an asset reference, not a scene reference.")]
-    [SerializeField] private GameObject _projectilePrefab; // Projectile prefab asset used by future projectile spawning.
+    [Tooltip("이후 실행 로직에서 사용할 투사체 프리팹입니다. 씬 참조가 아닌 애셋 참조입니다.")]
+    [SerializeField] private GameObject _projectilePrefab; // 이후 투사체 생성에 사용할 투사체 프리팹 애셋
 
-    [Tooltip("Number of projectile spawn anchors to use from BossPatternAnchorSet.")]
+    [Tooltip("BossPatternAnchorSet에서 사용할 투사체 생성 앵커 개수")]
     [Min(1)]
-    [SerializeField] private int _spawnPointCount; // Number of scene spawn anchors to consume at execution time.
+    [SerializeField] private int _spawnPointCount; // 실행 시 사용할 씬 생성 앵커 개수
 
-    [Tooltip("Number of projectile directions generated inside the fan.")]
+    [Tooltip("부채꼴 범위 안에서 생성할 투사체 방향 개수")]
     [Min(1)]
-    [SerializeField] private int _projectileCount; // Number of projectiles emitted by this pattern.
+    [SerializeField] private int _projectileCount; // 이 패턴이 발사하는 투사체 개수
 
-    [Tooltip("Total fan angle in degrees.")]
+    [Tooltip("전체 부채꼴 각도")]
     [Min(0f)]
-    [SerializeField] private float _fanAngleDegrees; // Total spread angle for generated projectile directions.
+    [SerializeField] private float _fanAngleDegrees; // 생성되는 투사체 방향의 전체 확산 각도
 
-    [Tooltip("Projectile speed in world units per second.")]
+    [Tooltip("투사체 이동 속도")]
     [Min(0f)]
-    [SerializeField] private float _projectileSpeed; // Projectile speed passed to the existing projectile spawn service.
+    [SerializeField] private float _projectileSpeed; // 기존 투사체 생성 서비스에 전달할 투사체 속도
 
-    [Tooltip("Projectile lifetime in seconds.")]
+    [Tooltip("투사체 생존 시간")]
     [Min(0f)]
-    [SerializeField] private float _projectileLifetime; // Projectile lifetime passed to the existing projectile spawn service.
+    [SerializeField] private float _projectileLifetime; // 기존 투사체 생성 서비스에 전달할 투사체 생존 시간
 
-    [Tooltip("Raw damage applied by each projectile hit.")]
+    [Tooltip("투사체 1회 명중 시 적용되는 기본 피해량")]
     [Min(0f)]
-    [SerializeField] private float _damage; // Raw damage value for each projectile hit.
+    [SerializeField] private float _damage; // 투사체 1회 명중 피해량
 
-    [Tooltip("LayerMask used by spawned projectiles to decide valid collision targets.")]
-    [SerializeField] private LayerMask _projectileCollisionLayerMask; // Collision target layer mask passed to spawned projectiles.
+    [Tooltip("생성된 투사체가 유효한 충돌 대상을 판정할 때 사용하는 LayerMask")]
+    [SerializeField] private LayerMask _projectileCollisionLayerMask; // 생성된 투사체에 전달할 충돌 대상 레이어 마스크
 
-    [Tooltip("Status tag included in HitRequest for this pattern.")]
-    [SerializeField] private string _statusTag; // Hit status tag used by future damage and reaction routing.
+    [Tooltip("이 패턴의 HitRequest에 포함할 상태 태그")]
+    [SerializeField] private string _statusTag; // 이후 피해 및 리액션 분기에 사용할 피격 상태 태그
 
     /// <summary>
-    /// Gets whether this fan projectile pattern is enabled.
+    /// 이 부채꼴 투사체 패턴의 활성화 여부를 반환한다.
     /// </summary>
     public bool Enabled => _enabled;
 
     /// <summary>
-    /// Gets the common pattern id for this setting group.
+    /// 이 설정 그룹의 공통 패턴 ID를 반환한다.
     /// </summary>
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets the projectile prefab asset reference.
+    /// 투사체 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject ProjectilePrefab => _projectilePrefab;
 
     /// <summary>
-    /// Gets the number of spawn anchors to use.
+    /// 사용할 생성 앵커 개수를 반환한다.
     /// </summary>
     public int SpawnPointCount => _spawnPointCount;
 
     /// <summary>
-    /// Gets the number of projectiles to emit.
+    /// 발사할 투사체 개수를 반환한다.
     /// </summary>
     public int ProjectileCount => _projectileCount;
 
     /// <summary>
-    /// Gets the total fan angle in degrees.
+    /// 전체 부채꼴 각도를 반환한다.
     /// </summary>
     public float FanAngleDegrees => _fanAngleDegrees;
 
     /// <summary>
-    /// Gets the projectile speed.
+    /// 투사체 속도를 반환한다.
     /// </summary>
     public float ProjectileSpeed => _projectileSpeed;
 
     /// <summary>
-    /// Gets the projectile lifetime.
+    /// 투사체 생존 시간을 반환한다.
     /// </summary>
     public float ProjectileLifetime => _projectileLifetime;
 
     /// <summary>
-    /// Gets the raw projectile damage.
+    /// 투사체 기본 피해량을 반환한다.
     /// </summary>
     public float Damage => _damage;
 
     /// <summary>
-    /// Gets the projectile collision target layer mask.
+    /// 투사체 충돌 대상 LayerMask를 반환한다.
     /// </summary>
     public LayerMask ProjectileCollisionLayerMask => _projectileCollisionLayerMask;
 
     /// <summary>
-    /// Gets the hit status tag.
+    /// 피격 상태 태그를 반환한다.
     /// </summary>
     public string StatusTag => _statusTag;
 
     /// <summary>
-    /// Corrects invalid values and validates required prefab references for this pattern.
+    /// 잘못된 값을 보정하고 이 패턴에 필요한 프리팹 참조를 검증한다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext)
     {
         if (_projectileCount < 1)
         {
-            Debug.LogWarning($"[BossPatternData] ProjectileCount was less than 1 and clamped. patternId={_patternId}, value={_projectileCount}", logContext);
+            Debug.LogWarning($"[BossPatternData] ProjectileCount가 1보다 작아서 보정됨. patternId={_patternId}, value={_projectileCount}", logContext);
             _projectileCount = 1;
         }
 
         if (_projectileCount % 2 == 0)
         {
-            Debug.LogWarning($"[BossPatternData] ProjectileCount was even and increased by 1. patternId={_patternId}, value={_projectileCount}", logContext);
+            Debug.LogWarning($"[BossPatternData] ProjectileCount가 짝수라서 1 증가됨. patternId={_patternId}, value={_projectileCount}", logContext);
             _projectileCount++;
         }
 
         if (_projectileLifetime < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Projectile duration was below zero and clamped. patternId={_patternId}, value={_projectileLifetime}", logContext);
+            Debug.LogWarning($"[BossPatternData] 투사체 지속 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_projectileLifetime}", logContext);
             _projectileLifetime = 0f;
         }
 
         if (_damage < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Fan projectile damage was below zero and clamped. patternId={_patternId}, value={_damage}", logContext);
+            Debug.LogWarning($"[BossPatternData] 부채꼴 투사체 피해량이 0보다 작아서 보정됨. patternId={_patternId}, value={_damage}", logContext);
             _damage = 0f;
         }
 
         if (_enabled && _projectilePrefab == null)
         {
-            Debug.LogWarning($"[BossPatternData] FanProjectile pattern is enabled but ProjectilePrefab is missing. patternId={_patternId}", logContext);
+            Debug.LogWarning($"[BossPatternData] FanProjectile 패턴이 활성화되어 있지만 ProjectilePrefab이 비어있다. patternId={_patternId}", logContext);
         }
     }
 }
 
 /// <summary>
-/// Stores pure configuration values for a ground spike pattern.
+/// 지면 가시 패턴의 순수 설정 값을 저장한다.
 /// </summary>
 [Serializable]
 public struct GroundSpikePatternSettings
 {
-    [Tooltip("Whether this ground spike pattern is enabled.")]
-    [SerializeField] private bool _enabled; // Enables validation for this ground spike pattern.
+    [Tooltip("이 지면 가시 패턴의 활성화 여부")]
+    [SerializeField] private bool _enabled; // 이 지면 가시 패턴의 검증을 활성화한다.
 
-    [Tooltip("Common pattern id that these ground spike settings belong to.")]
-    [SerializeField] private string _patternId; // Common pattern id linked to this ground spike setting group.
+    [Tooltip("이 지면 가시 설정이 속한 공통 패턴 ID")]
+    [SerializeField] private string _patternId; // 이 지면 가시 설정 그룹과 연결된 공통 패턴 ID
 
-    [Tooltip("Spike prefab created after the warning duration. This is an asset reference, not a scene reference.")]
-    [SerializeField] private GameObject _spikePrefab; // Spike prefab asset spawned by Pattern 2 after warning presentation.
+    [Tooltip("경고 시간이 지난 뒤 생성할 가시 프리팹입니다. 씬 참조가 아닌 애셋 참조입니다.")]
+    [SerializeField] private GameObject _spikePrefab; // 패턴 2에서 경고 표시 후 생성할 가시 프리팹 애셋
 
-    [Tooltip("Optional warning VFX prefab shown before the spike hit becomes active.")]
-    [SerializeField] private GameObject _warningVfxPrefab; // Optional warning VFX prefab spawned before spike creation.
+    [Tooltip("가시 피격이 활성화되기 전에 보여줄 선택 경고 VFX 프리팹")]
+    [SerializeField] private GameObject _warningVfxPrefab; // 가시 생성 전에 표시할 선택 경고 VFX 프리팹
 
-    [Tooltip("EffectService id used to play the warning VFX through the existing pooled VFX system.")]
-    [SerializeField] private E_EffectId _warningEffectId; // Existing VFX system id used for pooled warning presentation.
+    [Tooltip("기존 풀링 VFX 시스템을 통해 경고 VFX를 재생할 EffectService ID")]
+    [SerializeField] private E_EffectId _warningEffectId; // 풀링 경고 표시용 기존 VFX 시스템 ID
 
-    [Tooltip("Optional attack VFX prefab shown when the spike hit becomes active.")]
-    [SerializeField] private GameObject _attackVfxPrefab; // Optional attack VFX prefab spawned when spike damage timing starts.
+    [Tooltip("가시 피격이 활성화될 때 보여줄 선택 공격 VFX 프리팹")]
+    [SerializeField] private GameObject _attackVfxPrefab; // 가시 피해 타이밍이 시작될 때 생성할 선택 공격 VFX 프리팹
 
-    [Tooltip("EffectService id used to play the attack VFX through the existing pooled VFX system.")]
-    [SerializeField] private E_EffectId _attackEffectId; // Existing VFX system id used for pooled attack presentation.
+    [Tooltip("기존 풀링 VFX 시스템을 통해 공격 VFX를 재생할 EffectService ID")]
+    [SerializeField] private E_EffectId _attackEffectId; // 풀링 공격 표시용 기존 VFX 시스템 ID
 
-    [Tooltip("Vertical offset added to the target Player position before the downward ground raycast starts.")]
-    [SerializeField] private float _raycastStartYOffset; // Upward offset used to start the ground search above the target Player.
+    [Tooltip("아래 방향 지면 Raycast 시작 전에 타겟 Player 위치에 더할 Y 오프셋")]
+    [SerializeField] private float _raycastStartYOffset; // 타겟 Player 위쪽에서 지면 검색을 시작하기 위한 오프셋
 
-    [Tooltip("Maximum distance used by the downward ground raycast.")]
+    [Tooltip("아래 방향 지면 Raycast에 사용할 최대 거리")]
     [Min(0f)]
-    [SerializeField] private float _groundRaycastDistance; // Ground search distance used to place the spike on the floor.
+    [SerializeField] private float _groundRaycastDistance; // 바닥에 가시를 배치하기 위해 사용할 지면 검색 거리
 
-    [Tooltip("LayerMask used by the downward ground raycast.")]
-    [SerializeField] private LayerMask _groundLayerMask; // Ground collision layers accepted by Pattern 2 placement raycasts.
+    [Tooltip("아래 방향 지면 Raycast에 사용할 LayerMask")]
+    [SerializeField] private LayerMask _groundLayerMask; // 패턴 2 배치 Raycast가 허용하는 지면 충돌 레이어
 
-    [Tooltip("Delay in seconds between warning presentation and damage application.")]
+    [Tooltip("경고 표시 후 피해 적용까지의 지연 시간")]
     [Min(0f)]
-    [SerializeField] private float _warningSeconds; // Warning duration before future ground spike damage.
+    [SerializeField] private float _warningSeconds; // 이후 지면 가시 피해 전 경고 시간
 
-    [Tooltip("Duration in seconds while the spawned spike hit collider remains active.")]
+    [Tooltip("생성된 가시 피격 Collider가 활성 상태를 유지하는 시간")]
     [Min(0f)]
-    [SerializeField] private float _spikeHitDuration; // Active hit duration before Pattern 2 disables spike collision.
+    [SerializeField] private float _spikeHitDuration; // 패턴 2에서 가시 충돌을 비활성화하기 전까지의 활성 피격 시간
 
-    [Tooltip("Number of spike hits generated during this pattern.")]
+    [Tooltip("이 패턴 중 생성할 가시 피격 횟수")]
     [Min(1)]
-    [SerializeField] private int _spikeCount; // Number of spike areas generated by this pattern.
+    [SerializeField] private int _spikeCount; // 이 패턴에서 생성할 가시 영역 개수
 
-    [Tooltip("Delay in seconds between sequential spike hits.")]
+    [Tooltip("순차 가시 피격 사이의 지연 시간")]
     [Min(0f)]
-    [SerializeField] private float _intervalSeconds; // Time gap between spike activations.
+    [SerializeField] private float _intervalSeconds; // 가시 활성화 사이의 시간 간격
 
-    [Tooltip("Box area size used for each spike hit.")]
-    [SerializeField] private Vector2 _boxSize; // Box hit area size for each spike.
+    [Tooltip("각 가시 피격에 사용할 박스 영역 크기")]
+    [SerializeField] private Vector2 _boxSize; // 각 가시의 박스 피격 영역 크기
 
-    [Tooltip("LayerMask used to find HitReceiver targets hit by the spike.")]
-    [SerializeField] private LayerMask _spikeTargetLayerMask; // Hit target layers used by Pattern 2 authority-side overlap checks.
+    [Tooltip("가시에 맞은 HitReceiver 대상을 찾을 때 사용하는 LayerMask")]
+    [SerializeField] private LayerMask _spikeTargetLayerMask; // 패턴 2 권한 측 Overlap 검사에 사용할 피격 대상 레이어
 
-    [Tooltip("Raw damage applied by each spike hit.")]
+    [Tooltip("가시 1회 피격 시 적용되는 기본 피해량")]
     [Min(0f)]
-    [SerializeField] private float _damage; // Raw SpikeDamage value for each ground spike hit.
+    [SerializeField] private float _damage; // 지면 가시 1회 피격 피해량
 
-    [Tooltip("Status tag included in HitRequest for this pattern.")]
-    [SerializeField] private string _statusTag; // Hit status tag used by future damage and reaction routing.
+    [Tooltip("이 패턴의 HitRequest에 포함할 상태 태그")]
+    [SerializeField] private string _statusTag; // 이후 피해 및 리액션 분기에 사용할 피격 상태 태그
 
     /// <summary>
-    /// Gets whether this ground spike pattern is enabled.
+    /// 이 지면 가시 패턴의 활성화 여부를 반환한다.
     /// </summary>
     public bool Enabled => _enabled;
 
     /// <summary>
-    /// Gets the common pattern id for this setting group.
+    /// 이 설정 그룹의 공통 패턴 ID를 반환한다.
     /// </summary>
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets the spike prefab asset reference.
+    /// 가시 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject SpikePrefab => _spikePrefab;
 
     /// <summary>
-    /// Gets the optional warning VFX prefab asset reference.
+    /// 선택 경고 VFX 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject WarningVfxPrefab => _warningVfxPrefab;
 
     /// <summary>
-    /// Gets the pooled warning VFX id.
+    /// 풀링 경고 VFX ID를 반환한다.
     /// </summary>
     public E_EffectId WarningEffectId => _warningEffectId;
 
     /// <summary>
-    /// Gets the optional attack VFX prefab asset reference.
+    /// 선택 공격 VFX 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject AttackVfxPrefab => _attackVfxPrefab;
 
     /// <summary>
-    /// Gets the pooled attack VFX id.
+    /// 풀링 공격 VFX ID를 반환한다.
     /// </summary>
     public E_EffectId AttackEffectId => _attackEffectId;
 
     /// <summary>
-    /// Gets the vertical offset used before the downward ground raycast starts.
+    /// 아래 방향 지면 Raycast 시작 전에 사용할 Y 오프셋을 반환한다.
     /// </summary>
     public float RaycastStartYOffset => _raycastStartYOffset;
 
     /// <summary>
-    /// Gets the ground raycast distance.
+    /// 지면 Raycast 거리를 반환한다.
     /// </summary>
     public float GroundRaycastDistance => _groundRaycastDistance;
 
     /// <summary>
-    /// Gets the ground raycast LayerMask.
+    /// 지면 Raycast LayerMask를 반환한다.
     /// </summary>
     public LayerMask GroundLayerMask => _groundLayerMask;
 
     /// <summary>
-    /// Gets the warning duration in seconds.
+    /// 경고 시간을 초 단위로 반환한다.
     /// </summary>
     public float WarningSeconds => _warningSeconds;
 
     /// <summary>
-    /// Gets the warning duration in seconds for Pattern 2 naming compatibility.
+    /// 패턴 2 명명 호환성을 위해 경고 시간을 초 단위로 반환한다.
     /// </summary>
     public float SpikeWarningDuration => _warningSeconds;
 
     /// <summary>
-    /// Gets the duration while the spike hit collider remains active.
+    /// 가시 피격 Collider가 활성 상태를 유지하는 시간을 반환한다.
     /// </summary>
     public float SpikeHitDuration => _spikeHitDuration;
 
     /// <summary>
-    /// Gets the number of spike hits.
+    /// 가시 피격 횟수를 반환한다.
     /// </summary>
     public int SpikeCount => _spikeCount;
 
     /// <summary>
-    /// Gets the delay between spike hits.
+    /// 가시 피격 사이의 지연 시간을 반환한다.
     /// </summary>
     public float IntervalSeconds => _intervalSeconds;
 
     /// <summary>
-    /// Gets the spike box size.
+    /// 가시 박스 크기를 반환한다.
     /// </summary>
     public Vector2 BoxSize => _boxSize;
 
     /// <summary>
-    /// Gets the spike hit target LayerMask.
+    /// 가시 피격 대상 LayerMask를 반환한다.
     /// </summary>
     public LayerMask SpikeTargetLayerMask => _spikeTargetLayerMask;
 
     /// <summary>
-    /// Gets the raw spike damage.
+    /// 가시 기본 피해량을 반환한다.
     /// </summary>
     public float Damage => _damage;
 
     /// <summary>
-    /// Gets the raw spike damage.
+    /// 가시 기본 피해량을 반환한다.
     /// </summary>
     public float SpikeDamage => _damage;
 
     /// <summary>
-    /// Gets the hit status tag.
+    /// 피격 상태 태그를 반환한다.
     /// </summary>
     public string StatusTag => _statusTag;
 
     /// <summary>
-    /// Corrects invalid values for this pattern.
+    /// 이 패턴의 잘못된 값을 보정한다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext)
     {
         if (_enabled && _spikePrefab == null)
         {
-            Debug.LogWarning($"[BossPatternData] GroundSpike pattern is enabled but SpikePrefab is missing. patternId={_patternId}", logContext);
+            Debug.LogWarning($"[BossPatternData] GroundSpike 패턴이 활성화되어 있지만 SpikePrefab이 비어있다. patternId={_patternId}", logContext);
         }
 
         if (_groundRaycastDistance < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Ground spike raycast distance was below zero and clamped. patternId={_patternId}, value={_groundRaycastDistance}", logContext);
+            Debug.LogWarning($"[BossPatternData] 지면 가시 Raycast 거리가 0보다 작아서 보정됨. patternId={_patternId}, value={_groundRaycastDistance}", logContext);
             _groundRaycastDistance = 0f;
         }
 
         if (_warningSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Ground spike warning duration was below zero and clamped. patternId={_patternId}, value={_warningSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 지면 가시 경고 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_warningSeconds}", logContext);
             _warningSeconds = 0f;
         }
 
         if (_spikeHitDuration < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Ground spike hit duration was below zero and clamped. patternId={_patternId}, value={_spikeHitDuration}", logContext);
+            Debug.LogWarning($"[BossPatternData] 지면 가시 피격 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_spikeHitDuration}", logContext);
             _spikeHitDuration = 0f;
         }
 
         if (_intervalSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Ground spike interval duration was below zero and clamped. patternId={_patternId}, value={_intervalSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 지면 가시 간격 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_intervalSeconds}", logContext);
             _intervalSeconds = 0f;
         }
 
         if (_damage < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Ground spike damage was below zero and clamped. patternId={_patternId}, value={_damage}", logContext);
+            Debug.LogWarning($"[BossPatternData] 지면 가시 피해량이 0보다 작아서 보정됨. patternId={_patternId}, value={_damage}", logContext);
             _damage = 0f;
         }
     }
 }
 
 /// <summary>
-/// Stores pure configuration values for a monster summon pattern.
+/// 몬스터 소환 패턴의 순수 설정 값을 저장한다.
 /// </summary>
 [Serializable]
 public struct SummonMonsterPatternSettings
 {
-    [Tooltip("Whether this summon monster pattern is enabled.")]
-    [SerializeField] private bool _enabled; // Enables validation for required summon monster references.
+    [Tooltip("이 몬스터 소환 패턴의 활성화 여부")]
+    [SerializeField] private bool _enabled; // 필수 몬스터 소환 참조 검증을 활성화한다.
 
-    [Tooltip("Common pattern id that these summon settings belong to.")]
-    [SerializeField] private string _patternId; // Common pattern id linked to this summon setting group.
+    [Tooltip("이 소환 설정이 속한 공통 패턴 ID")]
+    [SerializeField] private string _patternId; // 이 소환 설정 그룹과 연결된 공통 패턴 ID
 
-    [Tooltip("Monster prefab asset used by a future summon runner.")]
-    [SerializeField] private GameObject _monsterPrefab; // Monster prefab asset used for future spawn logic.
+    [Tooltip("이후 소환 실행 로직에서 사용할 몬스터 프리팹 애셋")]
+    [SerializeField] private GameObject _monsterPrefab; // 이후 생성 로직에서 사용할 몬스터 프리팹 애셋
 
-    [Tooltip("Number of monster spawn anchors to select from BossPatternAnchorSet during one Pattern 3 execution.")]
+    [Tooltip("패턴 3을 1회 실행할 때 BossPatternAnchorSet에서 선택할 몬스터 생성 앵커 개수")]
     [Min(1)]
-    [SerializeField] private int _spawnPointCount; // SpawnCount value that decides how many monster spawn anchors Pattern 3 selects.
+    [SerializeField] private int _spawnPointCount; // 패턴 3이 선택할 몬스터 생성 앵커 개수를 결정하는 SpawnCount 값
 
-    [Tooltip("Maximum alive summoned monsters allowed for this pattern. Zero means no pattern-level cap.")]
+    [Tooltip("이 패턴으로 살아있을 수 있는 최대 소환 몬스터 수입니다. 0이면 패턴 단위 제한이 없습니다.")]
     [Min(0)]
-    [SerializeField] private int _maxAliveCount; // Alive summon cap for future pattern logic.
+    [SerializeField] private int _maxAliveCount; // 이후 패턴 로직에서 사용할 생존 소환 몬스터 제한
 
-    [Tooltip("Delay in seconds between sequential monster spawns.")]
+    [Tooltip("순차 몬스터 생성 사이의 지연 시간")]
     [Min(0f)]
-    [SerializeField] private float _spawnIntervalSeconds; // Time gap between monster spawn requests.
+    [SerializeField] private float _spawnIntervalSeconds; // 몬스터 생성 요청 사이의 시간 간격
 
     /// <summary>
-    /// Gets whether this summon monster pattern is enabled.
+    /// 이 몬스터 소환 패턴의 활성화 여부를 반환한다.
     /// </summary>
     public bool Enabled => _enabled;
 
     /// <summary>
-    /// Gets the common pattern id for this setting group.
+    /// 이 설정 그룹의 공통 패턴 ID를 반환한다.
     /// </summary>
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets the monster prefab asset reference.
+    /// 몬스터 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject MonsterPrefab => _monsterPrefab;
 
     /// <summary>
-    /// Gets the number of monster spawn anchors to use.
+    /// 사용할 몬스터 생성 앵커 개수를 반환한다.
     /// </summary>
     public int SpawnPointCount => _spawnPointCount;
 
     /// <summary>
-    /// Gets the number of monster spawn anchors to select.
+    /// 선택할 몬스터 생성 앵커 개수를 반환한다.
     /// </summary>
     public int SpawnCount => _spawnPointCount;
 
     /// <summary>
-    /// Gets the maximum alive summon count.
+    /// 살아있을 수 있는 최대 소환 몬스터 수를 반환한다.
     /// </summary>
     public int MaxAliveCount => _maxAliveCount;
 
     /// <summary>
-    /// Gets the delay between monster spawn requests.
+    /// 몬스터 생성 요청 사이의 지연 시간을 반환한다.
     /// </summary>
     public float SpawnIntervalSeconds => _spawnIntervalSeconds;
 
     /// <summary>
-    /// Corrects invalid values and validates required prefab references for this pattern.
+    /// 잘못된 값을 보정하고 이 패턴에 필요한 프리팹 참조를 검증한다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext)
     {
         if (_spawnPointCount < 1)
         {
-            Debug.LogWarning($"[BossPatternData] Summon monster SpawnCount was less than 1 and clamped. patternId={_patternId}, value={_spawnPointCount}", logContext);
+            Debug.LogWarning($"[BossPatternData] Summon monster SpawnCount가 1보다 작아서 보정됨. patternId={_patternId}, value={_spawnPointCount}", logContext);
             _spawnPointCount = 1;
         }
 
         if (_spawnIntervalSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Summon monster interval duration was below zero and clamped. patternId={_patternId}, value={_spawnIntervalSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 몬스터 소환 간격 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_spawnIntervalSeconds}", logContext);
             _spawnIntervalSeconds = 0f;
         }
 
         if (_enabled && _monsterPrefab == null)
         {
-            Debug.LogWarning($"[BossPatternData] SummonMonster pattern is enabled but MonsterPrefab is missing. patternId={_patternId}", logContext);
+            Debug.LogWarning($"[BossPatternData] SummonMonster 패턴이 활성화되어 있지만 MonsterPrefab이 비어있다. patternId={_patternId}", logContext);
         }
     }
 }
 
 /// <summary>
-/// Stores pure configuration values for a weak point pattern.
+/// 약점 패턴의 순수 설정 값을 저장한다.
 /// </summary>
 [Serializable]
 public struct WeakPointPatternSettings
 {
-    [Tooltip("Whether this weak point pattern is enabled.")]
-    [SerializeField] private bool _enabled; // Enables validation for this weak point pattern.
+    [Tooltip("이 약점 패턴의 활성화 여부")]
+    [SerializeField] private bool _enabled; // 이 약점 패턴의 검증을 활성화한다.
 
-    [Tooltip("Common pattern id that these weak point settings belong to.")]
-    [SerializeField] private string _patternId; // Common pattern id linked to this weak point setting group.
+    [Tooltip("이 약점 설정이 속한 공통 패턴 ID")]
+    [SerializeField] private string _patternId; // 이 약점 설정 그룹과 연결된 공통 패턴 ID
 
-    [Tooltip("Weak point prefab spawned at selected Pattern 4 positions. This prefab should use HealthComponent and HitReceiver.")]
-    [SerializeField] private GameObject _weakPointPrefab; // Weak point prefab asset spawned at selected positions.
+    [Tooltip("패턴 4 위치에 생성할 약점 프리팹입니다. 이 프리팹은 HealthComponent와 HitReceiver를 사용해야 합니다.")]
+    [SerializeField] private GameObject _weakPointPrefab; // 선택된 위치에 생성할 약점 프리팹 애셋
 
-    [Tooltip("Optional destruction VFX prefab played when a weak point is destroyed.")]
-    [SerializeField] private GameObject _weakPointDestroyVfxPrefab; // Optional fallback VFX prefab for weak point destruction.
+    [Tooltip("약점이 파괴될 때 재생할 선택 파괴 VFX 프리팹")]
+    [SerializeField] private GameObject _weakPointDestroyVfxPrefab; // 약점 파괴 시 사용할 선택 폴백 VFX 프리팹
 
-    [Tooltip("EffectService id played when a weak point is destroyed.")]
-    [SerializeField] private E_EffectId _weakPointDestroyEffectId; // Existing pooled VFX id used for weak point destruction.
+    [Tooltip("약점이 파괴될 때 재생할 EffectService ID")]
+    [SerializeField] private E_EffectId _weakPointDestroyEffectId; // 약점 파괴에 사용할 기존 풀링 VFX ID
 
-    [Tooltip("Number of weak point areas to activate from BossPatternAnchorSet.")]
+    [Tooltip("BossPatternAnchorSet에서 활성화할 약점 영역 개수")]
     [Min(0)]
-    [SerializeField] private int _weakPointCount; // Number of scene weak point areas to activate at execution time.
+    [SerializeField] private int _weakPointCount; // 실행 시 활성화할 씬 약점 영역 개수
 
-    [Tooltip("Retry count used by future weak point position selection.")]
+    [Tooltip("이후 약점 위치 선택에서 사용할 재시도 횟수")]
     [Min(1)]
-    [SerializeField] private int _weakPointPositionRetryCount; // Retry count for future weak point placement validation.
+    [SerializeField] private int _weakPointPositionRetryCount; // 이후 약점 배치 검증에서 사용할 재시도 횟수
 
-    [Tooltip("Minimum distance in world units required between selected weak point positions.")]
+    [Tooltip("선택된 약점 위치 사이에 필요한 최소 거리")]
     [Min(0f)]
-    [SerializeField] private float _minDistanceBetweenWeakPoints; // Minimum spacing applied while selecting weak point positions.
+    [SerializeField] private float _minDistanceBetweenWeakPoints; // 약점 위치 선택 중 적용할 최소 간격
 
-    [Tooltip("Duration in seconds while weak point areas remain active.")]
+    [Tooltip("약점 영역이 활성 상태를 유지하는 시간")]
     [Min(0f)]
-    [SerializeField] private float _activeSeconds; // Duration of future weak point vulnerability.
+    [SerializeField] private float _activeSeconds; // 이후 약점 취약 상태 지속 시간
 
-    [Tooltip("Time limit in seconds for destroying all spawned weak points after Pattern 4 entry completes.")]
+    [Tooltip("패턴 4 진입이 완료된 뒤 생성된 모든 약점을 파괴해야 하는 제한 시간")]
     [Min(0f)]
-    [SerializeField] private float _weakPointTimeLimit; // Time limit that resolves Pattern 4 as a boss-favorable timeout.
+    [SerializeField] private float _weakPointTimeLimit; // 패턴 4를 보스에게 유리한 시간 초과로 처리하는 제한 시간
 
-    [Tooltip("Damage applied to every living Player when the Pattern 4 weak point time limit expires.")]
+    [Tooltip("패턴 4 약점 제한 시간이 만료될 때 살아있는 모든 Player에게 적용되는 피해량")]
     [Min(0f)]
-    [SerializeField] private float _weakPointTimeLimitDamage; // Authority-side damage applied to all valid Players on Pattern 4 timeout.
+    [SerializeField] private float _weakPointTimeLimitDamage; // 패턴 4 시간 초과 시 권한 측에서 모든 유효 Player에게 적용하는 피해량
 
-    [Tooltip("Fallback time in seconds used when the Pattern 4 entry animation event is not received.")]
+    [Tooltip("패턴 4 진입 애니메이션 이벤트를 받지 못했을 때 사용할 폴백 시간")]
     [Min(0f)]
-    [SerializeField] private float _entryAnimationFallbackSeconds; // Animation Event fallback duration for Pattern 4 entry completion.
+    [SerializeField] private float _entryAnimationFallbackSeconds; // 패턴 4 진입 완료용 Animation Event 폴백 시간
 
-    [Tooltip("Duration in seconds while the boss remains Groggy after Pattern 4 resolves into Groggy.")]
+    [Tooltip("패턴 4가 Groggy로 해결된 뒤 보스가 Groggy 상태를 유지하는 시간")]
     [Min(0f)]
-    [SerializeField] private float _groggyDurationSeconds; // Groggy state duration after weak point flow resolves.
+    [SerializeField] private float _groggyDurationSeconds; // 약점 흐름이 해결된 뒤 Groggy 상태 지속 시간
 
-    [Tooltip("Damage multiplier applied while weak points are active.")]
+    [Tooltip("약점이 활성화된 동안 적용되는 받는 피해 배율")]
     [Min(0f)]
-    [SerializeField] private float _incomingDamageMultiplier; // Damage multiplier for future weak point damage handling.
+    [SerializeField] private float _incomingDamageMultiplier; // 이후 약점 피해 처리에서 사용할 피해 배율
 
-    [Tooltip("Status tag that future hit handling treats as a weak point hit.")]
-    [SerializeField] private string _weakPointStatusTag; // Hit status tag used to identify weak point hits.
+    [Tooltip("이후 피격 처리에서 약점 피격으로 취급할 상태 태그")]
+    [SerializeField] private string _weakPointStatusTag; // 약점 피격 식별에 사용할 피격 상태 태그
 
     /// <summary>
-    /// Gets whether this weak point pattern is enabled.
+    /// 이 약점 패턴의 활성화 여부를 반환한다.
     /// </summary>
     public bool Enabled => _enabled;
 
     /// <summary>
-    /// Gets the common pattern id for this setting group.
+    /// 이 설정 그룹의 공통 패턴 ID를 반환한다.
     /// </summary>
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets the weak point prefab asset reference.
+    /// 약점 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject WeakPointPrefab => _weakPointPrefab;
 
     /// <summary>
-    /// Gets the optional weak point destruction VFX prefab.
+    /// 선택 약점 파괴 VFX 프리팹을 반환한다.
     /// </summary>
     public GameObject WeakPointDestroyVfxPrefab => _weakPointDestroyVfxPrefab;
 
     /// <summary>
-    /// Gets the weak point destruction EffectService id.
+    /// 약점 파괴 EffectService ID를 반환한다.
     /// </summary>
     public E_EffectId WeakPointDestroyEffectId => _weakPointDestroyEffectId;
 
     /// <summary>
-    /// Gets the number of weak point areas to activate.
+    /// 활성화할 약점 영역 개수를 반환한다.
     /// </summary>
     public int WeakPointCount => _weakPointCount;
 
     /// <summary>
-    /// Gets the number of weak point areas to activate for compatibility with previous data reads.
+    /// 기존 데이터 읽기 호환성을 위해 활성화할 약점 영역 개수를 반환한다.
     /// </summary>
     public int ActiveAreaCount => _weakPointCount;
 
     /// <summary>
-    /// Gets the weak point position retry count.
+    /// 약점 위치 재시도 횟수를 반환한다.
     /// </summary>
     public int WeakPointPositionRetryCount => _weakPointPositionRetryCount;
 
     /// <summary>
-    /// Gets the minimum distance required between weak point positions.
+    /// 약점 위치 사이에 필요한 최소 거리를 반환한다.
     /// </summary>
     public float MinDistanceBetweenWeakPoints => _minDistanceBetweenWeakPoints;
 
     /// <summary>
-    /// Gets the active duration in seconds.
+    /// 활성 시간을 초 단위로 반환한다.
     /// </summary>
     public float ActiveSeconds => _activeSeconds;
 
     /// <summary>
-    /// Gets the Pattern 4 weak point destruction time limit in seconds.
+    /// 패턴 4 약점 파괴 제한 시간을 초 단위로 반환한다.
     /// </summary>
     public float WeakPointTimeLimit => _weakPointTimeLimit;
 
     /// <summary>
-    /// Gets the damage applied to living Players when Pattern 4 times out.
+    /// 패턴 4 시간 초과 시 살아있는 Player에게 적용할 피해량을 반환한다.
     /// </summary>
     public float WeakPointTimeLimitDamage => _weakPointTimeLimitDamage;
 
     /// <summary>
-    /// Gets the Pattern 4 entry animation fallback duration.
+    /// 패턴 4 진입 애니메이션 폴백 시간을 반환한다.
     /// </summary>
     public float EntryAnimationFallbackSeconds => _entryAnimationFallbackSeconds;
 
     /// <summary>
-    /// Gets the Groggy duration in seconds.
+    /// Groggy 지속 시간을 초 단위로 반환한다.
     /// </summary>
     public float GroggyDurationSeconds => _groggyDurationSeconds;
 
     /// <summary>
-    /// Gets the incoming damage multiplier.
+    /// 받는 피해 배율을 반환한다.
     /// </summary>
     public float IncomingDamageMultiplier => _incomingDamageMultiplier;
 
     /// <summary>
-    /// Gets the weak point status tag.
+    /// 약점 상태 태그를 반환한다.
     /// </summary>
     public string WeakPointStatusTag => _weakPointStatusTag;
 
     /// <summary>
-    /// Corrects invalid values for this pattern.
+    /// 이 패턴의 잘못된 값을 보정한다.
     /// </summary>
     public void ValidateOnValidate(UnityEngine.Object logContext)
     {
         if (_weakPointCount < 0)
         {
-            Debug.LogWarning($"[BossPatternData] WeakPointCount was below zero and clamped. patternId={_patternId}, value={_weakPointCount}", logContext);
+            Debug.LogWarning($"[BossPatternData] WeakPointCount가 0보다 작아서 보정됨. patternId={_patternId}, value={_weakPointCount}", logContext);
             _weakPointCount = 0;
         }
 
         if (_enabled && _weakPointPrefab == null)
         {
-            Debug.LogWarning($"[BossPatternData] WeakPoint pattern is enabled but WeakPointPrefab is missing. patternId={_patternId}", logContext);
+            Debug.LogWarning($"[BossPatternData] WeakPoint 패턴이 활성화되어 있지만 WeakPointPrefab이 비어있다. patternId={_patternId}", logContext);
         }
 
         if (_weakPointPositionRetryCount < 1)
         {
-            Debug.LogWarning($"[BossPatternData] WeakPointPositionRetryCount was less than 1 and clamped. patternId={_patternId}, value={_weakPointPositionRetryCount}", logContext);
+            Debug.LogWarning($"[BossPatternData] WeakPointPositionRetryCount가 1보다 작아서 보정됨. patternId={_patternId}, value={_weakPointPositionRetryCount}", logContext);
             _weakPointPositionRetryCount = 1;
         }
 
         if (_minDistanceBetweenWeakPoints < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] MinDistanceBetweenWeakPoints was below zero and clamped. patternId={_patternId}, value={_minDistanceBetweenWeakPoints}", logContext);
+            Debug.LogWarning($"[BossPatternData] MinDistanceBetweenWeakPoints가 0보다 작아서 보정됨. patternId={_patternId}, value={_minDistanceBetweenWeakPoints}", logContext);
             _minDistanceBetweenWeakPoints = 0f;
         }
 
         if (_activeSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Weak point active duration was below zero and clamped. patternId={_patternId}, value={_activeSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 약점 활성 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_activeSeconds}", logContext);
             _activeSeconds = 0f;
         }
 
         if (_weakPointTimeLimit < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] WeakPointTimeLimit was below zero and clamped. patternId={_patternId}, value={_weakPointTimeLimit}", logContext);
+            Debug.LogWarning($"[BossPatternData] WeakPointTimeLimit가 0보다 작아서 보정됨. patternId={_patternId}, value={_weakPointTimeLimit}", logContext);
             _weakPointTimeLimit = 0f;
         }
 
         if (_weakPointTimeLimitDamage < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] WeakPointTimeLimitDamage was below zero and clamped. patternId={_patternId}, value={_weakPointTimeLimitDamage}", logContext);
+            Debug.LogWarning($"[BossPatternData] WeakPointTimeLimitDamage가 0보다 작아서 보정됨. patternId={_patternId}, value={_weakPointTimeLimitDamage}", logContext);
             _weakPointTimeLimitDamage = 0f;
         }
 
         if (_entryAnimationFallbackSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Weak point entry animation fallback duration was below zero and clamped. patternId={_patternId}, value={_entryAnimationFallbackSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] 약점 진입 애니메이션 폴백 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_entryAnimationFallbackSeconds}", logContext);
             _entryAnimationFallbackSeconds = 0f;
         }
 
         if (_groggyDurationSeconds < 0f)
         {
-            Debug.LogWarning($"[BossPatternData] Groggy duration was below zero and clamped. patternId={_patternId}, value={_groggyDurationSeconds}", logContext);
+            Debug.LogWarning($"[BossPatternData] Groggy 지속 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_groggyDurationSeconds}", logContext);
             _groggyDurationSeconds = 0f;
         }
     }

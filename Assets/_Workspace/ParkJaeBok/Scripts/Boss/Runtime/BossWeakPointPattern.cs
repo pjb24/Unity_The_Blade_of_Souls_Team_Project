@@ -3,43 +3,49 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Executes Pattern 4 entry and Groggy transitions without creating weak point objects yet.
+/// 약점 오브젝트를 아직 생성하지 않은 상태에서
+/// Pattern 4 진입 및 Groggy 전환을 처리한다.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class BossWeakPointPattern : BossPatternBase
 {
-    [Header("Required References")]
-    [Tooltip("Boss controller that owns authority, Pattern 4 state flags, and Groggy timing.")]
-    [SerializeField] private BossController _bossController; // Boss authority and shared Pattern 4 state owner.
+    [Header("필수 참조")]
+    [Tooltip("권한, Pattern 4 상태 플래그, Groggy 타이밍을 관리하는 BossController")]
+    [SerializeField] private BossController _bossController; // Pattern 4 상태를 소유하는 보스 권한 및 데이터
 
-    [Tooltip("Scene anchor set that provides weak point placement areas.")]
-    [SerializeField] private BossPatternAnchorSet _anchorSet; // Scene weak point area source used by Pattern 4 position selection.
+    [Tooltip("약점 배치 영역을 제공하는 씬 Anchor 세트")]
+    [SerializeField] private BossPatternAnchorSet _anchorSet; // Pattern 4 위치 선택에 사용하는 약점 영역 데이터
 
-    private Coroutine _entryFallbackCoroutine; // Coroutine that completes Pattern 4 entry if the animation event is missing.
-    private Coroutine _weakPointTimeLimitCoroutine; // Coroutine that resolves Pattern 4 when weak points are not destroyed in time.
-    private Vector3[] _weakPointPositionBuffer; // Reusable selected weak point world position buffer.
-    private BoxCollider2D[] _weakPointAreaBuffer; // Reusable valid weak point area reference buffer.
-    private BossWeakPointObject[] _weakPointObjectBuffer; // Reusable spawned weak point reference buffer.
-    private bool[] _weakPointDestroyedBuffer; // Reusable weak point destruction state buffer.
-    private HealthComponent[] _timeLimitDamageTargetBuffer; // Reusable Player HealthComponent buffer damaged when Pattern 4 times out.
-    private BossPatternData _bufferPatternData; // PatternData instance used when the current buffers were allocated.
-    private string _activePatternId = string.Empty; // PatternId captured when Pattern 4 entry starts and reused by post-entry timers.
-    private int _selectedWeakPointPositionCount; // Number of valid weak point positions selected for the current execution.
-    private int _spawnedWeakPointCount; // Number of weak point objects spawned for the active Pattern 4 flow.
-    private int _destroyedWeakPointCount; // Number of spawned weak points destroyed in the active Pattern 4 flow.
-    private int _validWeakPointAreaCount; // Number of non-null WeakPointAreas copied into the reusable area buffer.
-    private bool _isEntryResolved; // Whether the current Pattern 4 entry already completed or failed.
-    private bool _isWeakPointFlowResolved; // Whether the active weak point phase has already timed out or entered Groggy.
-    private bool _hasLoggedWeakPointInstantiateFallback; // Prevents repeated weak point Instantiate fallback warnings.
-    private bool _hasLoggedWeakPointNetworkPoolFallback; // Prevents repeated weak point NetworkObject pool fallback warnings.
+    private Coroutine _entryFallbackCoroutine; // 애니메이션 이벤트가 없을 경우 Pattern 4 진입을 완료시키는 코루틴
+    private Coroutine _weakPointTimeLimitCoroutine; // 제한 시간 내 약점이 파괴되지 않았을 때 Pattern 4를 종료시키는 코루틴
+
+    private Vector3[] _weakPointPositionBuffer; // 선택된 약점 위치를 저장하는 재사용 버퍼
+    private BoxCollider2D[] _weakPointAreaBuffer; // 유효한 약점 영역을 저장하는 재사용 버퍼
+    private BossWeakPointObject[] _weakPointObjectBuffer; // 생성된 약점 오브젝트를 저장하는 재사용 버퍼
+    private bool[] _weakPointDestroyedBuffer; // 약점 파괴 상태를 저장하는 재사용 버퍼
+    private HealthComponent[] _timeLimitDamageTargetBuffer; // 시간 초과 시 데미지를 줄 Player HealthComponent 버퍼
+
+    private BossPatternData _bufferPatternData; // 버퍼 생성 시 사용된 PatternData
+    private string _activePatternId = string.Empty; // Pattern 4 시작 시 저장된 PatternId
+
+    private int _selectedWeakPointPositionCount; // 선택된 약점 위치 개수
+    private int _spawnedWeakPointCount; // 생성된 약점 개수
+    private int _destroyedWeakPointCount; // 파괴된 약점 개수
+    private int _validWeakPointAreaCount; // 유효한 약점 영역 개수
+
+    private bool _isEntryResolved; // 진입 완료 또는 실패 여부
+    private bool _isWeakPointFlowResolved; // 약점 단계 완료 여부
+
+    private bool _hasLoggedWeakPointInstantiateFallback; // Instantiate fallback 경고 중복 방지
+    private bool _hasLoggedWeakPointNetworkPoolFallback; // NetworkObject Pool fallback 경고 중복 방지
 
     /// <summary>
-    /// Gets the number of selected weak point positions from the current execution.
+    /// 현재 실행에서 선택된 약점 위치 개수 반환
     /// </summary>
     public int SelectedWeakPointPositionCount => _selectedWeakPointPositionCount;
 
     /// <summary>
-    /// Resolves required runtime references before Pattern 4 starts.
+    /// Pattern 4 시작 전에 참조를 초기화한다.
     /// </summary>
     private void Awake()
     {
@@ -47,7 +53,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Refreshes Pattern 4 references while designers edit the boss object.
+    /// 에디터에서 값 수정 시 참조를 갱신한다.
     /// </summary>
     private void OnValidate()
     {
@@ -55,7 +61,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Starts Pattern 4 entry and waits for the animation event or fallback timer.
+    /// Pattern 4 진입을 시작하고 애니메이션 이벤트 또는 fallback 타이머를 대기한다.
     /// </summary>
     protected override void OnPatternExecutionStarted()
     {
@@ -70,6 +76,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         _isEntryResolved = false;
         _isWeakPointFlowResolved = false;
         _activePatternId = _bossController.CurrentPatternId;
+
         if (!TryGetSettings(out WeakPointPatternSettings settings))
         {
             FailEntry("MissingWeakPointSettings");
@@ -89,24 +96,27 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _bossController.NotifyPatternFourEntryStarted();
+
         StartEntryFallbackTimer(settings.EntryAnimationFallbackSeconds);
     }
 
     /// <summary>
-    /// Stops Pattern 4 entry fallback timing when the common cancellation API cancels this pattern.
+    /// 패턴이 취소되면 진입 fallback 타이머를 중지한다.
     /// </summary>
     protected override void OnPatternExecutionCancelled(string reason)
     {
         StopEntryFallbackTimer();
         StopWeakPointTimeLimitTimer();
+
         RemoveRemainingWeakPoints();
         ClearWeakPointRuntimeBuffers();
+
         _isEntryResolved = true;
         _isWeakPointFlowResolved = true;
     }
 
     /// <summary>
-    /// Completes Pattern 4 entry from an animation event.
+    /// 애니메이션 이벤트로 Pattern 4 진입 완료
     /// </summary>
     public void AnimationEvent_WeakPointEntryCompleted()
     {
@@ -114,7 +124,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Fails Pattern 4 entry from an animation event.
+    /// 애니메이션 이벤트로 Pattern 4 진입 실패
     /// </summary>
     public void AnimationEvent_WeakPointEntryFailed()
     {
@@ -122,11 +132,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Enters Groggy for the configured GroggyDuration.
+    /// 설정된 시간 동안 Groggy 상태에 진입한다.
     /// </summary>
     public void EnterGroggy()
     {
         ResolveReferences();
+
         if (_bossController == null || !_bossController.IsBossLogicAuthority())
         {
             LogFailureOnce("GroggyAuthorityMissing");
@@ -143,11 +154,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Stops every active Pattern 4 runtime object and timer when the boss dies.
+    /// 보스 사망 시 모든 Pattern 4 오브젝트와 타이머를 정리한다.
     /// </summary>
     public void CleanupForBossDeath()
     {
         ResolveReferences();
+
         if (_bossController != null && !_bossController.IsBossLogicAuthority())
         {
             LogFailureOnce("WeakPointDeathCleanupWithoutAuthority");
@@ -156,14 +168,16 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         StopEntryFallbackTimer();
         StopWeakPointTimeLimitTimer();
+
         RemoveRemainingWeakPoints();
         ClearWeakPointRuntimeBuffers();
+
         _isEntryResolved = true;
         _isWeakPointFlowResolved = true;
     }
 
     /// <summary>
-    /// Receives a weak point destruction report from a spawned weak point object.
+    /// 약점 오브젝트에서 파괴 이벤트를 전달받는다.
     /// </summary>
     public void HandleWeakPointDestroyed(BossWeakPointObject weakPointObject, int weakPointIndex)
     {
@@ -193,9 +207,18 @@ public sealed class BossWeakPointPattern : BossPatternBase
         _weakPointDestroyedBuffer[weakPointIndex] = true;
         _destroyedWeakPointCount++;
 
-        Vector3 destroyPosition = weakPointObject != null ? weakPointObject.transform.position : _weakPointPositionBuffer[weakPointIndex]; // Position used for destruction VFX.
-        _bossController.PlayPresentationCue(E_BossPresentationCue.WeakPointDestroyed, E_BossPatternType.WeakPoint, destroyPosition);
+        Vector3 destroyPosition = weakPointObject != null
+            ? weakPointObject.transform.position
+            : _weakPointPositionBuffer[weakPointIndex]; // VFX 재생 위치
+
+        _bossController.PlayPresentationCue(
+            E_BossPresentationCue.WeakPointDestroyed,
+            E_BossPatternType.WeakPoint,
+            destroyPosition
+        );
+
         PlayWeakPointDestroyVfx(destroyPosition);
+
         CleanupWeakPointObject(weakPointObject, weakPointIndex);
 
         if (AreAllWeakPointsDestroyed())
@@ -205,7 +228,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves Pattern 4 settings from the boss pattern data asset.
+    /// 보스 패턴 데이터에서 Pattern 4 설정을 가져온다.
     /// </summary>
     private bool TryGetSettings(out WeakPointPatternSettings settings)
     {
@@ -217,10 +240,13 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return false;
         }
 
-        string patternId = !string.IsNullOrWhiteSpace(_activePatternId) ? _activePatternId : _bossController.CurrentPatternId; // Captured PatternId survives after entry completion clears BossController current pattern state.
+        string patternId = !string.IsNullOrWhiteSpace(_activePatternId)
+            ? _activePatternId
+            : _bossController.CurrentPatternId; // Entry 이후 CurrentPatternId가 초기화되어도 유지되는 PatternId
+
         if (!_bossController.PatternData.TryGetWeakPointPattern(patternId, out settings))
         {
-            Debug.LogWarning($"[BossWeakPointPattern] WeakPoint settings were not found for PatternId. object={name}, patternId={patternId}", this);
+            Debug.LogWarning($"[BossWeakPointPattern] PatternId에 해당하는 WeakPoint 설정 없음. object={name}, patternId={patternId}", this);
             return false;
         }
 
@@ -228,14 +254,15 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Returns a selected weak point position from the current execution.
+    /// 현재 실행에서 선택된 약점 위치를 반환한다.
     /// </summary>
     public bool TryGetSelectedWeakPointPosition(int index, out Vector3 position)
     {
         position = Vector3.zero;
+
         if (index < 0 || index >= _selectedWeakPointPositionCount || _weakPointPositionBuffer == null)
         {
-            Debug.LogWarning($"[BossWeakPointPattern] Selected weak point position index out of range. object={name}, index={index}, count={_selectedWeakPointPositionCount}", this);
+            Debug.LogWarning($"[BossWeakPointPattern] 약점 위치 인덱스 범위 초과. object={name}, index={index}, count={_selectedWeakPointPositionCount}", this);
             return false;
         }
 
@@ -244,11 +271,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Validates weak point areas and selects positions inside those areas.
+    /// 약점 영역을 검증하고 그 내부에서 위치를 선택한다.
     /// </summary>
     private bool TryPrepareWeakPointPositions(WeakPointPatternSettings settings)
     {
         ResolveReferences();
+
         _selectedWeakPointPositionCount = 0;
         _validWeakPointAreaCount = 0;
 
@@ -258,7 +286,8 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return false;
         }
 
-        BoxCollider2D[] weakPointAreas = _anchorSet.WeakPointAreas; // Scene-authored weak point area references.
+        BoxCollider2D[] weakPointAreas = _anchorSet.WeakPointAreas; // 씬에 배치된 약점 영역
+
         if (weakPointAreas == null)
         {
             LogFailureOnce("WeakPointAreasNull");
@@ -272,14 +301,17 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         EnsureWeakPointBuffers(settings, weakPointAreas.Length);
+
         CollectValidWeakPointAreas(weakPointAreas);
+
         if (_validWeakPointAreaCount <= 0)
         {
             LogFailureOnce("WeakPointAreasValidEntryMissing");
             return false;
         }
 
-        int targetWeakPointCount = settings.WeakPointCount; // Requested weak point count; several weak points may use different positions inside the same valid area.
+        int targetWeakPointCount = settings.WeakPointCount; // 생성할 약점 개수
+
         if (targetWeakPointCount <= 0)
         {
             LogFailureOnce("WeakPointCountZero");
@@ -287,6 +319,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         SelectWeakPointPositions(settings, targetWeakPointCount);
+
         if (_selectedWeakPointPositionCount <= 0)
         {
             LogFailureOnce("WeakPointSelectablePositionMissing");
@@ -297,13 +330,15 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Ensures weak point selection buffers match current PatternData and area requirements.
+    /// PatternData 및 영역 수에 맞게 버퍼를 준비한다.
     /// </summary>
     private void EnsureWeakPointBuffers(WeakPointPatternSettings settings, int weakPointAreaCount)
     {
-        BossPatternData currentPatternData = _bossController != null ? _bossController.PatternData : null; // PatternData instance used to detect data replacement.
-        int requiredPositionCount = Mathf.Max(1, settings.WeakPointCount); // Required selected-position buffer length.
-        int requiredAreaCount = Mathf.Max(1, weakPointAreaCount); // Required valid-area buffer length.
+        BossPatternData currentPatternData = _bossController != null ? _bossController.PatternData : null; // 현재 PatternData
+
+        int requiredPositionCount = Mathf.Max(1, settings.WeakPointCount); // 위치 버퍼 크기
+        int requiredAreaCount = Mathf.Max(1, weakPointAreaCount); // 영역 버퍼 크기
+
         bool shouldRebuildBuffers = _bufferPatternData != currentPatternData;
 
         if (_weakPointPositionBuffer == null || _weakPointPositionBuffer.Length != requiredPositionCount)
@@ -326,11 +361,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
         _weakPointAreaBuffer = new BoxCollider2D[requiredAreaCount];
         _weakPointObjectBuffer = new BossWeakPointObject[requiredPositionCount];
         _weakPointDestroyedBuffer = new bool[requiredPositionCount];
+
         _bufferPatternData = currentPatternData;
     }
 
     /// <summary>
-    /// Clears reusable weak point object and destruction buffers before a new execution uses them.
+    /// 새로운 실행 전에 약점 관련 버퍼를 초기화한다.
     /// </summary>
     private void ClearWeakPointRuntimeBuffers()
     {
@@ -355,13 +391,14 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Copies non-null WeakPointAreas into the reusable valid area buffer.
+    /// null이 아닌 WeakPointArea를 유효 버퍼에 복사한다.
     /// </summary>
     private void CollectValidWeakPointAreas(BoxCollider2D[] weakPointAreas)
     {
         for (int index = 0; index < weakPointAreas.Length; index++)
         {
-            BoxCollider2D area = weakPointAreas[index]; // Current scene weak point area candidate.
+            BoxCollider2D area = weakPointAreas[index]; // 현재 검사 중인 영역
+
             if (area == null)
             {
                 LogFailureOnce("WeakPointAreaNullEntry");
@@ -374,11 +411,13 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Selects weak point positions inside valid BoxCollider2D areas with minimum distance validation.
+    /// 최소 거리 조건을 만족하는 약점 위치를 선택한다.
     /// </summary>
     private void SelectWeakPointPositions(WeakPointPatternSettings settings, int targetWeakPointCount)
     {
-        float minDistanceSqr = settings.MinDistanceBetweenWeakPoints * settings.MinDistanceBetweenWeakPoints; // Squared minimum spacing used for position validation.
+        float minDistanceSqr =
+            settings.MinDistanceBetweenWeakPoints * settings.MinDistanceBetweenWeakPoints; // 거리 제곱값
+
         int retryCount = Mathf.Max(1, settings.WeakPointPositionRetryCount);
 
         for (int index = 0; index < targetWeakPointCount; index++)
@@ -395,15 +434,19 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Tries to select one valid weak point position within retry limits.
+    /// 하나의 약점 위치를 재시도 제한 내에서 선택한다.
     /// </summary>
     private bool TrySelectOneWeakPointPosition(int retryCount, float minDistanceSqr, out Vector3 selectedPosition)
     {
         selectedPosition = Vector3.zero;
+
         for (int retryIndex = 0; retryIndex < retryCount; retryIndex++)
         {
-            BoxCollider2D area = _weakPointAreaBuffer[Random.Range(0, _validWeakPointAreaCount)]; // Valid area randomly chosen for this retry.
+            BoxCollider2D area =
+                _weakPointAreaBuffer[Random.Range(0, _validWeakPointAreaCount)]; // 랜덤 영역 선택
+
             Vector3 candidatePosition = GetRandomPointInAreaBounds(area);
+
             if (!area.OverlapPoint(candidatePosition))
             {
                 continue;
@@ -422,18 +465,20 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Calculates a random world position inside a BoxCollider2D bounds rectangle.
+    /// BoxCollider2D 영역 내부의 랜덤 위치를 계산한다.
     /// </summary>
     private Vector3 GetRandomPointInAreaBounds(BoxCollider2D area)
     {
-        Bounds bounds = area.bounds; // World bounds used for random candidate generation.
+        Bounds bounds = area.bounds; // 월드 좌표 영역
+
         float x = Random.Range(bounds.min.x, bounds.max.x);
         float y = Random.Range(bounds.min.y, bounds.max.y);
+
         return new Vector3(x, y, area.transform.position.z);
     }
 
     /// <summary>
-    /// Returns whether a candidate position satisfies the minimum spacing from existing weak point positions.
+    /// 기존 선택된 약점들과 최소 거리 조건을 만족하는지 검사한다.
     /// </summary>
     private bool IsFarEnoughFromSelectedWeakPoints(Vector3 candidatePosition, float minDistanceSqr)
     {
@@ -454,7 +499,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Starts the animation event fallback timer for Pattern 4 entry completion.
+    /// Pattern 4 진입 완료를 위한 애니메이션 이벤트 fallback 타이머를 시작한다.
     /// </summary>
     private void StartEntryFallbackTimer(float fallbackSeconds)
     {
@@ -470,7 +515,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Waits for the entry animation event and completes entry with a Warning if the event never arrives.
+    /// 애니메이션 이벤트를 기다리고, 이벤트가 오지 않으면 Warning과 함께 진입을 완료한다.
     /// </summary>
     private IEnumerator RunEntryFallbackTimer(float fallbackSeconds)
     {
@@ -484,7 +529,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Completes Pattern 4 entry and activates weak point state flags without creating weak points.
+    /// Pattern 4 진입을 완료하고 약점 상태를 활성화한다.
     /// </summary>
     private void CompleteEntry(bool usedFallback)
     {
@@ -525,21 +570,31 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isEntryResolved = true;
+
         _bossController.NotifyPatternFourEntryCompleted();
-        _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.WeakPoint, transform.position);
+
+        _bossController.PlayPresentationCue(
+            E_BossPresentationCue.PatternAttack,
+            E_BossPatternType.WeakPoint,
+            transform.position
+        );
+
         MarkPatternEffectApplied();
+
         StartWeakPointTimeLimitTimer(settings.WeakPointTimeLimit);
+
         ReportPatternCompleted("WeakPointEntryCompleted");
     }
 
     /// <summary>
-    /// Starts the Pattern 4 weak point time limit timer after entry has completed.
+    /// Pattern 4 약점 제한 시간 타이머를 시작한다.
     /// </summary>
     private void StartWeakPointTimeLimitTimer(float timeLimitSeconds)
     {
         StopWeakPointTimeLimitTimer();
 
-        float safeTimeLimit = timeLimitSeconds; // Runtime time limit clamped before starting the timeout coroutine.
+        float safeTimeLimit = timeLimitSeconds;
+
         if (safeTimeLimit < 0f)
         {
             LogFailureOnce("WeakPointTimeLimitRuntimeClamp");
@@ -550,7 +605,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Waits for WeakPointTimeLimit and resolves Pattern 4 as a timeout when weak points remain.
+    /// 제한 시간을 대기한 후 약점이 남아 있으면 타임아웃 처리한다.
     /// </summary>
     private IEnumerator RunWeakPointTimeLimitTimer(float timeLimitSeconds)
     {
@@ -564,7 +619,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves Pattern 4 timeout as a boss-favorable result and damages every living Player.
+    /// Pattern 4 타임아웃 처리 및 플레이어에게 데미지 적용
     /// </summary>
     private void ResolveWeakPointTimeOut()
     {
@@ -574,6 +629,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         ResolveReferences();
+
         if (_bossController == null || !_bossController.IsBossLogicAuthority())
         {
             LogFailureOnce("WeakPointTimeoutWithoutAuthority");
@@ -587,15 +643,20 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isWeakPointFlowResolved = true;
+
         StopWeakPointTimeLimitTimer();
+
         ApplyTimeLimitDamageToLivingPlayers(settings);
+
         RemoveRemainingWeakPoints();
+
         ClearWeakPointRuntimeBuffers();
+
         _bossController.NotifyPatternFourTimedOut();
     }
 
     /// <summary>
-    /// Applies WeakPointTimeLimitDamage to every valid Player collected by the shared target provider.
+    /// 살아있는 모든 플레이어에게 타임아웃 데미지를 적용한다.
     /// </summary>
     private void ApplyTimeLimitDamageToLivingPlayers(WeakPointPatternSettings settings)
     {
@@ -605,7 +666,8 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return;
         }
 
-        BossPlayerTargetProvider targetProvider = _bossController.PlayerTargetProvider; // Shared Player discovery path reused for timeout damage.
+        BossPlayerTargetProvider targetProvider = _bossController.PlayerTargetProvider; // 플레이어 탐색 제공자
+
         if (targetProvider == null)
         {
             LogFailureOnce("WeakPointTimeoutTargetProviderMissing");
@@ -613,11 +675,14 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         EnsureTimeLimitDamageTargetBuffer(targetProvider);
+
         int targetCount = targetProvider.CollectAlivePlayersForExecution(_timeLimitDamageTargetBuffer);
+
         for (int index = 0; index < targetCount; index++)
         {
-            HealthComponent targetHealth = _timeLimitDamageTargetBuffer[index]; // Valid Player HealthComponent collected by the provider.
+            HealthComponent targetHealth = _timeLimitDamageTargetBuffer[index];
             _timeLimitDamageTargetBuffer[index] = null;
+
             if (!IsDamageTargetStillValid(targetHealth))
             {
                 continue;
@@ -629,18 +694,22 @@ public sealed class BossWeakPointPattern : BossPatternBase
                 "BossPattern4TimeLimit",
                 false,
                 true,
-                E_DamageType.True);
+                E_DamageType.True
+            );
+
             targetHealth.ApplyDamage(damageContext);
         }
     }
 
     /// <summary>
-    /// Ensures the Player timeout damage buffer matches the shared target provider capacity.
+    /// 플레이어 타겟 버퍼 크기를 Provider 기준으로 맞춘다.
     /// </summary>
     private void EnsureTimeLimitDamageTargetBuffer(BossPlayerTargetProvider targetProvider)
     {
-        int requiredLength = Mathf.Max(1, targetProvider.PlayerHealthBufferSize); // Provider-authored target buffer capacity.
-        if (_timeLimitDamageTargetBuffer != null && _timeLimitDamageTargetBuffer.Length == requiredLength)
+        int requiredLength = Mathf.Max(1, targetProvider.PlayerHealthBufferSize);
+
+        if (_timeLimitDamageTargetBuffer != null &&
+            _timeLimitDamageTargetBuffer.Length == requiredLength)
         {
             return;
         }
@@ -649,21 +718,25 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Returns whether a collected Player target is still valid immediately before timeout damage is applied.
+    /// 타임아웃 데미지 적용 직전 대상이 유효한지 검사한다.
     /// </summary>
     private bool IsDamageTargetStillValid(HealthComponent targetHealth)
     {
-        if (targetHealth == null || !targetHealth.isActiveAndEnabled || targetHealth.IsDead)
+        if (targetHealth == null ||
+            !targetHealth.isActiveAndEnabled ||
+            targetHealth.IsDead)
         {
             return false;
         }
 
-        GameObject targetObject = targetHealth.gameObject; // Target object checked for inactive Player exclusion.
-        return targetObject.activeInHierarchy && targetHealth.GetCurrentHealth() > 0f;
+        GameObject targetObject = targetHealth.gameObject;
+
+        return targetObject.activeInHierarchy &&
+               targetHealth.GetCurrentHealth() > 0f;
     }
 
     /// <summary>
-    /// Resolves Pattern 4 when every weak point has been destroyed and starts Groggy timing.
+    /// 모든 약점이 파괴된 경우 처리하고 Groggy 상태로 전환한다.
     /// </summary>
     private void ResolveAllWeakPointsDestroyed()
     {
@@ -673,14 +746,18 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isWeakPointFlowResolved = true;
+
         StopWeakPointTimeLimitTimer();
+
         ClearWeakPointRuntimeBuffers();
+
         _bossController.NotifyPatternFourAllWeakPointsDestroyed();
+
         EnterGroggy();
     }
 
     /// <summary>
-    /// Spawns weak point objects at the selected positions and stores their bridge references.
+    /// 선택된 위치에 약점 오브젝트를 생성한다.
     /// </summary>
     private bool SpawnWeakPoints(WeakPointPatternSettings settings)
     {
@@ -695,7 +772,11 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         for (int index = 0; index < _selectedWeakPointPositionCount; index++)
         {
-            if (!TrySpawnWeakPoint(settings.WeakPointPrefab, _weakPointPositionBuffer[index], index, out BossWeakPointObject weakPointObject))
+            if (!TrySpawnWeakPoint(
+                    settings.WeakPointPrefab,
+                    _weakPointPositionBuffer[index],
+                    index,
+                    out BossWeakPointObject weakPointObject))
             {
                 continue;
             }
@@ -715,26 +796,40 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Spawns one weak point object through the explicit prefab fallback and wires existing Health/Hit components.
+    /// 하나의 약점 오브젝트를 생성하고 Health/Hit 시스템과 연결한다.
     /// </summary>
-    private bool TrySpawnWeakPoint(GameObject weakPointPrefab, Vector3 position, int weakPointIndex, out BossWeakPointObject weakPointObject)
+    private bool TrySpawnWeakPoint(
+        GameObject weakPointPrefab,
+        Vector3 position,
+        int weakPointIndex,
+        out BossWeakPointObject weakPointObject)
     {
         weakPointObject = null;
+
         if (weakPointPrefab == null)
         {
             return false;
         }
 
-        NetworkManager networkManager = NetworkManager.Singleton; // NGO session singleton used to decide network spawn behavior.
+        NetworkManager networkManager = NetworkManager.Singleton;
+
         bool shouldUseNetwork = networkManager != null && networkManager.IsListening;
-        if (shouldUseNetwork && (_bossController == null || !_bossController.IsBossLogicAuthority()))
+
+        if (shouldUseNetwork &&
+            (_bossController == null || !_bossController.IsBossLogicAuthority()))
         {
             LogFailureOnce("WeakPointNetworkSpawnWithoutAuthority");
             return false;
         }
 
         LogWeakPointInstantiateFallbackOnce();
-        GameObject spawnedObject = Instantiate(weakPointPrefab, position, Quaternion.identity); // Runtime weak point object spawned at a calculated valid position.
+
+        GameObject spawnedObject = Instantiate(
+            weakPointPrefab,
+            position,
+            Quaternion.identity
+        );
+
         if (spawnedObject == null)
         {
             LogFailureOnce("WeakPointInstantiateFailed");
@@ -742,38 +837,62 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         weakPointObject = EnsureWeakPointBridge(spawnedObject);
+
         weakPointObject.Initialize(this, weakPointIndex);
-        SpawnWeakPointNetworkObjectIfNeeded(weakPointPrefab, spawnedObject, shouldUseNetwork);
-        _bossController.PlayPresentationCue(E_BossPresentationCue.WeakPointCreated, E_BossPatternType.WeakPoint, position);
+
+        SpawnWeakPointNetworkObjectIfNeeded(
+            weakPointPrefab,
+            spawnedObject,
+            shouldUseNetwork
+        );
+
+        _bossController.PlayPresentationCue(
+            E_BossPresentationCue.WeakPointCreated,
+            E_BossPatternType.WeakPoint,
+            position
+        );
+
         return true;
     }
 
     /// <summary>
-    /// Ensures a spawned weak point has the bridge component that reports Health death to Pattern 4.
+    /// 약점 오브젝트에 Bridge 컴포넌트가 없으면 추가한다.
     /// </summary>
     private BossWeakPointObject EnsureWeakPointBridge(GameObject spawnedObject)
     {
-        BossWeakPointObject weakPointObject = spawnedObject.GetComponent<BossWeakPointObject>(); // Existing or runtime-added weak point bridge.
+        BossWeakPointObject weakPointObject =
+            spawnedObject.GetComponent<BossWeakPointObject>();
+
         if (weakPointObject != null)
         {
             return weakPointObject;
         }
 
-        Debug.LogWarning($"[BossWeakPointPattern] BossWeakPointObject was missing and added at runtime. object={spawnedObject.name}", spawnedObject);
+        Debug.LogWarning(
+            $"[BossWeakPointPattern] BossWeakPointObject가 없어 런타임에 추가됨. object={spawnedObject.name}",
+            spawnedObject
+        );
+
         return spawnedObject.AddComponent<BossWeakPointObject>();
     }
 
     /// <summary>
-    /// Spawns the weak point NetworkObject on Host or Server when the prefab requires network replication.
+    /// NetworkObject가 필요한 경우 Spawn을 수행한다.
     /// </summary>
-    private void SpawnWeakPointNetworkObjectIfNeeded(GameObject weakPointPrefab, GameObject spawnedObject, bool shouldUseNetwork)
+    private void SpawnWeakPointNetworkObjectIfNeeded(
+        GameObject weakPointPrefab,
+        GameObject spawnedObject,
+        bool shouldUseNetwork)
     {
-        if (!shouldUseNetwork || weakPointPrefab.GetComponent<NetworkObject>() == null)
+        if (!shouldUseNetwork ||
+            weakPointPrefab.GetComponent<NetworkObject>() == null)
         {
             return;
         }
 
-        NetworkObject spawnedNetworkObject = spawnedObject.GetComponent<NetworkObject>(); // Runtime NetworkObject attached to the spawned weak point.
+        NetworkObject spawnedNetworkObject =
+            spawnedObject.GetComponent<NetworkObject>();
+
         if (spawnedNetworkObject == null)
         {
             LogFailureOnce("SpawnedWeakPointNetworkObjectMissing");
@@ -786,11 +905,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         LogWeakPointNetworkPoolFallbackOnce();
+
         spawnedNetworkObject.Spawn(true);
     }
 
     /// <summary>
-    /// Plays the configured weak point destruction VFX through EffectService or prefab fallback.
+    /// 약점 파괴 VFX를 재생한다.
     /// </summary>
     private void PlayWeakPointDestroyVfx(Vector3 position)
     {
@@ -808,7 +928,10 @@ public sealed class BossWeakPointPattern : BossPatternBase
             }
             else
             {
-                EffectService.Instance.Play(settings.WeakPointDestroyEffectId, position);
+                EffectService.Instance.Play(
+                    settings.WeakPointDestroyEffectId,
+                    position
+                );
                 return;
             }
         }
@@ -820,13 +943,20 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         LogFailureOnce("WeakPointDestroyVfxPrefabFallbackUsed");
-        Instantiate(settings.WeakPointDestroyVfxPrefab, position, Quaternion.identity);
+
+        Instantiate(
+            settings.WeakPointDestroyVfxPrefab,
+            position,
+            Quaternion.identity
+        );
     }
 
     /// <summary>
-    /// Cleans up a destroyed weak point NetworkObject or GameObject after its destruction has been reported.
+    /// 파괴된 약점 오브젝트를 정리한다.
     /// </summary>
-    private void CleanupWeakPointObject(BossWeakPointObject weakPointObject, int weakPointIndex)
+    private void CleanupWeakPointObject(
+        BossWeakPointObject weakPointObject,
+        int weakPointIndex)
     {
         if (weakPointObject == null)
         {
@@ -834,9 +964,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         weakPointObject.Release();
+
         _weakPointObjectBuffer[weakPointIndex] = null;
 
-        NetworkObject networkObject = weakPointObject.GetComponent<NetworkObject>(); // Optional NetworkObject that must be despawned by authority.
+        NetworkObject networkObject =
+            weakPointObject.GetComponent<NetworkObject>();
+
         if (networkObject != null && networkObject.IsSpawned)
         {
             networkObject.Despawn(true);
@@ -847,7 +980,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Removes all remaining weak points when Pattern 4 times out or is cancelled.
+    /// 남아있는 모든 약점을 제거한다.
     /// </summary>
     private void RemoveRemainingWeakPoints()
     {
@@ -858,7 +991,9 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         for (int index = 0; index < _weakPointObjectBuffer.Length; index++)
         {
-            BossWeakPointObject weakPointObject = _weakPointObjectBuffer[index]; // Remaining spawned weak point object to clean up.
+            BossWeakPointObject weakPointObject =
+                _weakPointObjectBuffer[index];
+
             if (weakPointObject == null)
             {
                 continue;
@@ -869,18 +1004,20 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Returns whether every spawned weak point has reported destruction.
+    /// 모든 약점이 파괴되었는지 확인한다.
     /// </summary>
     private bool AreAllWeakPointsDestroyed()
     {
-        if (_spawnedWeakPointCount <= 0 || _destroyedWeakPointCount < _spawnedWeakPointCount)
+        if (_spawnedWeakPointCount <= 0 ||
+            _destroyedWeakPointCount < _spawnedWeakPointCount)
         {
             return false;
         }
 
         for (int index = 0; index < _selectedWeakPointPositionCount; index++)
         {
-            if (_weakPointObjectBuffer[index] != null && !_weakPointDestroyedBuffer[index])
+            if (_weakPointObjectBuffer[index] != null &&
+                !_weakPointDestroyedBuffer[index])
             {
                 return false;
             }
@@ -890,7 +1027,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Logs direct weak point prefab Instantiate fallback once.
+    /// Instantiate fallback 경고를 1회만 출력한다.
     /// </summary>
     private void LogWeakPointInstantiateFallbackOnce()
     {
@@ -899,12 +1036,16 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return;
         }
 
-        Debug.LogWarning($"[BossWeakPointPattern] No WeakPoint ObjectPool was found. Pattern 4 uses WeakPointPrefab Instantiate fallback. object={name}", this);
+        Debug.LogWarning(
+            $"[BossWeakPointPattern] WeakPoint ObjectPool 없음. Instantiate fallback 사용. object={name}",
+            this
+        );
+
         _hasLoggedWeakPointInstantiateFallback = true;
     }
 
     /// <summary>
-    /// Logs missing NetworkObject Pool fallback once before using NGO Spawn directly.
+    /// NetworkObject Pool fallback 경고를 1회만 출력한다.
     /// </summary>
     private void LogWeakPointNetworkPoolFallbackOnce()
     {
@@ -913,12 +1054,16 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return;
         }
 
-        Debug.LogWarning($"[BossWeakPointPattern] NetworkObject Pool was not found. Host/Server will Instantiate WeakPointPrefab and call NetworkObject.Spawn. object={name}", this);
+        Debug.LogWarning(
+            $"[BossWeakPointPattern] NetworkObject Pool 없음. Instantiate + Spawn 사용. object={name}",
+            this
+        );
+
         _hasLoggedWeakPointNetworkPoolFallback = true;
     }
 
     /// <summary>
-    /// Fails Pattern 4 entry and returns the boss flags to the non-weak-point state.
+    /// Pattern 4 진입 실패 처리
     /// </summary>
     private void FailEntry(string reason)
     {
@@ -928,8 +1073,10 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isEntryResolved = true;
+
         StopEntryFallbackTimer();
         StopWeakPointTimeLimitTimer();
+
         RemoveRemainingWeakPoints();
         ClearWeakPointRuntimeBuffers();
 
@@ -942,7 +1089,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Stops the entry fallback timer and clears the stored coroutine handle.
+    /// 진입 fallback 타이머를 중지한다.
     /// </summary>
     private void StopEntryFallbackTimer()
     {
@@ -956,7 +1103,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Stops the weak point time limit timer and clears the stored coroutine handle.
+    /// 약점 제한 시간 타이머를 중지한다.
     /// </summary>
     private void StopWeakPointTimeLimitTimer()
     {
@@ -970,7 +1117,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves optional references from the same boss GameObject.
+    /// 동일 보스 오브젝트에서 참조를 자동으로 찾는다.
     /// </summary>
     private void ResolveReferences()
     {

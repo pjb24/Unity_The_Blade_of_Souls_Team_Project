@@ -2,34 +2,36 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Executes Pattern 3 selection by choosing unique monster spawn points with a reusable partial Fisher-Yates buffer.
+/// 재사용 가능한 부분 Fisher-Yates 버퍼를 사용하여
+/// 중복되지 않는 몬스터 스폰 위치를 선택하고 Pattern 3을 실행한다.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class BossSummonMonsterPattern : BossPatternBase
 {
-    [Header("Required References")]
-    [Tooltip("Boss controller that owns authority, pattern data, and anchor references.")]
-    [SerializeField] private BossController _bossController; // Boss authority and shared data source for Pattern 3.
+    [Header("필수 참조")]
+    [Tooltip("권한, 패턴 데이터, Anchor 참조를 소유하는 BossController")]
+    [SerializeField] private BossController _bossController; // Pattern 3 실행에 필요한 보스 권한 및 공유 데이터
 
-    [Tooltip("Scene anchor set that provides monster spawn points.")]
-    [SerializeField] private BossPatternAnchorSet _anchorSet; // Scene monster spawn point source used by Pattern 3.
+    [Tooltip("몬스터 스폰 위치를 제공하는 씬 Anchor 세트")]
+    [SerializeField] private BossPatternAnchorSet _anchorSet; // Pattern 3에서 사용하는 씬 스폰 위치 데이터
 
-    private int[] _spawnPointIndexBuffer; // Reusable index buffer initialized with every spawn point index at execution start.
-    private Transform[] _selectedSpawnPointBuffer; // Reusable selected spawn point buffer filled from the shuffled index buffer.
-    private int _selectedSpawnPointCount; // Number of valid selected entries written during the latest execution.
-    private bool _hasLoggedSpawnManagerMissing; // Prevents repeated missing SpawnManager warnings from this pattern instance.
-    private bool _hasLoggedEnemySpawnerMissing; // Prevents repeated missing EnemySpawner warnings from this pattern instance.
-    private bool _hasLoggedObjectPoolMissing; // Prevents repeated missing ObjectPool warnings from this pattern instance.
-    private bool _hasLoggedNetworkObjectPoolMissing; // Prevents repeated missing NetworkObject Pool warnings from this pattern instance.
-    private bool _hasLoggedEnemyAiMissing; // Prevents repeated missing EnemyAI component warnings from this pattern instance.
+    private int[] _spawnPointIndexBuffer; // 실행 시 모든 스폰 위치 인덱스를 채워 재사용하는 버퍼
+    private Transform[] _selectedSpawnPointBuffer; // 셔플된 인덱스 기반으로 선택된 스폰 위치를 저장하는 버퍼
+    private int _selectedSpawnPointCount; // 최근 실행에서 유효하게 선택된 스폰 위치 개수
+
+    private bool _hasLoggedSpawnManagerMissing; // SpawnManager 없음 경고 중복 방지
+    private bool _hasLoggedEnemySpawnerMissing; // EnemySpawner 없음 경고 중복 방지
+    private bool _hasLoggedObjectPoolMissing; // ObjectPool 없음 경고 중복 방지
+    private bool _hasLoggedNetworkObjectPoolMissing; // NetworkObject Pool 없음 경고 중복 방지
+    private bool _hasLoggedEnemyAiMissing; // EnemyAI 없음 경고 중복 방지
 
     /// <summary>
-    /// Gets the number of spawn points selected during the latest Pattern 3 execution.
+    /// 최근 Pattern 3 실행에서 선택된 스폰 위치 개수 반환
     /// </summary>
     public int SelectedSpawnPointCount => _selectedSpawnPointCount;
 
     /// <summary>
-    /// Resolves required runtime references before Pattern 3 starts.
+    /// Pattern 3 시작 전에 필요한 참조를 설정한다.
     /// </summary>
     private void Awake()
     {
@@ -37,7 +39,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Refreshes Pattern 3 references while designers edit the boss object.
+    /// 에디터에서 값 변경 시 참조를 갱신한다.
     /// </summary>
     private void OnValidate()
     {
@@ -45,7 +47,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Starts Pattern 3 once through the common pattern execution API.
+    /// 공통 패턴 실행 API를 통해 Pattern 3을 1회 실행한다.
     /// </summary>
     protected override void OnPatternExecutionStarted()
     {
@@ -82,6 +84,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
         }
 
         SelectUniqueSpawnPoints(spawnPoints, actualSpawnCount);
+
         if (!SpawnSelectedMonsters(settings, actualSpawnCount))
         {
             ReportPatternFailed("SummonMonsterSpawnFailed");
@@ -92,7 +95,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves Pattern 3 settings from the boss pattern data asset.
+    /// 보스 패턴 데이터에서 Pattern 3 설정을 가져온다.
     /// </summary>
     private bool TryGetSettings(out SummonMonsterPatternSettings settings)
     {
@@ -106,7 +109,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
 
         if (!_bossController.PatternData.TryGetSummonMonsterPattern(_bossController.CurrentPatternId, out settings))
         {
-            Debug.LogWarning($"[BossSummonMonsterPattern] SummonMonster settings were not found for PatternId. object={name}, patternId={_bossController.CurrentPatternId}", this);
+            Debug.LogWarning($"[BossSummonMonsterPattern] PatternId에 해당하는 SummonMonster 설정 없음. object={name}, patternId={_bossController.CurrentPatternId}", this);
             return false;
         }
 
@@ -114,7 +117,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Validates that the scene has a usable monster spawn point array.
+    /// 스폰 위치 배열이 유효한지 검사한다.
     /// </summary>
     private bool ValidateSpawnPoints(out Transform[] spawnPoints)
     {
@@ -127,6 +130,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
         }
 
         spawnPoints = _anchorSet.MonsterSpawnPoints;
+
         if (spawnPoints == null)
         {
             CancelPatternWithWarning("SpawnPointsNull");
@@ -143,11 +147,12 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Calculates the actual spawn count from the requested SpawnCount and available spawn point count.
+    /// 요청된 SpawnCount와 실제 스폰 위치 개수를 기준으로 최종 스폰 개수를 계산한다.
     /// </summary>
     private int CalculateActualSpawnCount(SummonMonsterPatternSettings settings, int spawnPointCount)
     {
-        int requestedSpawnCount = settings.SpawnCount; // Designer-authored SpawnCount read from Pattern 3 settings.
+        int requestedSpawnCount = settings.SpawnCount; // 디자이너가 설정한 SpawnCount
+
         if (requestedSpawnCount < 1)
         {
             LogFailureOnce("SpawnCountRuntimeClampToOne");
@@ -164,7 +169,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Selects unique spawn points by partially shuffling the reusable index buffer.
+    /// 부분 Fisher-Yates 셔플을 사용하여 중복되지 않는 스폰 위치를 선택한다.
     /// </summary>
     private void SelectUniqueSpawnPoints(Transform[] spawnPoints, int actualSpawnCount)
     {
@@ -178,10 +183,12 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
 
         for (int index = 0; index < actualSpawnCount; index++)
         {
-            int randomIndex = Random.Range(index, spawnPoints.Length); // Random source used by the authority instance for this partial shuffle step.
-            int selectedIndex = _spawnPointIndexBuffer[randomIndex]; // SpawnPoint index selected for this output slot.
+            int randomIndex = Random.Range(index, spawnPoints.Length); // 셔플 단계에서 사용하는 랜덤 값
+            int selectedIndex = _spawnPointIndexBuffer[randomIndex]; // 선택된 스폰 위치 인덱스
+
             _spawnPointIndexBuffer[randomIndex] = _spawnPointIndexBuffer[index];
             _spawnPointIndexBuffer[index] = selectedIndex;
+
             _selectedSpawnPointBuffer[index] = spawnPoints[selectedIndex];
 
             if (_selectedSpawnPointBuffer[index] == null)
@@ -192,17 +199,20 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Spawns monsters at the selected spawn points through existing systems when available or the explicit fallback path.
+    /// 선택된 스폰 위치에 몬스터를 생성한다.
+    /// 기존 시스템이 있으면 사용하고, 없으면 fallback 경로를 사용한다.
     /// </summary>
     private bool SpawnSelectedMonsters(SummonMonsterPatternSettings settings, int actualSpawnCount)
     {
         WarnMissingExistingSpawnPathsOnce();
 
-        bool spawnedAnyMonster = false; // Whether at least one monster was successfully created by Pattern 3.
-        bool playedAttackCue = false; // Whether the summon attack presentation cue has already been emitted for this execution.
+        bool spawnedAnyMonster = false; // 최소 1마리라도 생성 성공했는지 여부
+        bool playedAttackCue = false; // 소환 공격 연출 Cue를 이미 재생했는지 여부
+
         for (int index = 0; index < actualSpawnCount; index++)
         {
-            Transform spawnPoint = _selectedSpawnPointBuffer[index]; // Selected scene spawn point used for this monster.
+            Transform spawnPoint = _selectedSpawnPointBuffer[index]; // 현재 몬스터에 사용할 스폰 위치
+
             if (spawnPoint == null)
             {
                 LogFailureOnce("SelectedSpawnPointNullDuringSpawn");
@@ -215,11 +225,19 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             }
 
             ValidateSpawnedEnemyAiFlow(spawnedMonster);
+
             spawnedAnyMonster = true;
+
             MarkPatternEffectApplied();
+
             if (!playedAttackCue)
             {
-                _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.SummonMonster, spawnPoint.position);
+                _bossController.PlayPresentationCue(
+                    E_BossPresentationCue.PatternAttack,
+                    E_BossPatternType.SummonMonster,
+                    spawnPoint.position
+                );
+
                 playedAttackCue = true;
             }
         }
@@ -228,19 +246,21 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Uses the explicit MonsterPrefab Instantiate fallback and server-side NetworkObject Spawn when required.
+    /// MonsterPrefab Instantiate fallback + 필요 시 NetworkObject Spawn 수행
     /// </summary>
     private bool TrySpawnMonsterFallback(GameObject monsterPrefab, Transform spawnPoint, out GameObject spawnedMonster)
     {
         spawnedMonster = null;
+
         if (monsterPrefab == null || spawnPoint == null)
         {
             LogFailureOnce("MonsterSpawnFallbackInputMissing");
             return false;
         }
 
-        NetworkManager networkManager = NetworkManager.Singleton; // NGO session singleton used to decide network spawn behavior.
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO 세션 싱글톤
         bool shouldUseNetwork = networkManager != null && networkManager.IsListening;
+
         if (shouldUseNetwork && (_bossController == null || !_bossController.IsBossLogicAuthority()))
         {
             LogFailureOnce("MonsterNetworkSpawnWithoutAuthority");
@@ -248,7 +268,9 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
         }
 
         LogInstantiateFallbackOnce();
+
         spawnedMonster = Instantiate(monsterPrefab, spawnPoint.position, spawnPoint.rotation);
+
         if (spawnedMonster == null)
         {
             LogFailureOnce("MonsterInstantiateFailed");
@@ -260,13 +282,15 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             return true;
         }
 
-        NetworkObject prefabNetworkObject = monsterPrefab.GetComponent<NetworkObject>(); // NetworkObject marker on the prefab that requires NGO Spawn.
+        NetworkObject prefabNetworkObject = monsterPrefab.GetComponent<NetworkObject>(); // 프리팹에 NetworkObject 존재 여부
+
         if (prefabNetworkObject == null)
         {
             return true;
         }
 
-        NetworkObject spawnedNetworkObject = spawnedMonster.GetComponent<NetworkObject>(); // Runtime NetworkObject spawned by the Host or Server.
+        NetworkObject spawnedNetworkObject = spawnedMonster.GetComponent<NetworkObject>(); // 런타임에서 생성된 NetworkObject
+
         if (spawnedNetworkObject == null)
         {
             LogFailureOnce("SpawnedMonsterNetworkObjectMissing");
@@ -283,31 +307,31 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Warns once that this repository has no reusable monster SpawnManager, EnemySpawner, or ObjectPool path to call.
+    /// 기존 SpawnManager / EnemySpawner / ObjectPool이 없음을 1회 경고 출력
     /// </summary>
     private void WarnMissingExistingSpawnPathsOnce()
     {
         if (!_hasLoggedSpawnManagerMissing)
         {
-            Debug.LogWarning($"[BossSummonMonsterPattern] Existing SpawnManager was not found. Pattern 3 will continue to EnemySpawner/ObjectPool/fallback checks. object={name}", this);
+            Debug.LogWarning($"[BossSummonMonsterPattern] SpawnManager 없음. EnemySpawner/ObjectPool/fallback 경로 사용. object={name}", this);
             _hasLoggedSpawnManagerMissing = true;
         }
 
         if (!_hasLoggedEnemySpawnerMissing)
         {
-            Debug.LogWarning($"[BossSummonMonsterPattern] Existing EnemySpawner was not found. Pattern 3 will use MonsterPrefab fallback. object={name}", this);
+            Debug.LogWarning($"[BossSummonMonsterPattern] EnemySpawner 없음. MonsterPrefab fallback 사용. object={name}", this);
             _hasLoggedEnemySpawnerMissing = true;
         }
 
         if (!_hasLoggedObjectPoolMissing)
         {
-            Debug.LogWarning($"[BossSummonMonsterPattern] Existing monster ObjectPool was not found. Pattern 3 will use MonsterPrefab Instantiate fallback. object={name}", this);
+            Debug.LogWarning($"[BossSummonMonsterPattern] ObjectPool 없음. Instantiate fallback 사용. object={name}", this);
             _hasLoggedObjectPoolMissing = true;
         }
     }
 
     /// <summary>
-    /// Reports whether the spawned monster can run through the existing EnemyAI component flow.
+    /// 생성된 몬스터가 기존 EnemyAI 흐름을 사용할 수 있는지 검증한다.
     /// </summary>
     private void ValidateSpawnedEnemyAiFlow(GameObject spawnedMonster)
     {
@@ -316,7 +340,8 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             return;
         }
 
-        if (spawnedMonster.GetComponent<EnemyAIController>() != null || spawnedMonster.GetComponent<StationaryRangedEnemyController>() != null)
+        if (spawnedMonster.GetComponent<EnemyAIController>() != null ||
+            spawnedMonster.GetComponent<StationaryRangedEnemyController>() != null)
         {
             return;
         }
@@ -326,12 +351,12 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             return;
         }
 
-        Debug.LogWarning($"[BossSummonMonsterPattern] Spawned monster has no recognized existing EnemyAI controller. prefabInstance={spawnedMonster.name}", spawnedMonster);
+        Debug.LogWarning($"[BossSummonMonsterPattern] 생성된 몬스터에 기존 EnemyAI 컨트롤러 없음. prefabInstance={spawnedMonster.name}", spawnedMonster);
         _hasLoggedEnemyAiMissing = true;
     }
 
     /// <summary>
-    /// Logs direct MonsterPrefab Instantiate fallback once when no existing spawn or pool path is available.
+    /// Instantiate fallback 사용을 1회만 로그 출력
     /// </summary>
     private void LogInstantiateFallbackOnce()
     {
@@ -340,12 +365,12 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             return;
         }
 
-        Debug.LogWarning($"[BossSummonMonsterPattern] Pattern 3 uses MonsterPrefab Instantiate fallback. object={name}", this);
+        Debug.LogWarning($"[BossSummonMonsterPattern] MonsterPrefab Instantiate fallback 사용. object={name}", this);
         _hasLoggedObjectPoolMissing = true;
     }
 
     /// <summary>
-    /// Logs the missing NetworkObject Pool fallback once before using NGO Spawn directly.
+    /// NetworkObject Pool이 없어 직접 Spawn 사용하는 경우 1회 로그 출력
     /// </summary>
     private void LogNetworkObjectPoolMissingOnce()
     {
@@ -354,26 +379,28 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             return;
         }
 
-        Debug.LogWarning($"[BossSummonMonsterPattern] NetworkObject Pool was not found. Host/Server will Instantiate MonsterPrefab and call NetworkObject.Spawn. object={name}", this);
+        Debug.LogWarning($"[BossSummonMonsterPattern] NetworkObject Pool 없음. 직접 Instantiate + Spawn 수행. object={name}", this);
         _hasLoggedNetworkObjectPoolMissing = true;
     }
 
     /// <summary>
-    /// Returns a selected spawn point from the latest execution without exposing the mutable buffer.
+    /// 최근 실행에서 선택된 스폰 위치를 외부에서 안전하게 조회한다.
     /// </summary>
     public bool TryGetSelectedSpawnPoint(int index, out Transform spawnPoint)
     {
         spawnPoint = null;
+
         if (index < 0 || index >= _selectedSpawnPointCount || _selectedSpawnPointBuffer == null)
         {
-            Debug.LogWarning($"[BossSummonMonsterPattern] Selected spawn point index out of range. object={name}, index={index}, count={_selectedSpawnPointCount}", this);
+            Debug.LogWarning($"[BossSummonMonsterPattern] 스폰 위치 인덱스 범위 초과. object={name}, index={index}, count={_selectedSpawnPointCount}", this);
             return false;
         }
 
         spawnPoint = _selectedSpawnPointBuffer[index];
+
         if (spawnPoint == null)
         {
-            Debug.LogWarning($"[BossSummonMonsterPattern] Selected spawn point is null. object={name}, index={index}", this);
+            Debug.LogWarning($"[BossSummonMonsterPattern] 선택된 스폰 위치가 null. object={name}, index={index}", this);
             return false;
         }
 
@@ -381,7 +408,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Ensures reusable selection buffers can hold the current spawn point count.
+    /// 현재 스폰 위치 개수에 맞게 재사용 버퍼를 초기화한다.
     /// </summary>
     private void EnsureSelectionBuffers(int spawnPointCount)
     {
@@ -397,7 +424,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Reports a cancellation reason with a one-time warning for this execution.
+    /// 경고 로그와 함께 패턴을 취소 처리한다.
     /// </summary>
     private void CancelPatternWithWarning(string reason)
     {
@@ -406,7 +433,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     }
 
     /// <summary>
-    /// Resolves optional references from the same boss GameObject.
+    /// 동일 보스 오브젝트에서 참조를 자동으로 찾는다.
     /// </summary>
     private void ResolveReferences()
     {

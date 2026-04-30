@@ -1,5 +1,5 @@
 /// <summary>
-/// Defines the high level runtime state used by the boss flow.
+/// 상위 수준의 보스 실행 상태를 정의한다.
 /// </summary>
 public enum E_BossState
 {

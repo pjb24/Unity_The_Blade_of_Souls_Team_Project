@@ -3,186 +3,186 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Controls boss battle authority, basic runtime state, and battle lifecycle entry points.
+/// 보스 전투의 권한, 기본 런타임 상태, 전투 라이프사이클 진입 지점을 제어한다.
 /// </summary>
 [DisallowMultipleComponent]
 public class BossController : NetworkBehaviour, IBossPatternExecutionListener, IHealthListener
 {
-    [Header("Required References")]
-    [Tooltip("Boss pattern configuration asset that stores pure pattern settings.")]
-    [SerializeField] private BossPatternData _patternData; // ScriptableObject configuration used by future boss pattern logic.
+    [Header("필수 참조")]
+    [Tooltip("순수 패턴 설정을 저장하는 보스 패턴 설정 애셋")]
+    [SerializeField] private BossPatternData _patternData; // 향후 보스 패턴 로직에서 사용할 ScriptableObject 설정
 
-    [Tooltip("Scene anchor set that stores projectile, monster, and weak point area references.")]
-    [SerializeField] private BossPatternAnchorSet _anchorSet; // Scene reference holder used by future boss pattern logic.
+    [Tooltip("투사체, 몬스터, 약점 영역 참조를 저장하는 씬 앵커 세트")]
+    [SerializeField] private BossPatternAnchorSet _anchorSet; // 향후 보스 패턴 로직에서 사용할 씬 참조 묶음
 
-    [Tooltip("Existing HealthComponent used as the boss health source.")]
-    [SerializeField] private HealthComponent _healthComponent; // Existing health system component reused by the boss.
+    [Tooltip("보스 체력 소스로 사용하는 기존 HealthComponent")]
+    [SerializeField] private HealthComponent _healthComponent; // 기존 체력 시스템 재사용
 
-    [Tooltip("Existing HitReceiver used as the boss damage entry point.")]
-    [SerializeField] private HitReceiver _hitReceiver; // Existing hit system component reused by the boss.
+    [Tooltip("보스 피해 입력 지점으로 사용하는 기존 HitReceiver")]
+    [SerializeField] private HitReceiver _hitReceiver; // 기존 히트 시스템 재사용
 
-    [Tooltip("Common Player target provider used by boss patterns during execution.")]
-    [SerializeField] private BossPlayerTargetProvider _playerTargetProvider; // Shared Player target search provider used by boss pattern execution.
+    [Tooltip("패턴 실행 중 사용할 공통 Player 타겟 제공자")]
+    [SerializeField] private BossPlayerTargetProvider _playerTargetProvider; // 보스 패턴 실행에서 사용하는 Player 탐색 제공자
 
-    [Tooltip("Presentation controller that synchronizes boss Animator, VFX, and Sound cues to clients and host.")]
-    [SerializeField] private BossPresentationController _presentationController; // Presentation-only bridge used after authority confirms boss state or pattern events.
+    [Tooltip("Animator, VFX, 사운드 동기화를 담당하는 프레젠테이션 컨트롤러")]
+    [SerializeField] private BossPresentationController _presentationController; // 권한 확정 후 연출만 담당하는 브릿지
 
-    [Tooltip("Pattern 4 component that owns weak point timers and spawned weak point cleanup.")]
-    [SerializeField] private BossWeakPointPattern _weakPointPattern; // Pattern 4 runtime owner cleaned directly when the boss dies after weak point entry.
+    [Tooltip("약점 타이머 및 생성된 약점 정리를 담당하는 패턴 4 컴포넌트")]
+    [SerializeField] private BossWeakPointPattern _weakPointPattern; // 보스 사망 시 직접 정리되는 패턴 4 런타임 소유자
 
-    [Header("Common Pattern Settings")]
-    [Tooltip("Additional common cooldown in seconds applied between future boss pattern requests.")]
+    [Header("공통 패턴 설정")]
+    [Tooltip("패턴 요청 사이에 추가로 적용되는 공통 쿨타임 (초)")]
     [Min(0f)]
-    [SerializeField] private float _commonPatternCooldownSeconds; // Boss-wide common cooldown value for future pattern selection.
+    [SerializeField] private float _commonPatternCooldownSeconds; // 보스 전체 공통 쿨타임
 
-    [Header("Runtime State")]
-    [Tooltip("Current high-level boss state for debugging and future presentation sync.")]
-    [SerializeField] private E_BossState _currentState = E_BossState.None; // Current boss runtime state decided only by the authority instance.
+    [Header("런타임 상태")]
+    [Tooltip("디버깅 및 연출 동기화를 위한 현재 보스 상태")]
+    [SerializeField] private E_BossState _currentState = E_BossState.None; // 권한 인스턴스에서만 결정되는 상태
 
-    [Tooltip("Whether boss damage intake should currently be blocked by future hit handling.")]
-    [SerializeField] private bool _isInvincible; // Runtime flag used by future hit handling to block damage intake.
+    [Tooltip("현재 보스가 무적 상태인지 여부")]
+    [SerializeField] private bool _isInvincible; // 향후 피격 처리에서 데미지 차단에 사용
 
-    [Tooltip("Whether the weak point pattern is currently active.")]
-    [SerializeField] private bool _isWeakPointPatternActive; // Runtime flag used by future weak point pattern handling.
+    [Tooltip("현재 약점 패턴이 활성 상태인지 여부")]
+    [SerializeField] private bool _isWeakPointPatternActive; // 약점 패턴 처리용 플래그
 
-    [Tooltip("Pattern type currently being executed by the boss.")]
-    [SerializeField] private E_BossPatternType _currentPatternType = E_BossPatternType.None; // Runtime pattern type currently owned by the authority instance.
+    [Tooltip("현재 실행 중인 패턴 타입")]
+    [SerializeField] private E_BossPatternType _currentPatternType = E_BossPatternType.None; // 권한 인스턴스가 소유하는 현재 패턴 타입
 
-    [Tooltip("HealthPhase array index recorded when the current pattern execution was confirmed.")]
-    [SerializeField] private int _currentPatternHealthPhaseIndex = -1; // HealthPhase index captured at pattern execution confirmation time.
+    [Tooltip("현재 패턴 실행 시 기록된 HealthPhase 인덱스")]
+    [SerializeField] private int _currentPatternHealthPhaseIndex = -1; // 패턴 실행 시점의 HealthPhase 인덱스
 
-    [Tooltip("Pattern Id currently being executed by the boss.")]
-    [SerializeField] private string _currentPatternId = string.Empty; // Runtime PatternId currently owned by the authority instance.
+    [Tooltip("현재 실행 중인 패턴 ID")]
+    [SerializeField] private string _currentPatternId = string.Empty; // 권한 인스턴스가 소유하는 PatternId
 
-    [Header("Debug")]
-    [Tooltip("Whether missing required references should be reported during inspector validation.")]
-    [SerializeField] private bool _warnMissingRequiredReferences = true; // Inspector validation warning toggle for missing references.
+    [Header("디버그")]
+    [Tooltip("필수 참조 누락 시 경고 로그 출력 여부")]
+    [SerializeField] private bool _warnMissingRequiredReferences = true; // 인스펙터 검증 경고 토글
 
-    private BossPatternBase _currentPattern; // Runtime pattern instance currently reporting lifecycle results to this controller.
-    private Coroutine _patternSelectionCoroutine; // Coroutine handle reserved for future pattern selection timing.
-    private Coroutine _currentPatternCoroutine; // Coroutine handle reserved for future active pattern execution.
-    private Coroutine _commonCooldownCoroutine; // Coroutine handle reserved for future common cooldown timing.
-    private Coroutine _groggyTimerCoroutine; // Coroutine handle used by Pattern 4 Groggy duration timing.
-    private readonly BossPatternSelector _patternSelector = new BossPatternSelector(); // Reusable selector that owns candidate buffers for pattern selection.
-    private int _healthPhaseUsageResetVersion; // Reset marker for future health phase usage counters.
-    private int _individualCooldownResetVersion; // Reset marker for future per-pattern cooldown state.
-    private float _globalCooldownEndTime; // Time.time timestamp when boss-wide pattern cooldown ends.
-    private string _lastGlobalCooldownReason = string.Empty; // Last authority-side reason that started the boss-wide cooldown.
-    private float[] _patternCooldownEndTimeByType; // Time.time timestamps indexed by E_BossPatternType for individual cooldown checks.
-    private int[] _healthPhasePatternUseCounts; // Flattened use counts indexed by HealthPhaseSettings index and PatternCommonSettings index.
-    private int _currentPatternCommonSettingsIndex = -1; // Common settings index captured at pattern execution confirmation time.
-    private bool _isBattleActive; // Whether the boss battle lifecycle is currently active on the authority instance.
-    private bool _isPatternSelectionEnabled; // Whether future pattern selection is allowed to run.
-    private bool _isCurrentPatternListenerRegistered; // Whether this controller is registered to the current pattern report callbacks.
-    private bool _isHealthListenerRegistered; // Whether this controller is subscribed to the existing HealthComponent callbacks.
-    private bool _hasEnteredDeadCleanup; // Prevents repeated death cleanup and Dead presentation from duplicate health notifications.
-    private bool _isResolvingBossDeath; // Whether current pattern reports are being received as part of boss death cleanup.
-    private bool _hasLoggedAuthorityWarning; // Prevents repeated authority warning logs from the same controller state.
-    private bool _hasLoggedHealthRatioFallbackWarning; // Prevents repeated health ratio fallback warnings from this controller state.
-    private bool _hasLoggedHealthPhaseLookupWarning; // Prevents repeated HealthPhase lookup warnings from this controller state.
-    private bool _hasLoggedCommonSettingsLookupWarning; // Prevents repeated common settings lookup warnings from this controller state.
-    private bool _hasLoggedUsageLimitWarning; // Prevents repeated usage limit warning spam from this controller state.
-    private bool _hasLoggedHealthListenerMissingWarning; // Prevents repeated warnings when boss death cannot subscribe to HealthComponent.
-    private bool _hasLoggedPresentationControllerMissingWarning; // Prevents repeated presentation bridge missing warnings from this controller state.
-    private bool _hasLoggedBossStateSyncFallbackWarning; // Prevents repeated warnings when network state sync cannot be sent.
+    private BossPatternBase _currentPattern; // 현재 실행 중이며 결과를 보고하는 패턴 인스턴스
+    private Coroutine _patternSelectionCoroutine; // 패턴 선택 타이밍용 코루틴
+    private Coroutine _currentPatternCoroutine; // 패턴 실행 코루틴
+    private Coroutine _commonCooldownCoroutine; // 공통 쿨타임 코루틴
+    private Coroutine _groggyTimerCoroutine; // Groggy 상태 타이머 코루틴
+    private readonly BossPatternSelector _patternSelector = new BossPatternSelector(); // 패턴 선택 재사용 객체
+    private int _healthPhaseUsageResetVersion; // HealthPhase 사용 횟수 리셋 마커
+    private int _individualCooldownResetVersion; // 개별 패턴 쿨타임 리셋 마커
+    private float _globalCooldownEndTime; // 공통 쿨타임 종료 시간
+    private string _lastGlobalCooldownReason = string.Empty; // 마지막 공통 쿨타임 발생 이유
+    private float[] _patternCooldownEndTimeByType; // 패턴 타입별 쿨타임 종료 시간
+    private int[] _healthPhasePatternUseCounts; // HealthPhase + Pattern별 사용 횟수
+    private int _currentPatternCommonSettingsIndex = -1; // 패턴 실행 시점 CommonSettings 인덱스
+    private bool _isBattleActive; // 전투 활성 여부
+    private bool _isPatternSelectionEnabled; // 패턴 선택 가능 여부
+    private bool _isCurrentPatternListenerRegistered; // 패턴 리스너 등록 여부
+    private bool _isHealthListenerRegistered; // 체력 리스너 등록 여부
+    private bool _hasEnteredDeadCleanup; // 사망 정리 중복 방지
+    private bool _isResolvingBossDeath; // 사망 처리 중 패턴 콜백 무시 플래그
+    private bool _hasLoggedAuthorityWarning; // 권한 경고 중복 방지
+    private bool _hasLoggedHealthRatioFallbackWarning; // 체력 비율 fallback 경고 중복 방지
+    private bool _hasLoggedHealthPhaseLookupWarning; // HealthPhase 조회 경고 중복 방지
+    private bool _hasLoggedCommonSettingsLookupWarning; // CommonSettings 조회 경고 중복 방지
+    private bool _hasLoggedUsageLimitWarning; // UsageLimit 경고 중복 방지
+    private bool _hasLoggedHealthListenerMissingWarning; // HealthListener 경고 중복 방지
+    private bool _hasLoggedPresentationControllerMissingWarning; // 연출 컨트롤러 경고 중복 방지
+    private bool _hasLoggedBossStateSyncFallbackWarning; // 상태 동기화 경고 중복 방지
 
     /// <summary>
-    /// Gets the boss pattern data asset reference.
+    /// 보스 패턴 데이터 애셋을 반환한다.
     /// </summary>
     public BossPatternData PatternData => _patternData;
 
     /// <summary>
-    /// Gets the scene anchor set reference.
+    /// 씬 앵커 세트를 반환한다.
     /// </summary>
     public BossPatternAnchorSet AnchorSet => _anchorSet;
 
     /// <summary>
-    /// Gets the existing health component reference.
+    /// 기존 HealthComponent 참조를 반환한다.
     /// </summary>
     public HealthComponent HealthComponent => _healthComponent;
 
     /// <summary>
-    /// Gets the existing hit receiver reference.
+    /// 기존 HitReceiver 참조를 반환한다.
     /// </summary>
     public HitReceiver HitReceiver => _hitReceiver;
 
     /// <summary>
-    /// Gets the shared Player target provider reference.
+    /// Player 타겟 제공자 참조를 반환한다.
     /// </summary>
     public BossPlayerTargetProvider PlayerTargetProvider => _playerTargetProvider;
 
     /// <summary>
-    /// Gets the boss-wide common pattern cooldown in seconds.
+    /// 공통 패턴 쿨타임(초)을 반환한다.
     /// </summary>
     public float CommonPatternCooldownSeconds => _commonPatternCooldownSeconds;
 
     /// <summary>
-    /// Gets the Time.time timestamp when the boss-wide cooldown ends.
+    /// 공통 쿨타임 종료 시각(Time.time 기준)을 반환한다.
     /// </summary>
     public float GlobalCooldownEndTime => _globalCooldownEndTime;
 
     /// <summary>
-    /// Gets the last recorded reason for starting the boss-wide cooldown.
+    /// 마지막 공통 쿨타임 발생 이유를 반환한다.
     /// </summary>
     public string LastGlobalCooldownReason => _lastGlobalCooldownReason;
 
     /// <summary>
-    /// Gets the current high-level boss state.
+    /// 현재 보스 상태를 반환한다.
     /// </summary>
     public E_BossState CurrentState => _currentState;
 
     /// <summary>
-    /// Gets whether the battle lifecycle is currently active.
+    /// 전투 활성 여부를 반환한다.
     /// </summary>
     public bool IsBattleActive => _isBattleActive;
 
     /// <summary>
-    /// Gets whether future pattern selection is currently enabled.
+    /// 패턴 선택 가능 여부를 반환한다.
     /// </summary>
     public bool IsPatternSelectionEnabled => _isPatternSelectionEnabled;
 
     /// <summary>
-    /// Gets whether the boss is currently invincible.
+    /// 무적 상태 여부를 반환한다.
     /// </summary>
     public bool IsInvincible => _isInvincible;
 
     /// <summary>
-    /// Gets whether the weak point pattern is currently active.
+    /// 약점 패턴 활성 여부를 반환한다.
     /// </summary>
     public bool IsWeakPointPatternActive => _isWeakPointPatternActive;
 
     /// <summary>
-    /// Gets the pattern type currently being executed.
+    /// 현재 실행 중인 패턴 타입을 반환한다.
     /// </summary>
     public E_BossPatternType CurrentPatternType => _currentPatternType;
 
     /// <summary>
-    /// Gets the HealthPhase index captured when the current pattern execution was confirmed.
+    /// 현재 패턴 실행 시 기록된 HealthPhase 인덱스를 반환한다.
     /// </summary>
     public int CurrentPatternHealthPhaseIndex => _currentPatternHealthPhaseIndex;
 
     /// <summary>
-    /// Gets the PatternId captured for the current pattern execution.
+    /// 현재 실행 중인 PatternId를 반환한다.
     /// </summary>
     public string CurrentPatternId => _currentPatternId;
 
     /// <summary>
-    /// Gets the current pattern instance handle reserved for future pattern execution.
+    /// 현재 패턴 인스턴스를 반환한다.
     /// </summary>
     public BossPatternBase CurrentPattern => _currentPattern;
 
     /// <summary>
-    /// Gets the current pattern instance for compatibility with previous call sites.
+    /// 기존 호출 호환성을 위한 현재 패턴 인스턴스 반환
     /// </summary>
     public BossPatternBase CurrentPatternInstance => _currentPattern;
 
     /// <summary>
-    /// Gets the reusable boss pattern selector.
+    /// 패턴 선택기를 반환한다.
     /// </summary>
     public BossPatternSelector PatternSelector => _patternSelector;
 
     /// <summary>
-    /// Prepares reusable cooldown storage before runtime pattern selection reads it.
+    /// 런타임 전에 쿨타임 저장소를 초기화한다.
     /// </summary>
     private void Awake()
     {
@@ -193,7 +193,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Registers boss death listeners when the component becomes active.
+    /// 컴포넌트 활성화 시 체력 리스너를 등록한다.
     /// </summary>
     private void OnEnable()
     {
@@ -202,7 +202,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Removes boss death listeners when the component becomes inactive.
+    /// 컴포넌트 비활성화 시 체력 리스너를 제거한다.
     /// </summary>
     private void OnDisable()
     {
@@ -210,7 +210,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Corrects invalid boss-level common settings and reports missing required references.
+    /// 인스펙터 값 검증 및 보정 수행
     /// </summary>
     private void OnValidate()
     {
@@ -220,11 +220,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether this instance is allowed to decide boss state and combat logic.
+    /// 현재 인스턴스가 보스 로직 권한을 가지는지 반환한다.
     /// </summary>
     public bool IsBossLogicAuthority()
     {
-        NetworkManager networkManager = NetworkManager.Singleton; // NGO session singleton used to decide single-player versus server-authoritative execution.
+        NetworkManager networkManager = NetworkManager.Singleton; // 싱글플레이/서버 권한 판별용 NGO 싱글톤
         if (networkManager == null)
         {
             return true;
@@ -239,28 +239,28 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Receives Health changed notifications; boss death handling only needs OnDied.
+    /// 체력 변경 이벤트 수신 (사용 안함)
     /// </summary>
     public void OnHealthChanged(HealthChangeData data)
     {
     }
 
     /// <summary>
-    /// Receives damage notifications and lets OnDied perform the final death transition.
+    /// 피해 이벤트 수신 (사망은 OnDied에서 처리)
     /// </summary>
     public void OnDamaged(DamageResult result)
     {
     }
 
     /// <summary>
-    /// Receives heal notifications; boss death handling does not need heal behavior.
+    /// 회복 이벤트 수신 (사용 안함)
     /// </summary>
     public void OnHealed(HealResult result)
     {
     }
 
     /// <summary>
-    /// Receives the existing HealthComponent death callback and enters Dead state on the authority instance.
+    /// 사망 이벤트 수신 후 Dead 상태 진입
     /// </summary>
     public void OnDied()
     {
@@ -273,7 +273,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Receives revive notifications and clears the one-shot death cleanup guard.
+    /// 부활 이벤트 수신 시 사망 정리 플래그 초기화
     /// </summary>
     public void OnRevived()
     {
@@ -286,14 +286,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Receives max health changed notifications; boss death handling does not need max health behavior.
+    /// 최대 체력 변경 이벤트 (사용 안함)
     /// </summary>
     public void OnMaxHealthChanged(float previousMaxHealth, float currentMaxHealth)
     {
     }
 
     /// <summary>
-    /// Starts the boss battle lifecycle on the authority instance.
+    /// 권한을 가진 인스턴스에서 보스 전투 라이프사이클을 시작한다.
     /// </summary>
     public void StartBattle()
     {
@@ -302,21 +302,21 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        ResetHealthPhaseUsageCounters();
-        ResetCommonCooldown();
-        ResetIndividualCooldowns();
-        ResetRuntimeWarningState();
+        ResetHealthPhaseUsageCounters(); // HealthPhase 사용 횟수 초기화
+        ResetCommonCooldown(); // 공통 쿨타임 초기화
+        ResetIndividualCooldowns(); // 개별 패턴 쿨타임 초기화
+        ResetRuntimeWarningState(); // 런타임 경고 상태 초기화
 
-        _isBattleActive = true;
-        _isPatternSelectionEnabled = true;
-        _isInvincible = false;
-        _isWeakPointPatternActive = false;
-        _hasEnteredDeadCleanup = false;
-        EnterIdleState();
+        _isBattleActive = true; // 전투 활성화
+        _isPatternSelectionEnabled = true; // 패턴 선택 활성화
+        _isInvincible = false; // 무적 상태 초기화
+        _isWeakPointPatternActive = false; // 약점 패턴 상태 초기화
+        _hasEnteredDeadCleanup = false; // 사망 정리 상태 초기화
+        EnterIdleState(); // Idle 상태 진입
     }
 
     /// <summary>
-    /// Resets every boss runtime state value owned by the authority instance.
+    /// 권한 인스턴스가 보유한 모든 보스 런타임 상태 값을 초기화한다.
     /// </summary>
     public void ResetBattle()
     {
@@ -325,12 +325,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        StopAllRuntimeTimers();
-        ResetRuntimeState();
+        StopAllRuntimeTimers(); // 모든 런타임 타이머 중지
+        ResetRuntimeState(); // 런타임 상태 초기화
     }
 
     /// <summary>
-    /// Stops the battle lifecycle and cancels future pattern selection or active pattern work.
+    /// 전투 라이프사이클을 중지하고 향후 패턴 선택 및 현재 패턴 실행을 모두 취소한다.
     /// </summary>
     public void StopBattle()
     {
@@ -339,19 +339,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        _isPatternSelectionEnabled = false;
-        CancelCurrentPattern("StopBattle");
-        StopAllRuntimeTimers();
-        _isBattleActive = false;
+        _isPatternSelectionEnabled = false; // 패턴 선택 비활성화
+        CancelCurrentPattern("StopBattle"); // 현재 패턴 취소
+        StopAllRuntimeTimers(); // 모든 타이머 중지
+        _isBattleActive = false; // 전투 비활성화
 
         if (_currentState != E_BossState.Dead)
         {
-            EnterIdleState();
+            EnterIdleState(); // 사망 상태가 아니면 Idle로 전환
         }
     }
 
     /// <summary>
-    /// Marks the boss as pattern-executing without running any pattern logic.
+    /// 패턴 로직을 실행하지 않고 보스를 패턴 실행 상태로 표시한다.
     /// </summary>
     public void SetPatternExecutingState(E_BossPatternType patternType, BossPatternBase patternInstance)
     {
@@ -360,23 +360,23 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        EnterPatternExecutingState(patternType, patternInstance);
+        EnterPatternExecutingState(patternType, patternInstance); // 패턴 실행 상태 진입
     }
 
     /// <summary>
-    /// Starts a boss pattern through the common pattern execution API.
+    /// 공통 패턴 실행 API를 통해 보스 패턴 실행을 시도한다.
     /// </summary>
     public bool TryStartPatternExecution(BossPatternBase pattern)
     {
         if (pattern == null)
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because pattern is null. object={name}", this);
+            Debug.LogWarning($"[BossController] TryStartPatternExecution 실패: pattern이 null. object={name}", this);
             return false;
         }
 
         if (!TryResolveFirstSelectableSettingsForPatternType(pattern.PatternType, out PatternCommonSettings settings))
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because no selectable PatternId was found for PatternType. object={name}, patternType={pattern.PatternType}", this);
+            Debug.LogWarning($"[BossController] TryStartPatternExecution 실패: 선택 가능한 PatternId 없음. object={name}, patternType={pattern.PatternType}", this);
             return false;
         }
 
@@ -384,7 +384,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Starts a boss pattern with the selected PatternId settings through the common pattern execution API.
+    /// 선택된 PatternId 설정을 사용하여 공통 패턴 실행 API로 보스 패턴을 시작한다.
     /// </summary>
     public bool TryStartPatternExecution(BossPatternBase pattern, PatternCommonSettings selectedSettings)
     {
@@ -395,83 +395,83 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (pattern == null)
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because pattern is null. object={name}", this);
+            Debug.LogWarning($"[BossController] TryStartPatternExecution 실패: pattern이 null. object={name}", this);
             return false;
         }
 
         if (_currentState != E_BossState.Idle)
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by boss state. object={name}, state={_currentState}", this);
+            Debug.LogWarning($"[BossController] 상태 때문에 패턴 실행 차단됨. object={name}, state={_currentState}", this);
             return false;
         }
 
         if (_currentPattern != null)
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked because another pattern is active. object={name}, activeType={_currentPatternType}", this);
+            Debug.LogWarning($"[BossController] 다른 패턴이 이미 실행 중이라 차단됨. object={name}, activeType={_currentPatternType}", this);
             return false;
         }
 
         if (pattern.PatternType != selectedSettings.PatternType)
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because PatternType does not match selected settings. object={name}, componentType={pattern.PatternType}, selectedType={selectedSettings.PatternType}, patternId={selectedSettings.PatternId}", this);
+            Debug.LogWarning($"[BossController] PatternType 불일치로 실행 실패. object={name}, componentType={pattern.PatternType}, selectedType={selectedSettings.PatternType}, patternId={selectedSettings.PatternId}", this);
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(selectedSettings.PatternId))
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because selected PatternId is empty. object={name}, patternType={selectedSettings.PatternType}", this);
+            Debug.LogWarning($"[BossController] PatternId가 비어있어 실행 실패. object={name}, patternType={selectedSettings.PatternType}", this);
             return false;
         }
 
         if (pattern.PatternType == E_BossPatternType.WeakPoint && _isWeakPointPatternActive)
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked because Pattern 4 is already active. object={name}", this);
+            Debug.LogWarning($"[BossController] Pattern4 이미 실행 중이라 차단됨. object={name}", this);
             return false;
         }
 
         if (IsGlobalCooldownActive())
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by global cooldown. object={name}, patternType={pattern.PatternType}, remaining={GetGlobalCooldownRemainingSeconds()}", this);
+            Debug.LogWarning($"[BossController] 글로벌 쿨타임으로 차단됨. object={name}, patternType={pattern.PatternType}, remaining={GetGlobalCooldownRemainingSeconds()}", this);
             return false;
         }
 
         if (IsPatternCooldownActive(pattern.PatternType))
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by individual pattern cooldown. object={name}, patternType={pattern.PatternType}, remaining={GetPatternCooldownRemainingSeconds(pattern.PatternType)}", this);
+            Debug.LogWarning($"[BossController] 개별 패턴 쿨타임으로 차단됨. object={name}, patternType={pattern.PatternType}, remaining={GetPatternCooldownRemainingSeconds(pattern.PatternType)}", this);
             return false;
         }
 
         if (!TryCapturePatternSelectionContextForExecution(selectedSettings))
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by HealthPhase or usage limits. object={name}, patternType={pattern.PatternType}, patternId={selectedSettings.PatternId}", this);
+            Debug.LogWarning($"[BossController] HealthPhase 또는 UsageLimit 조건으로 차단됨. object={name}, patternType={pattern.PatternType}, patternId={selectedSettings.PatternId}", this);
             return false;
         }
 
-        _currentPatternId = selectedSettings.PatternId;
-        SetCurrentPatternReference(pattern.PatternType, pattern, true);
-        SetState(E_BossState.PatternExecuting);
-        PlayPresentationCueInternal(E_BossPresentationCue.PatternStarted, pattern.PatternType, transform.position);
+        _currentPatternId = selectedSettings.PatternId; // 현재 패턴 ID 저장
+        SetCurrentPatternReference(pattern.PatternType, pattern, true); // 현재 패턴 참조 설정
+        SetState(E_BossState.PatternExecuting); // 상태 변경
+        PlayPresentationCueInternal(E_BossPresentationCue.PatternStarted, pattern.PatternType, transform.position); // 연출 실행
 
         if (!pattern.StartPatternExecution())
         {
-            ClearCurrentPatternReference();
-            ClearCurrentPatternSelectionContext();
-            SetState(E_BossState.Idle);
+            ClearCurrentPatternReference(); // 패턴 참조 초기화
+            ClearCurrentPatternSelectionContext(); // 선택 컨텍스트 초기화
+            SetState(E_BossState.Idle); // 상태 복귀
             return false;
         }
         return true;
     }
 
     /// <summary>
-    /// Receives normal pattern completion and returns the boss to Idle.
+    /// 패턴 정상 종료 이벤트 수신 후 Idle 상태로 복귀한다.
     /// </summary>
     public void OnBossPatternCompleted(BossPatternExecutionReport report)
     {
-        HandlePatternResult(report, "Completed");
+        HandlePatternResult(report, "Completed"); // 결과 처리
     }
 
     /// <summary>
-    /// Receives pattern cancellation and returns the boss to Idle.
+    /// 패턴 취소 이벤트 수신 후 Idle 상태로 복귀한다.
     /// </summary>
     public void OnBossPatternCancelled(BossPatternExecutionReport report)
     {
@@ -479,7 +479,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Receives pattern failure and returns the boss to Idle.
+    /// 패턴 실패 이벤트 수신 후 Idle 상태로 복귀한다.
     /// </summary>
     public void OnBossPatternFailed(BossPatternExecutionReport report)
     {
@@ -487,7 +487,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Marks the boss as groggy and stops future pattern selection.
+    /// 보스를 Groggy 상태로 전환하고 패턴 선택을 중지한다.
     /// </summary>
     public void SetGroggyState()
     {
@@ -500,7 +500,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Marks the boss as dead and stops future pattern selection.
+    /// 보스를 Dead 상태로 전환하고 패턴 선택을 중지한다.
     /// </summary>
     public void SetDeadState()
     {
@@ -513,7 +513,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Starts or overwrites the boss-wide cooldown from an authority-owned operation.
+    /// 권한 인스턴스에서 보스 전체 공통 쿨타임을 시작하거나 덮어쓴다.
     /// </summary>
     public void StartGlobalCooldown(string reason)
     {
@@ -526,7 +526,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Starts or overwrites the individual cooldown for one pattern type.
+    /// 특정 패턴 타입에 대한 개별 쿨타임을 시작하거나 덮어쓴다.
     /// </summary>
     public void StartPatternCooldown(E_BossPatternType patternType, string reason)
     {
@@ -539,7 +539,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Plays an authority-confirmed boss presentation cue without allowing clients to decide combat state.
+    /// 클라이언트가 전투 상태를 결정하지 않도록 하면서 권한 기반 보스 연출을 실행한다.
     /// </summary>
     public void PlayPresentationCue(E_BossPresentationCue cue, E_BossPatternType patternType, Vector3 worldPosition)
     {
@@ -552,7 +552,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Records that Pattern 4 entered its weak point phase and starts the required global cooldown.
+    /// 패턴 4가 약점 단계에 진입했음을 기록하고 필수 글로벌 쿨타임을 시작한다.
     /// </summary>
     public void NotifyPatternFourEntryCompleted()
     {
@@ -561,9 +561,10 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        bool wasInvincible = _isInvincible; // Previous invincibility state used to avoid duplicate presentation cues.
+        bool wasInvincible = _isInvincible; // 이전 무적 상태 (중복 연출 방지용)
         _isWeakPointPatternActive = true;
         _isInvincible = true;
+
         if (!wasInvincible)
         {
             PlayPresentationCueInternal(E_BossPresentationCue.InvincibleStarted, E_BossPatternType.WeakPoint, transform.position);
@@ -573,7 +574,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Records that Pattern 4 entry started without activating weak points or starting the weak point timer.
+    /// 패턴 4 진입 시작을 기록하되 약점 활성화나 타이머는 시작하지 않는다.
     /// </summary>
     public void NotifyPatternFourEntryStarted()
     {
@@ -587,7 +588,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Records that Pattern 4 timed out and starts the required global cooldown.
+    /// 패턴 4가 시간 초과로 종료되었음을 기록하고 글로벌 쿨타임을 시작한다.
     /// </summary>
     public void NotifyPatternFourTimedOut()
     {
@@ -596,23 +597,26 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
-        CancelCurrentRegularPatternForPatternFourEnd("Pattern4TimedOut");
+        bool wasInvincible = _isInvincible; // 이전 무적 상태 (연출 동기화용)
+        CancelCurrentRegularPatternForPatternFourEnd("Pattern4TimedOut"); // 일반 패턴 취소
+
         _isWeakPointPatternActive = false;
         _isInvincible = false;
+
         if (wasInvincible)
         {
             PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
         }
 
         PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, E_BossPatternType.WeakPoint, transform.position);
-        _isPatternSelectionEnabled = true;
-        EnterIdleState();
-        StartGlobalCooldownInternal("Pattern4TimedOut");
+
+        _isPatternSelectionEnabled = true; // 패턴 선택 재활성화
+        EnterIdleState(); // Idle 상태 전환
+        StartGlobalCooldownInternal("Pattern4TimedOut"); // 글로벌 쿨타임 시작
     }
 
     /// <summary>
-    /// Records that Pattern 4 failed before entry and starts the required global cooldown.
+    /// 패턴 4가 진입 전에 실패했음을 기록하고 필수 글로벌 쿨타임을 시작한다.
     /// </summary>
     public void NotifyPatternFourEntryFailed()
     {
@@ -621,19 +625,20 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
-        _isWeakPointPatternActive = false;
-        _isInvincible = false;
+        bool wasInvincible = _isInvincible; // 이전 무적 상태 (연출 동기화를 위한 상태)
+        _isWeakPointPatternActive = false; // 약점 패턴 비활성화
+        _isInvincible = false; // 무적 해제
+
         if (wasInvincible)
         {
             PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
         }
 
-        StartGlobalCooldownInternal("Pattern4EntryFailed");
+        StartGlobalCooldownInternal("Pattern4EntryFailed"); // 글로벌 쿨타임 시작
     }
 
     /// <summary>
-    /// Records that every weak point was destroyed without starting the global cooldown immediately.
+    /// 모든 약점이 파괴되었음을 기록하되 즉시 글로벌 쿨타임은 시작하지 않는다.
     /// </summary>
     public void NotifyPatternFourAllWeakPointsDestroyed()
     {
@@ -642,20 +647,21 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
-        CancelCurrentRegularPatternForPatternFourEnd("Pattern4AllWeakPointsDestroyed");
-        _isWeakPointPatternActive = false;
-        _isInvincible = false;
+        bool wasInvincible = _isInvincible; // 이전 무적 상태 (연출 동기화용)
+        CancelCurrentRegularPatternForPatternFourEnd("Pattern4AllWeakPointsDestroyed"); // 일반 패턴 취소
+        _isWeakPointPatternActive = false; // 약점 상태 종료
+        _isInvincible = false; // 무적 해제
+
         if (wasInvincible)
         {
             PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
         }
 
-        PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, E_BossPatternType.WeakPoint, transform.position);
+        PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, E_BossPatternType.WeakPoint, transform.position); // 패턴 종료 연출
     }
 
     /// <summary>
-    /// Enters Groggy state for a fixed duration and lets the authority return to Idle afterward.
+    /// 일정 시간 동안 Groggy 상태에 진입하고 이후 권한 인스턴스가 Idle 상태로 복귀하도록 한다.
     /// </summary>
     public void StartGroggyForDuration(float groggyDurationSeconds, string reason)
     {
@@ -664,28 +670,30 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        float safeDuration = groggyDurationSeconds; // Duration used by the authority-owned Groggy timer.
+        float safeDuration = groggyDurationSeconds; // 권한 인스턴스가 사용하는 Groggy 지속 시간
         if (safeDuration < 0f)
         {
-            Debug.LogWarning($"[BossController] Groggy duration was below zero at runtime and clamped. object={name}, value={safeDuration}", this);
+            Debug.LogWarning($"[BossController] Groggy 지속 시간이 0보다 작아서 보정됨. object={name}, value={safeDuration}", this);
             safeDuration = 0f;
         }
 
-        StopRuntimeCoroutine(ref _groggyTimerCoroutine);
-        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
+        StopRuntimeCoroutine(ref _groggyTimerCoroutine); // 기존 Groggy 타이머 중지
+
+        bool wasInvincible = _isInvincible; // 이전 무적 상태
         _isWeakPointPatternActive = false;
         _isInvincible = false;
+
         if (wasInvincible)
         {
             PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
         }
 
-        EnterGroggyState();
-        _groggyTimerCoroutine = StartCoroutine(RunGroggyTimer(safeDuration, reason));
+        EnterGroggyState(); // Groggy 상태 진입
+        _groggyTimerCoroutine = StartCoroutine(RunGroggyTimer(safeDuration, reason)); // 타이머 시작
     }
 
     /// <summary>
-    /// Ends Groggy state and starts the required global cooldown before returning to Idle.
+    /// Groggy 상태를 종료하고 글로벌 쿨타임을 시작한 뒤 Idle 상태로 복귀한다.
     /// </summary>
     public void EndGroggyState()
     {
@@ -696,18 +704,18 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (_currentState != E_BossState.Groggy)
         {
-            Debug.LogWarning($"[BossController] EndGroggyState called while boss is not Groggy. object={name}, state={_currentState}", this);
+            Debug.LogWarning($"[BossController] Groggy 상태가 아닌데 EndGroggyState 호출됨. object={name}, state={_currentState}", this);
             return;
         }
 
-        _isPatternSelectionEnabled = true;
-        PlayPresentationCueInternal(E_BossPresentationCue.GroggyEnded, E_BossPatternType.WeakPoint, transform.position);
-        StartGlobalCooldownInternal("GroggyEnded");
-        EnterIdleState();
+        _isPatternSelectionEnabled = true; // 패턴 선택 재활성화
+        PlayPresentationCueInternal(E_BossPresentationCue.GroggyEnded, E_BossPatternType.WeakPoint, transform.position); // 연출
+        StartGlobalCooldownInternal("GroggyEnded"); // 글로벌 쿨타임 시작
+        EnterIdleState(); // Idle 복귀
     }
 
     /// <summary>
-    /// Returns whether future pattern selection may run in the current boss state.
+    /// 현재 상태에서 패턴 선택이 가능한지 반환한다.
     /// </summary>
     public bool CanSelectPattern()
     {
@@ -730,7 +738,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether a specific pattern can be selected after state and cooldown checks.
+    /// 특정 패턴 타입이 선택 가능한지 상태 및 쿨타임 기준으로 반환한다.
     /// </summary>
     public bool CanSelectPatternType(E_BossPatternType patternType)
     {
@@ -758,7 +766,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether a concrete common settings entry can be selected by the boss selector.
+    /// 특정 CommonSettings 항목이 선택 가능한지 반환한다.
     /// </summary>
     public bool CanSelectPatternSettings(PatternCommonSettings settings)
     {
@@ -771,7 +779,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether a concrete common settings entry at the given index can be selected by the boss selector.
+    /// 특정 인덱스의 CommonSettings 항목이 선택 가능한지 반환한다.
     /// </summary>
     public bool CanSelectPatternSettings(PatternCommonSettings settings, int commonSettingsIndex)
     {
@@ -799,15 +807,15 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Reports that pattern selection had no valid candidate and the boss remains idle.
+    /// 선택 가능한 패턴이 없을 때 Idle 상태 유지 상황을 로그로 보고한다.
     /// </summary>
     public void ReportNoSelectablePatternFallback()
     {
-        Debug.LogWarning($"[BossController] No selectable pattern was found for the current HealthPhase. Boss remains Idle. object={name}, phaseIndex={GetCurrentHealthPhaseIndex()}", this);
+        Debug.LogWarning($"[BossController] 선택 가능한 패턴이 없어 Idle 유지. object={name}, phaseIndex={GetCurrentHealthPhaseIndex()}", this);
     }
 
     /// <summary>
-    /// Selects the next pattern candidate without starting pattern execution.
+    /// 패턴 실행 없이 다음 패턴 후보를 선택한다.
     /// </summary>
     public bool TrySelectPattern(Transform target, out PatternCommonSettings selectedSettings)
     {
@@ -815,21 +823,23 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resolves the first selectable CommonSettings entry for a PatternType for direct component-driven execution.
+    /// 특정 PatternType에 대해 실행 가능한 첫 번째 CommonSettings를 찾는다.
     /// </summary>
     private bool TryResolveFirstSelectableSettingsForPatternType(E_BossPatternType patternType, out PatternCommonSettings selectedSettings)
     {
         selectedSettings = default;
+
         if (_patternData == null || _patternData.CommonSettings == null)
         {
-            Debug.LogWarning($"[BossController] Cannot resolve selectable settings because PatternData or CommonSettings is missing. object={name}, patternType={patternType}", this);
+            Debug.LogWarning($"[BossController] PatternData 또는 CommonSettings가 없어 선택 불가. object={name}, patternType={patternType}", this);
             return false;
         }
 
-        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Designer-authored CommonSettings searched in order for direct execution.
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // 디자이너가 작성한 설정 목록
         for (int index = 0; index < commonSettings.Length; index++)
         {
-            PatternCommonSettings settings = commonSettings[index]; // Candidate settings entry for this PatternType.
+            PatternCommonSettings settings = commonSettings[index]; // 후보 설정
+
             if (settings.PatternType != patternType)
             {
                 continue;
@@ -844,19 +854,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return true;
         }
 
-        Debug.LogWarning($"[BossController] No selectable CommonSettings entry exists for PatternType. object={name}, patternType={patternType}", this);
+        Debug.LogWarning($"[BossController] 선택 가능한 CommonSettings 없음. object={name}, patternType={patternType}", this);
         return false;
     }
 
     /// <summary>
-    /// Finds the nearest valid Player for a boss pattern execution through the shared target provider.
+    /// 공통 타겟 제공자를 통해 보스 패턴 실행에 사용할 가장 가까운 유효한 Player를 찾는다.
     /// </summary>
     public bool TryFindNearestPlayerForExecution(float executionRange, out Transform targetTransform, out HealthComponent targetHealth, out NetworkObject targetNetworkObject)
     {
         ResolveOptionalRuntimeReferences();
         if (_playerTargetProvider == null)
         {
-            Debug.LogWarning($"[BossController] Player target search failed because BossPlayerTargetProvider is missing. object={name}", this);
+            Debug.LogWarning($"[BossController] BossPlayerTargetProvider가 없어 Player 탐색 실패. object={name}", this);
             targetTransform = null;
             targetHealth = null;
             targetNetworkObject = null;
@@ -867,7 +877,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether boss-wide pattern cooldown is currently active.
+    /// 현재 보스 전체 공통 쿨타임이 활성 상태인지 여부를 반환한다.
     /// </summary>
     public bool IsGlobalCooldownActive()
     {
@@ -875,11 +885,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns remaining boss-wide cooldown seconds based on Time.time.
+    /// Time.time 기준으로 남아있는 공통 쿨타임(초)을 반환한다.
     /// </summary>
     public float GetGlobalCooldownRemainingSeconds()
     {
-        float remainingSeconds = _globalCooldownEndTime - Time.time; // Time.time based cooldown difference for selection gating.
+        float remainingSeconds = _globalCooldownEndTime - Time.time; // Time.time 기준 쿨타임 차이 계산
         if (remainingSeconds <= 0f)
         {
             return 0f;
@@ -889,11 +899,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether the given pattern type is still under individual cooldown.
+    /// 특정 패턴 타입이 개별 쿨타임 중인지 여부를 반환한다.
     /// </summary>
     public bool IsPatternCooldownActive(E_BossPatternType patternType)
     {
-        int cooldownIndex = GetPatternCooldownIndex(patternType); // Enum-backed index used to read the reusable cooldown array.
+        int cooldownIndex = GetPatternCooldownIndex(patternType); // enum 기반 인덱스로 쿨타임 배열 접근
         if (cooldownIndex < 0)
         {
             return false;
@@ -904,18 +914,18 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns remaining individual cooldown seconds for the given pattern type.
+    /// 특정 패턴 타입의 남은 개별 쿨타임(초)을 반환한다.
     /// </summary>
     public float GetPatternCooldownRemainingSeconds(E_BossPatternType patternType)
     {
-        int cooldownIndex = GetPatternCooldownIndex(patternType); // Enum-backed index used to read the reusable cooldown array.
+        int cooldownIndex = GetPatternCooldownIndex(patternType); // enum 기반 인덱스
         if (cooldownIndex < 0)
         {
             return 0f;
         }
 
         EnsurePatternCooldownStorage();
-        float remainingSeconds = _patternCooldownEndTimeByType[cooldownIndex] - Time.time; // Time.time based cooldown difference for selection gating.
+        float remainingSeconds = _patternCooldownEndTimeByType[cooldownIndex] - Time.time; // Time.time 기준 쿨타임 차이 계산
         if (remainingSeconds <= 0f)
         {
             return 0f;
@@ -925,11 +935,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the Time.time timestamp when the given pattern type cooldown ends.
+    /// 특정 패턴 타입의 쿨타임 종료 시각(Time.time 기준)을 반환한다.
     /// </summary>
     public float GetPatternCooldownEndTime(E_BossPatternType patternType)
     {
-        int cooldownIndex = GetPatternCooldownIndex(patternType); // Enum-backed index used to read the reusable cooldown array.
+        int cooldownIndex = GetPatternCooldownIndex(patternType); // enum 기반 인덱스
         if (cooldownIndex < 0)
         {
             return 0f;
@@ -940,7 +950,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the boss current health ratio clamped to the 0..1 range.
+    /// 현재 보스 체력 비율을 0..1 범위로 보정하여 반환한다.
     /// </summary>
     public float GetCurrentHealthRatio()
     {
@@ -948,31 +958,31 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedHealthRatioFallbackWarning)
             {
-                Debug.LogWarning($"[BossController] Health ratio fell back to 1 because HealthComponent is missing. object={name}", this);
+                Debug.LogWarning($"[BossController] HealthComponent가 없어 체력 비율을 1로 반환. object={name}", this);
                 _hasLoggedHealthRatioFallbackWarning = true;
             }
 
             return 1f;
         }
 
-        float maxHealth = _healthComponent.GetMaxHealth(); // Existing HealthComponent max health used as the ratio denominator.
+        float maxHealth = _healthComponent.GetMaxHealth(); // 기존 HealthComponent의 최대 체력
         if (maxHealth <= 0f)
         {
             if (!_hasLoggedHealthRatioFallbackWarning)
             {
-                Debug.LogWarning($"[BossController] Health ratio fell back to 1 because MaxHealth was not positive. object={name}, maxHealth={maxHealth}", this);
+                Debug.LogWarning($"[BossController] MaxHealth가 0 이하라 체력 비율을 1로 반환. object={name}, maxHealth={maxHealth}", this);
                 _hasLoggedHealthRatioFallbackWarning = true;
             }
 
             return 1f;
         }
 
-        float currentHealth = _healthComponent.GetCurrentHealth(); // Existing HealthComponent current health used as the ratio numerator.
+        float currentHealth = _healthComponent.GetCurrentHealth(); // 현재 체력
         return Mathf.Clamp01(currentHealth / maxHealth);
     }
 
     /// <summary>
-    /// Returns the first HealthPhaseSettings index that contains the current health ratio.
+    /// 현재 체력 비율 기준으로 HealthPhase 인덱스를 반환한다.
     /// </summary>
     public int GetCurrentHealthPhaseIndex()
     {
@@ -980,26 +990,28 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the first HealthPhaseSettings index that contains the supplied health ratio.
+    /// 지정한 체력 비율에 해당하는 HealthPhase 인덱스를 반환한다.
     /// </summary>
     public int GetHealthPhaseIndex(float healthRatio)
     {
-        float clampedHealthRatio = Mathf.Clamp01(healthRatio); // Normalized health value used for ordered phase lookup.
+        float clampedHealthRatio = Mathf.Clamp01(healthRatio); // 정규화된 체력 값
+
         if (_patternData == null || _patternData.HealthPhaseSettings == null || _patternData.HealthPhaseSettings.Length == 0)
         {
             if (!_hasLoggedHealthPhaseLookupWarning)
             {
-                Debug.LogWarning($"[BossController] HealthPhase lookup failed because HealthPhaseSettings is missing or empty. object={name}", this);
+                Debug.LogWarning($"[BossController] HealthPhaseSettings가 없어 조회 실패. object={name}", this);
                 _hasLoggedHealthPhaseLookupWarning = true;
             }
 
             return -1;
         }
 
-        HealthPhaseSettings[] healthPhaseSettings = _patternData.HealthPhaseSettings; // Designer-authored HealthPhase array evaluated in order.
+        HealthPhaseSettings[] healthPhaseSettings = _patternData.HealthPhaseSettings; // 디자이너 설정 배열
         for (int index = 0; index < healthPhaseSettings.Length; index++)
         {
-            HealthPhaseSettings settings = healthPhaseSettings[index]; // Current HealthPhase candidate checked against the ratio.
+            HealthPhaseSettings settings = healthPhaseSettings[index]; // 현재 검사 대상 페이즈
+
             if (clampedHealthRatio > settings.MaxHealthRatio || clampedHealthRatio <= settings.MinHealthRatio)
             {
                 continue;
@@ -1010,7 +1022,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!_hasLoggedHealthPhaseLookupWarning)
         {
-            Debug.LogWarning($"[BossController] HealthPhase lookup found no matching range. object={name}, healthRatio={clampedHealthRatio}", this);
+            Debug.LogWarning($"[BossController] 해당 체력에 맞는 HealthPhase 없음. object={name}, ratio={clampedHealthRatio}", this);
             _hasLoggedHealthPhaseLookupWarning = true;
         }
 
@@ -1018,7 +1030,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the use count recorded for a pattern type in a HealthPhase index.
+    /// HealthPhase 기준 특정 패턴 타입의 사용 횟수를 반환한다.
     /// </summary>
     public int GetHealthPhasePatternUseCount(int healthPhaseIndex, E_BossPatternType patternType)
     {
@@ -1031,7 +1043,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the use count recorded for a PatternId in a HealthPhase index.
+    /// HealthPhase 기준 특정 PatternId의 사용 횟수를 반환한다.
     /// </summary>
     public int GetHealthPhasePatternUseCount(int healthPhaseIndex, string patternId)
     {
@@ -1044,35 +1056,35 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Enters the Idle state and clears active pattern ownership.
+    /// Idle 상태로 진입하고 현재 패턴 참조를 초기화한다.
     /// </summary>
     private void EnterIdleState()
     {
-        ClearCurrentPatternReference();
-        SetState(E_BossState.Idle);
+        ClearCurrentPatternReference(); // 패턴 참조 제거
+        SetState(E_BossState.Idle); // 상태 변경
     }
 
     /// <summary>
-    /// Enters the PatternExecuting state and stores the active pattern identity.
+    /// PatternExecuting 상태로 진입하고 현재 패턴 정보를 기록한다.
     /// </summary>
     private void EnterPatternExecutingState(E_BossPatternType patternType, BossPatternBase patternInstance)
     {
-        SetCurrentPatternReference(patternType, patternInstance, patternInstance != null);
-        SetState(E_BossState.PatternExecuting);
+        SetCurrentPatternReference(patternType, patternInstance, patternInstance != null); // 패턴 참조 설정
+        SetState(E_BossState.PatternExecuting); // 상태 변경
     }
 
     /// <summary>
-    /// Enters the Groggy state and clears active pattern ownership.
+    /// Groggy 상태로 진입하고 현재 패턴을 취소한다.
     /// </summary>
     private void EnterGroggyState()
     {
-        CancelCurrentPattern("EnterGroggyState");
-        SetState(E_BossState.Groggy);
-        PlayPresentationCueInternal(E_BossPresentationCue.GroggyStarted, E_BossPatternType.WeakPoint, transform.position);
+        CancelCurrentPattern("EnterGroggyState"); // 현재 패턴 취소
+        SetState(E_BossState.Groggy); // 상태 변경
+        PlayPresentationCueInternal(E_BossPresentationCue.GroggyStarted, E_BossPatternType.WeakPoint, transform.position); // 연출 실행
     }
 
     /// <summary>
-    /// Enters the Dead state and clears active pattern ownership.
+    /// Dead 상태로 진입하고 현재 패턴 소유 상태를 정리한다.
     /// </summary>
     private void EnterDeadState()
     {
@@ -1084,24 +1096,24 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         _hasEnteredDeadCleanup = true;
         _isResolvingBossDeath = true;
         _isPatternSelectionEnabled = false;
-        StopAllRuntimeTimers();
-        CancelCurrentPattern("EnterDeadState");
-        CleanupWeakPointPatternForBossDeath();
+        StopAllRuntimeTimers(); // 모든 런타임 타이머 중지
+        CancelCurrentPattern("EnterDeadState"); // 현재 패턴 취소
+        CleanupWeakPointPatternForBossDeath(); // 약점 패턴 정리
         _isWeakPointPatternActive = false;
         _isInvincible = false;
         _isBattleActive = false;
-        SetState(E_BossState.Dead);
-        PlayPresentationCueInternal(E_BossPresentationCue.Dead, E_BossPatternType.None, transform.position);
+        SetState(E_BossState.Dead); // Dead 상태 전환
+        PlayPresentationCueInternal(E_BossPresentationCue.Dead, E_BossPatternType.None, transform.position); // 사망 연출 실행
         _isResolvingBossDeath = false;
     }
 
     /// <summary>
-    /// Changes the current boss state on the authority instance.
+    /// 권한 인스턴스에서 현재 보스 상태를 변경한다.
     /// </summary>
     private void SetState(E_BossState nextState)
     {
         _currentState = nextState;
-        SyncBossStateToClients(nextState);
+        SyncBossStateToClients(nextState); // 클라이언트에 상태 동기화
 
         if (_currentState == E_BossState.Dead || _currentState == E_BossState.Groggy)
         {
@@ -1110,12 +1122,13 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Applies server-replicated boss state on clients without mutating combat authority data.
+    /// 서버에서 전달된 보스 상태를 클라이언트에 적용하되 전투 권한 데이터는 변경하지 않는다.
     /// </summary>
     private void ApplyReplicatedBossState(int stateValue)
     {
-        E_BossState replicatedState = (E_BossState)stateValue; // Server-authored state value delivered through RPC.
+        E_BossState replicatedState = (E_BossState)stateValue; // RPC를 통해 전달된 서버 상태 값
         _currentState = replicatedState;
+
         if (replicatedState == E_BossState.Dead)
         {
             _isBattleActive = false;
@@ -1130,11 +1143,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Sends the server-confirmed boss state to clients through NGO RPC when networking is active.
+    /// 네트워크가 활성 상태일 때 서버에서 확정된 보스 상태를 클라이언트에 전송한다.
     /// </summary>
     private void SyncBossStateToClients(E_BossState state)
     {
-        NetworkManager networkManager = NetworkManager.Singleton; // NGO singleton used to decide whether state synchronization is required.
+        NetworkManager networkManager = NetworkManager.Singleton; // 상태 동기화 필요 여부 판단용 NGO 싱글톤
         if (networkManager == null || !networkManager.IsListening)
         {
             return;
@@ -1144,7 +1157,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedBossStateSyncFallbackWarning)
             {
-                Debug.LogWarning($"[BossController] Boss state sync skipped because NetworkObject is not spawned. object={name}, state={state}", this);
+                Debug.LogWarning($"[BossController] NetworkObject가 Spawn되지 않아 상태 동기화 스킵됨. object={name}, state={state}", this);
                 _hasLoggedBossStateSyncFallbackWarning = true;
             }
 
@@ -1155,7 +1168,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Receives a server-confirmed boss state and mirrors it locally without deciding combat logic.
+    /// 서버에서 확정된 보스 상태를 수신하여 로컬에 반영한다. 전투 로직 결정은 수행하지 않는다.
     /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
     private void SyncBossStateRpc(int stateValue)
@@ -1164,7 +1177,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resets all runtime-only state without touching inspector-authored configuration.
+    /// 인스펙터 설정을 변경하지 않고 런타임 전용 상태를 초기화한다.
     /// </summary>
     private void ResetRuntimeState()
     {
@@ -1175,17 +1188,17 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         _hasEnteredDeadCleanup = false;
         _isResolvingBossDeath = false;
         _currentPatternType = E_BossPatternType.None;
-        ClearCurrentPatternSelectionContext();
-        ClearCurrentPatternReference();
-        ResetCommonCooldown();
-        ResetIndividualCooldowns();
-        ResetHealthPhaseUsageCounters();
-        ResetRuntimeWarningState();
-        SetState(E_BossState.None);
+        ClearCurrentPatternSelectionContext(); // 선택 컨텍스트 초기화
+        ClearCurrentPatternReference(); // 패턴 참조 초기화
+        ResetCommonCooldown(); // 공통 쿨타임 초기화
+        ResetIndividualCooldowns(); // 개별 쿨타임 초기화
+        ResetHealthPhaseUsageCounters(); // 사용 횟수 초기화
+        ResetRuntimeWarningState(); // 경고 상태 초기화
+        SetState(E_BossState.None); // 상태 초기화
     }
 
     /// <summary>
-    /// Resets the health phase usage counter storage.
+    /// HealthPhase 사용 횟수 저장소를 초기화한다.
     /// </summary>
     private void ResetHealthPhaseUsageCounters()
     {
@@ -1200,7 +1213,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resets the common cooldown runtime value.
+    /// 공통 쿨타임 값을 초기화한다.
     /// </summary>
     private void ResetCommonCooldown()
     {
@@ -1209,7 +1222,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resets the individual pattern cooldown storage values.
+    /// 개별 패턴 쿨타임 저장 값을 초기화한다.
     /// </summary>
     private void ResetIndividualCooldowns()
     {
@@ -1223,7 +1236,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resets one-shot runtime warning guards used by boss selection checks.
+    /// 패턴 선택 체크에서 사용하는 1회성 경고 플래그를 초기화한다.
     /// </summary>
     private void ResetRuntimeWarningState()
     {
@@ -1238,7 +1251,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Cleans Pattern 4 timers and weak point objects that may outlive the entry pattern execution.
+    /// 보스 사망 시 패턴 4 타이머 및 약점 오브젝트를 정리한다.
     /// </summary>
     private void CleanupWeakPointPatternForBossDeath()
     {
@@ -1247,7 +1260,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (_isWeakPointPatternActive)
             {
-                Debug.LogWarning($"[BossController] Pattern 4 cleanup skipped because BossWeakPointPattern is missing during boss death. object={name}", this);
+                Debug.LogWarning($"[BossController] 보스 사망 시 BossWeakPointPattern이 없어 Pattern4 정리 스킵됨. object={name}", this);
             }
 
             return;
@@ -1257,7 +1270,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Subscribes to the existing HealthComponent death notifications through AddListener.
+    /// 기존 HealthComponent의 사망 이벤트를 AddListener로 구독한다.
     /// </summary>
     private void RegisterHealthListener()
     {
@@ -1271,7 +1284,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedHealthListenerMissingWarning)
             {
-                Debug.LogWarning($"[BossController] HealthComponent is missing. Boss death listener registration skipped. object={name}", this);
+                Debug.LogWarning($"[BossController] HealthComponent가 없어 사망 이벤트 등록 실패. object={name}", this);
                 _hasLoggedHealthListenerMissingWarning = true;
             }
 
@@ -1283,7 +1296,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Unsubscribes from the existing HealthComponent death notifications through RemoveListener.
+    /// 기존 HealthComponent의 사망 이벤트를 RemoveListener로 해제한다.
     /// </summary>
     private void UnregisterHealthListener()
     {
@@ -1297,7 +1310,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Cancels the current pattern handle reserved for future pattern execution.
+    /// 현재 패턴 실행을 취소한다.
     /// </summary>
     private void CancelCurrentPattern(string reason)
     {
@@ -1311,7 +1324,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Cancels only the currently executing non-Pattern-4 pattern through the common cancellation API.
+    /// Pattern 4가 아닌 현재 실행 중인 패턴만 취소한다.
     /// </summary>
     private void CancelCurrentRegularPatternForPatternFourEnd(string reason)
     {
@@ -1323,7 +1336,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (IsPatternFourPatternType(_currentPatternType))
         {
-            Debug.LogWarning($"[BossController] Pattern 4 end skipped self-cancellation for the weak point pattern. object={name}, reason={reason}", this);
+            Debug.LogWarning($"[BossController] Pattern4 종료 시 자기 자신 취소는 수행하지 않음. object={name}, reason={reason}", this);
             return;
         }
 
@@ -1331,7 +1344,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Clears current pattern references and unregisters this controller from reports.
+    /// 현재 패턴 참조를 초기화하고 이 컨트롤러를 패턴 리포트에서 제거한다.
     /// </summary>
     private void ClearCurrentPatternReference()
     {
@@ -1346,7 +1359,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Clears the HealthPhase and common settings indices captured for the current pattern.
+    /// 현재 패턴에 대해 기록된 HealthPhase 및 CommonSettings 인덱스를 초기화한다.
     /// </summary>
     private void ClearCurrentPatternSelectionContext()
     {
@@ -1356,7 +1369,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Stores the current pattern reference and optionally registers for result reports.
+    /// 현재 패턴 참조를 저장하고 필요 시 결과 리포트 리스너를 등록한다.
     /// </summary>
     private void SetCurrentPatternReference(E_BossPatternType patternType, BossPatternBase pattern, bool registerListener)
     {
@@ -1375,13 +1388,13 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Handles any terminal pattern result and returns the boss to Idle.
+    /// 패턴 종료 결과를 처리하고 보스를 Idle 상태로 복귀시킨다.
     /// </summary>
     private void HandlePatternResult(BossPatternExecutionReport report, string resultLabel)
     {
         if (report.Pattern != _currentPattern)
         {
-            Debug.LogWarning($"[BossController] Ignored stale pattern result. object={name}, result={resultLabel}, reportType={report.PatternType}, currentType={_currentPatternType}", this);
+            Debug.LogWarning($"[BossController] 이전 패턴 결과를 무시함. object={name}, result={resultLabel}, reportType={report.PatternType}, currentType={_currentPatternType}", this);
             return;
         }
 
@@ -1405,7 +1418,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Sends a presentation cue through the configured presentation bridge after authority has confirmed the event.
+    /// 권한 확인 이후 설정된 연출 컨트롤러를 통해 연출 이벤트를 전달한다.
     /// </summary>
     private void PlayPresentationCueInternal(E_BossPresentationCue cue, E_BossPatternType patternType, Vector3 worldPosition)
     {
@@ -1414,7 +1427,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedPresentationControllerMissingWarning)
             {
-                Debug.LogWarning($"[BossController] BossPresentationController is missing. Presentation cue skipped. object={name}, cue={cue}, patternType={patternType}", this);
+                Debug.LogWarning($"[BossController] BossPresentationController가 없어 연출 실행 스킵됨. object={name}, cue={cue}, patternType={patternType}", this);
                 _hasLoggedPresentationControllerMissingWarning = true;
             }
 
@@ -1425,7 +1438,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Stops every active runtime timer coroutine owned by this controller.
+    /// 이 컨트롤러가 소유한 모든 런타임 타이머 코루틴을 중지한다.
     /// </summary>
     private void StopAllRuntimeTimers()
     {
@@ -1436,7 +1449,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Waits for GroggyDuration and returns the boss to Idle with a global cooldown.
+    /// Groggy 지속 시간이 끝날 때까지 대기 후 Idle 상태로 복귀하고 글로벌 쿨타임을 시작한다.
     /// </summary>
     private IEnumerator RunGroggyTimer(float groggyDurationSeconds, string reason)
     {
@@ -1450,7 +1463,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Stops a coroutine if it is running and clears the stored handle.
+    /// 코루틴이 실행 중이면 중지하고 참조를 초기화한다.
     /// </summary>
     private void StopRuntimeCoroutine(ref Coroutine coroutine)
     {
@@ -1464,7 +1477,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Captures HealthPhase and CommonSettings context for the selected PatternId before execution starts.
+    /// 패턴 실행 전에 선택된 PatternId에 대한 HealthPhase 및 CommonSettings 컨텍스트를 저장한다.
     /// </summary>
     private bool TryCapturePatternSelectionContextForExecution(PatternCommonSettings settings)
     {
@@ -1494,7 +1507,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Applies HealthPhase usage after a pattern completes or after a cancelled pattern already produced an effect.
+    /// 패턴 완료 또는 효과가 발생한 취소 시 HealthPhase 사용 횟수를 증가시킨다.
     /// </summary>
     private void ApplyUsageCountForPatternResult(BossPatternExecutionReport report, string resultLabel)
     {
@@ -1507,7 +1520,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether a pattern result should increase phase-local usage count.
+    /// 패턴 결과에 따라 사용 횟수를 증가시켜야 하는지 여부를 반환한다.
     /// </summary>
     private bool ShouldCountPatternUsage(BossPatternExecutionReport report, string resultLabel)
     {
@@ -1530,15 +1543,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Increments the captured HealthPhase and PatternId usage count.
+    /// 현재 기록된 HealthPhase 및 PatternId 사용 횟수를 증가시킨다.
     /// </summary>
     private void IncrementCapturedPatternUsage(BossPatternExecutionReport report)
     {
         EnsureHealthPhaseUsageStorage();
         int usageIndex = GetHealthPhaseUsageIndex(_currentPatternHealthPhaseIndex, _currentPatternCommonSettingsIndex);
+
         if (usageIndex < 0)
         {
-            Debug.LogWarning($"[BossController] HealthPhase usage count was not recorded because the captured index was invalid. object={name}, phaseIndex={_currentPatternHealthPhaseIndex}, commonIndex={_currentPatternCommonSettingsIndex}, patternId={_currentPatternId}, result={report.Reason}", this);
+            Debug.LogWarning($"[BossController] 잘못된 인덱스로 인해 사용 횟수 기록 실패. object={name}, phaseIndex={_currentPatternHealthPhaseIndex}, commonIndex={_currentPatternCommonSettingsIndex}, patternId={_currentPatternId}, result={report.Reason}", this);
             return;
         }
 
@@ -1546,7 +1560,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resolves the HealthPhase and common settings indices required for pattern selection.
+    /// 패턴 선택에 필요한 HealthPhase 및 CommonSettings 인덱스를 계산한다.
     /// </summary>
     private bool TryGetPatternSelectionContext(E_BossPatternType patternType, out int healthPhaseIndex, out int commonSettingsIndex)
     {
@@ -1564,7 +1578,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        PatternCommonSettings commonSettings = _patternData.CommonSettings[commonSettingsIndex]; // Common settings entry linked to the candidate pattern.
+        PatternCommonSettings commonSettings = _patternData.CommonSettings[commonSettingsIndex]; // 선택된 패턴에 연결된 공통 설정
+
         if (!IsPatternAvailableInHealthPhase(healthPhaseIndex, commonSettings.PatternId))
         {
             return false;
@@ -1579,7 +1594,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resolves the HealthPhase and common settings indices required for a concrete settings entry.
+    /// 특정 CommonSettings 항목에 대한 HealthPhase 컨텍스트를 계산한다.
     /// </summary>
     private bool TryGetPatternSelectionContext(PatternCommonSettings settings, out int healthPhaseIndex, out int commonSettingsIndex)
     {
@@ -1595,7 +1610,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Resolves HealthPhase context for a concrete CommonSettings index and rejects duplicate PatternId entries.
+    /// 특정 CommonSettings 인덱스 기준으로 HealthPhase 컨텍스트를 계산하고 중복 PatternId를 차단한다.
     /// </summary>
     private bool TryGetPatternSelectionContext(PatternCommonSettings settings, int commonSettingsIndex, out int healthPhaseIndex)
     {
@@ -1608,13 +1623,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!IsFirstCommonSettingsPatternIdIndex(settings.PatternId, commonSettingsIndex))
         {
-            Debug.LogWarning($"[BossController] Ignored duplicate CommonSettings PatternId entry. object={name}, patternId={settings.PatternId}, patternType={settings.PatternType}, duplicateIndex={commonSettingsIndex}", this);
+            Debug.LogWarning($"[BossController] 중복된 PatternId 설정 무시됨. object={name}, patternId={settings.PatternId}, patternType={settings.PatternType}, index={commonSettingsIndex}", this);
             return false;
         }
 
-        if (_patternData.CommonSettings[commonSettingsIndex].PatternId != settings.PatternId || _patternData.CommonSettings[commonSettingsIndex].PatternType != settings.PatternType)
+        if (_patternData.CommonSettings[commonSettingsIndex].PatternId != settings.PatternId ||
+            _patternData.CommonSettings[commonSettingsIndex].PatternType != settings.PatternType)
         {
-            Debug.LogWarning($"[BossController] Ignored duplicate or stale CommonSettings entry. object={name}, patternId={settings.PatternId}, patternType={settings.PatternType}, index={commonSettingsIndex}", this);
+            Debug.LogWarning($"[BossController] 잘못된 CommonSettings 항목 무시됨. object={name}, patternId={settings.PatternId}, patternType={settings.PatternType}, index={commonSettingsIndex}", this);
             return false;
         }
 
@@ -1638,13 +1654,13 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether a pattern id is listed in the selected HealthPhase settings.
+    /// 지정한 PatternId가 선택된 HealthPhase 설정에 포함되어 있는지 여부를 반환한다.
     /// </summary>
     private bool IsPatternAvailableInHealthPhase(int healthPhaseIndex, string patternId)
     {
         if (string.IsNullOrEmpty(patternId))
         {
-            Debug.LogWarning($"[BossController] Pattern availability check failed because PatternId is empty. object={name}, phaseIndex={healthPhaseIndex}", this);
+            Debug.LogWarning($"[BossController] PatternId가 비어 있어 패턴 사용 가능 여부 확인 실패. object={name}, phaseIndex={healthPhaseIndex}", this);
             return false;
         }
 
@@ -1653,7 +1669,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        string[] availablePatternIds = _patternData.HealthPhaseSettings[healthPhaseIndex].AvailablePatternIds; // Pattern ids allowed by the selected HealthPhase.
+        string[] availablePatternIds = _patternData.HealthPhaseSettings[healthPhaseIndex].AvailablePatternIds; // 선택된 HealthPhase에서 허용된 PatternId 목록
         if (availablePatternIds == null || availablePatternIds.Length == 0)
         {
             return false;
@@ -1673,7 +1689,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether the supplied CommonSettings index is the first entry with its PatternId.
+    /// 전달된 CommonSettings 인덱스가 해당 PatternId의 첫 번째 항목인지 여부를 반환한다.
     /// </summary>
     private bool IsFirstCommonSettingsPatternIdIndex(string patternId, int commonSettingsIndex)
     {
@@ -1696,7 +1712,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether the HealthPhase use count has reached the configured usage limit.
+    /// HealthPhase에서 패턴 사용 횟수가 설정된 제한을 초과했는지 여부를 반환한다.
     /// </summary>
     private bool IsPatternUsageLimitExceeded(int healthPhaseIndex, int commonSettingsIndex, string patternId)
     {
@@ -1705,12 +1721,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        int maxUseCount = usageLimit.MaxUseCount; // Phase-local maximum use count; zero disables, negative means unlimited.
+        int maxUseCount = usageLimit.MaxUseCount; // Phase 단위 최대 사용 횟수 (0: 사용 불가, 음수: 무제한)
         if (maxUseCount < 0)
         {
             if (!_hasLoggedUsageLimitWarning)
             {
-                Debug.LogWarning($"[BossController] UsageLimit MaxUseCount is negative and treated as unlimited. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}, maxUseCount={maxUseCount}", this);
+                Debug.LogWarning($"[BossController] UsageLimit MaxUseCount가 음수라 무제한으로 처리됨. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}, maxUseCount={maxUseCount}", this);
                 _hasLoggedUsageLimitWarning = true;
             }
 
@@ -1719,7 +1735,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (maxUseCount == 0)
         {
-            Debug.LogWarning($"[BossController] Pattern excluded because UsageLimit MaxUseCount is zero. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}", this);
+            Debug.LogWarning($"[BossController] UsageLimit MaxUseCount가 0이라 패턴 제외됨. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}", this);
             return true;
         }
 
@@ -1729,16 +1745,17 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        Debug.LogWarning($"[BossController] Pattern excluded because phase-local UsageLimit was reached. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}, currentUseCount={currentUseCount}, maxUseCount={maxUseCount}", this);
+        Debug.LogWarning($"[BossController] UsageLimit 초과로 패턴 제외됨. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}, currentUseCount={currentUseCount}, maxUseCount={maxUseCount}", this);
         return true;
     }
 
     /// <summary>
-    /// Finds the first common settings entry for a pattern type.
+    /// 특정 PatternType에 대해 첫 번째 CommonSettings 인덱스를 찾는다.
     /// </summary>
     private bool TryGetCommonSettingsIndex(E_BossPatternType patternType, out int commonSettingsIndex)
     {
         commonSettingsIndex = -1;
+
         if (GetPatternCooldownIndex(patternType) < 0)
         {
             return false;
@@ -1748,14 +1765,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedCommonSettingsLookupWarning)
             {
-                Debug.LogWarning($"[BossController] Common settings lookup failed because PatternData or CommonSettings is missing. object={name}, patternType={patternType}", this);
+                Debug.LogWarning($"[BossController] PatternData 또는 CommonSettings가 없어 조회 실패. object={name}, patternType={patternType}", this);
                 _hasLoggedCommonSettingsLookupWarning = true;
             }
 
             return false;
         }
 
-        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Designer-authored common settings array evaluated in order.
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // 디자이너가 설정한 CommonSettings 배열
         for (int index = 0; index < commonSettings.Length; index++)
         {
             if (commonSettings[index].PatternType != patternType)
@@ -1769,7 +1786,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!_hasLoggedCommonSettingsLookupWarning)
         {
-            Debug.LogWarning($"[BossController] Common settings lookup found no matching PatternType. object={name}, patternType={patternType}", this);
+            Debug.LogWarning($"[BossController] 해당 PatternType에 대한 CommonSettings 없음. object={name}, patternType={patternType}", this);
             _hasLoggedCommonSettingsLookupWarning = true;
         }
 
@@ -1777,11 +1794,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Finds the first common settings entry matching both pattern id and pattern type.
+    /// PatternId와 PatternType이 모두 일치하는 첫 번째 CommonSettings 인덱스를 찾는다.
     /// </summary>
     private bool TryGetCommonSettingsIndex(string patternId, E_BossPatternType patternType, out int commonSettingsIndex)
     {
         commonSettingsIndex = -1;
+
         if (string.IsNullOrEmpty(patternId) || GetPatternCooldownIndex(patternType) < 0)
         {
             return false;
@@ -1791,14 +1809,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedCommonSettingsLookupWarning)
             {
-                Debug.LogWarning($"[BossController] Common settings lookup failed because PatternData or CommonSettings is missing. object={name}, patternId={patternId}, patternType={patternType}", this);
+                Debug.LogWarning($"[BossController] PatternData 또는 CommonSettings가 없어 조회 실패. object={name}, patternId={patternId}, patternType={patternType}", this);
                 _hasLoggedCommonSettingsLookupWarning = true;
             }
 
             return false;
         }
 
-        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Designer-authored common settings array evaluated in order.
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // 디자이너 설정 배열
         for (int index = 0; index < commonSettings.Length; index++)
         {
             if (commonSettings[index].PatternType != patternType || commonSettings[index].PatternId != patternId)
@@ -1812,7 +1830,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!_hasLoggedCommonSettingsLookupWarning)
         {
-            Debug.LogWarning($"[BossController] Common settings lookup found no matching PatternId and PatternType. object={name}, patternId={patternId}, patternType={patternType}", this);
+            Debug.LogWarning($"[BossController] PatternId와 PatternType이 일치하는 CommonSettings 없음. object={name}, patternId={patternId}, patternType={patternType}", this);
             _hasLoggedCommonSettingsLookupWarning = true;
         }
 
@@ -1820,11 +1838,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Finds the first common settings entry matching the PatternId regardless of PatternType.
+    /// PatternType과 무관하게 PatternId만으로 첫 번째 CommonSettings 인덱스를 찾는다.
     /// </summary>
     private bool TryGetCommonSettingsIndex(string patternId, out int commonSettingsIndex)
     {
         commonSettingsIndex = -1;
+
         if (string.IsNullOrEmpty(patternId))
         {
             return false;
@@ -1834,14 +1853,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             if (!_hasLoggedCommonSettingsLookupWarning)
             {
-                Debug.LogWarning($"[BossController] Common settings lookup failed because PatternData or CommonSettings is missing. object={name}, patternId={patternId}", this);
+                Debug.LogWarning($"[BossController] PatternData 또는 CommonSettings가 없어 조회 실패. object={name}, patternId={patternId}", this);
                 _hasLoggedCommonSettingsLookupWarning = true;
             }
 
             return false;
         }
 
-        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Designer-authored common settings array evaluated in order.
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // 디자이너 설정 배열
         for (int index = 0; index < commonSettings.Length; index++)
         {
             if (commonSettings[index].PatternId != patternId)
@@ -1855,7 +1874,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!_hasLoggedCommonSettingsLookupWarning)
         {
-            Debug.LogWarning($"[BossController] Common settings lookup found no matching PatternId. object={name}, patternId={patternId}", this);
+            Debug.LogWarning($"[BossController] 해당 PatternId에 대한 CommonSettings 없음. object={name}, patternId={patternId}", this);
             _hasLoggedCommonSettingsLookupWarning = true;
         }
 
@@ -1863,11 +1882,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Finds the usage limit settings for a pattern id.
+    /// 특정 PatternId에 대한 UsageLimit 설정을 찾는다.
     /// </summary>
     private bool TryGetPatternUsageLimit(int healthPhaseArrayIndex, string patternId, out PatternUsageLimit usageLimit)
     {
         usageLimit = default;
+
         if (_patternData == null || _patternData.UsageLimits == null || _patternData.UsageLimits.Length == 0 || string.IsNullOrEmpty(patternId))
         {
             return false;
@@ -1878,8 +1898,9 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        int phaseIndex = _patternData.HealthPhaseSettings[healthPhaseArrayIndex].PhaseIndex; // Designer-authored PhaseIndex used by phase-local usage limit rows.
-        PatternUsageLimit[] usageLimits = _patternData.UsageLimits; // Designer-authored usage limit array searched by pattern id.
+        int phaseIndex = _patternData.HealthPhaseSettings[healthPhaseArrayIndex].PhaseIndex; // UsageLimit에서 사용하는 PhaseIndex
+        PatternUsageLimit[] usageLimits = _patternData.UsageLimits; // 디자이너 설정 UsageLimit 배열
+
         for (int index = 0; index < usageLimits.Length; index++)
         {
             if (usageLimits[index].PhaseIndex != phaseIndex || usageLimits[index].PatternId != patternId)
@@ -1895,7 +1916,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns a recorded use count by HealthPhase and common settings index.
+    /// HealthPhase와 CommonSettings 인덱스를 기반으로 기록된 사용 횟수를 반환한다.
     /// </summary>
     private int GetHealthPhasePatternUseCountByIndex(int healthPhaseIndex, int commonSettingsIndex)
     {
@@ -1910,13 +1931,13 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Ensures HealthPhase pattern usage storage matches the current pattern data shape.
+    /// HealthPhase 패턴 사용 횟수 저장소가 현재 패턴 데이터 구조와 일치하도록 보장한다.
     /// </summary>
     private void EnsureHealthPhaseUsageStorage()
     {
-        int healthPhaseCount = GetHealthPhaseSettingsCount(); // Number of HealthPhase rows in the flattened usage table.
-        int commonSettingsCount = GetCommonSettingsCount(); // Number of pattern columns in the flattened usage table.
-        int requiredLength = healthPhaseCount * commonSettingsCount; // Flattened table length for phase-pattern usage counts.
+        int healthPhaseCount = GetHealthPhaseSettingsCount(); // 평탄화된 사용 횟수 테이블에서 HealthPhase 행 개수
+        int commonSettingsCount = GetCommonSettingsCount(); // 평탄화된 사용 횟수 테이블에서 패턴 열 개수
+        int requiredLength = healthPhaseCount * commonSettingsCount; // Phase-Pattern 조합에 대한 전체 길이
         if (_healthPhasePatternUseCounts != null && _healthPhasePatternUseCounts.Length == requiredLength)
         {
             return;
@@ -1926,12 +1947,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Converts HealthPhase and common settings indices into a flattened usage array index.
+    /// HealthPhase와 CommonSettings 인덱스를 평탄화된 사용 배열 인덱스로 변환한다.
     /// </summary>
     private int GetHealthPhaseUsageIndex(int healthPhaseIndex, int commonSettingsIndex)
     {
-        int commonSettingsCount = GetCommonSettingsCount(); // Current common settings count used as flattened table stride.
-        int healthPhaseCount = GetHealthPhaseSettingsCount(); // Current HealthPhase count used to validate row bounds.
+        int commonSettingsCount = GetCommonSettingsCount(); // 평탄화 배열에서 stride로 사용하는 공통 설정 개수
+        int healthPhaseCount = GetHealthPhaseSettingsCount(); // HealthPhase 범위 검증용 개수
         if (healthPhaseIndex < 0 || healthPhaseIndex >= healthPhaseCount || commonSettingsIndex < 0 || commonSettingsIndex >= commonSettingsCount)
         {
             return -1;
@@ -1941,7 +1962,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the current HealthPhaseSettings array length.
+    /// 현재 HealthPhaseSettings 배열 길이를 반환한다.
     /// </summary>
     private int GetHealthPhaseSettingsCount()
     {
@@ -1954,7 +1975,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the current PatternCommonSettings array length.
+    /// 현재 PatternCommonSettings 배열 길이를 반환한다.
     /// </summary>
     private int GetCommonSettingsCount()
     {
@@ -1967,7 +1988,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Starts cooldowns required by a terminal pattern result.
+    /// 패턴 종료 결과에 따라 필요한 쿨타임을 시작한다.
     /// </summary>
     private void ApplyCooldownsForPatternResult(E_BossPatternType patternType, string resultLabel)
     {
@@ -1990,14 +2011,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Starts or overwrites the boss-wide cooldown without an additional authority check.
+    /// 추가 권한 검사 없이 보스 전체 공통 쿨타임을 시작하거나 덮어쓴다.
     /// </summary>
     private void StartGlobalCooldownInternal(string reason)
     {
-        float cooldownSeconds = _commonPatternCooldownSeconds; // Designer-authored boss-wide cooldown duration.
+        float cooldownSeconds = _commonPatternCooldownSeconds; // 디자이너가 설정한 보스 공통 쿨타임
         if (cooldownSeconds < 0f)
         {
-            Debug.LogWarning($"[BossController] Common pattern cooldown was below zero at runtime and clamped. object={name}, value={cooldownSeconds}", this);
+            Debug.LogWarning($"[BossController] 공통 패턴 쿨타임이 0보다 작아 보정됨. object={name}, value={cooldownSeconds}", this);
             cooldownSeconds = 0f;
         }
 
@@ -2006,14 +2027,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Starts or overwrites one pattern type cooldown without an additional authority check.
+    /// 추가 권한 검사 없이 특정 패턴 타입의 쿨타임을 시작하거나 덮어쓴다.
     /// </summary>
     private void StartPatternCooldownInternal(E_BossPatternType patternType, string reason)
     {
-        int cooldownIndex = GetPatternCooldownIndex(patternType); // Enum-backed index used to write the reusable cooldown array.
+        int cooldownIndex = GetPatternCooldownIndex(patternType); // enum 기반 배열 인덱스
         if (cooldownIndex < 0)
         {
-            Debug.LogWarning($"[BossController] Pattern cooldown was not started because pattern type is invalid. object={name}, patternType={patternType}, reason={reason}", this);
+            Debug.LogWarning($"[BossController] 잘못된 패턴 타입으로 쿨타임 시작 실패. object={name}, patternType={patternType}, reason={reason}", this);
             return;
         }
 
@@ -2023,17 +2044,17 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns the configured individual cooldown seconds for a pattern type.
+    /// 특정 패턴 타입에 설정된 개별 쿨타임(초)을 반환한다.
     /// </summary>
     private float GetPatternCooldownSeconds(E_BossPatternType patternType)
     {
         if (_patternData == null || _patternData.CommonSettings == null)
         {
-            Debug.LogWarning($"[BossController] Pattern cooldown lookup fell back to zero because PatternData or CommonSettings is missing. object={name}, patternType={patternType}", this);
+            Debug.LogWarning($"[BossController] PatternData 또는 CommonSettings가 없어 쿨타임 0으로 fallback. object={name}, patternType={patternType}", this);
             return 0f;
         }
 
-        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Serialized common settings array used for individual pattern cooldown lookup.
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // 쿨타임 조회에 사용하는 설정 배열
         for (int index = 0; index < commonSettings.Length; index++)
         {
             if (commonSettings[index].PatternType != patternType)
@@ -2044,16 +2065,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return commonSettings[index].CooldownSeconds;
         }
 
-        Debug.LogWarning($"[BossController] Pattern cooldown lookup fell back to zero because no PatternCommonSettings entry was found. object={name}, patternType={patternType}", this);
+        Debug.LogWarning($"[BossController] 해당 패턴 타입의 CommonSettings가 없어 쿨타임 0으로 fallback. object={name}, patternType={patternType}", this);
         return 0f;
     }
 
     /// <summary>
-    /// Ensures individual pattern cooldown storage is allocated once for all enum-backed pattern types.
+    /// 패턴 타입별 쿨타임 저장소가 초기화되었는지 확인하고 필요 시 생성한다.
     /// </summary>
     private void EnsurePatternCooldownStorage()
     {
-        int requiredLength = (int)E_BossPatternType.WeakPoint + 1; // Current maximum enum value plus one for direct index lookup.
+        int requiredLength = (int)E_BossPatternType.WeakPoint + 1; // enum 최대값 기반 배열 길이
         if (_patternCooldownEndTimeByType != null && _patternCooldownEndTimeByType.Length == requiredLength)
         {
             return;
@@ -2063,11 +2084,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Converts a pattern type into a cooldown array index.
+    /// 패턴 타입을 쿨타임 배열 인덱스로 변환한다.
     /// </summary>
     private int GetPatternCooldownIndex(E_BossPatternType patternType)
     {
-        int cooldownIndex = (int)patternType; // Enum numeric value used as a stable array index.
+        int cooldownIndex = (int)patternType; // enum 값을 그대로 인덱스로 사용
         if (cooldownIndex <= (int)E_BossPatternType.None || cooldownIndex > (int)E_BossPatternType.WeakPoint)
         {
             return -1;
@@ -2077,7 +2098,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Returns whether the pattern type belongs to the Pattern 4 weak point flow.
+    /// 해당 패턴 타입이 Pattern4(WeakPoint) 흐름인지 여부를 반환한다.
     /// </summary>
     private bool IsPatternFourPatternType(E_BossPatternType patternType)
     {
@@ -2085,7 +2106,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Checks authority before mutating boss-owned runtime state.
+    /// 보스 상태 변경 전에 권한을 확인한다.
     /// </summary>
     private bool TryEnsureAuthority(string operationName)
     {
@@ -2097,7 +2118,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!_hasLoggedAuthorityWarning)
         {
-            Debug.LogWarning($"[BossController] {operationName} ignored because this instance has no boss authority. object={name}", this);
+            Debug.LogWarning($"[BossController] 권한 없는 인스턴스에서 {operationName} 호출 무시됨. object={name}", this);
             _hasLoggedAuthorityWarning = true;
         }
 
@@ -2105,19 +2126,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Corrects boss-level common settings edited in the inspector.
+    /// 인스펙터에서 수정된 공통 설정 값을 보정한다.
     /// </summary>
     private void ValidateCommonSettings()
     {
         if (_commonPatternCooldownSeconds < 0f)
         {
-            Debug.LogWarning($"[BossController] Common pattern cooldown was below zero and clamped. object={name}, value={_commonPatternCooldownSeconds}", this);
+            Debug.LogWarning($"[BossController] 공통 패턴 쿨타임이 0보다 작아 보정됨. object={name}, value={_commonPatternCooldownSeconds}", this);
             _commonPatternCooldownSeconds = 0f;
         }
     }
 
     /// <summary>
-    /// Reports missing required references so authoring issues can be found before runtime.
+    /// 필수 참조 누락 여부를 검사하여 런타임 전에 문제를 발견할 수 있도록 한다.
     /// </summary>
     private void ValidateRequiredReferences()
     {
@@ -2128,42 +2149,42 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (_patternData == null)
         {
-            Debug.LogWarning($"[BossController] PatternData is missing on {name}.", this);
+            Debug.LogWarning($"[BossController] PatternData가 설정되지 않음. object={name}", this);
         }
 
         if (_anchorSet == null)
         {
-            Debug.LogWarning($"[BossController] BossPatternAnchorSet is missing on {name}.", this);
+            Debug.LogWarning($"[BossController] BossPatternAnchorSet이 설정되지 않음. object={name}", this);
         }
 
         if (_healthComponent == null)
         {
-            Debug.LogWarning($"[BossController] HealthComponent is missing on {name}. Boss damage cannot use the existing Health system.", this);
+            Debug.LogWarning($"[BossController] HealthComponent가 없어 기존 체력 시스템 사용 불가. object={name}", this);
         }
 
         if (_hitReceiver == null)
         {
-            Debug.LogWarning($"[BossController] HitReceiver is missing on {name}. Boss damage entry cannot use the existing Hit system.", this);
+            Debug.LogWarning($"[BossController] HitReceiver가 없어 기존 피격 시스템 사용 불가. object={name}", this);
         }
 
         if (_playerTargetProvider == null)
         {
-            Debug.LogWarning($"[BossController] BossPlayerTargetProvider is missing on {name}. Boss patterns cannot use the shared Player search path.", this);
+            Debug.LogWarning($"[BossController] BossPlayerTargetProvider가 없어 Player 탐색 불가. object={name}", this);
         }
 
         if (_presentationController == null)
         {
-            Debug.LogWarning($"[BossController] BossPresentationController is missing on {name}. Boss presentation cues cannot be synchronized.", this);
+            Debug.LogWarning($"[BossController] BossPresentationController가 없어 연출 동기화 불가. object={name}", this);
         }
 
         if (_weakPointPattern == null)
         {
-            Debug.LogWarning($"[BossController] BossWeakPointPattern is missing on {name}. Boss death cannot directly clean Pattern 4 weak points after entry.", this);
+            Debug.LogWarning($"[BossController] BossWeakPointPattern이 없어 Pattern4 정리 불가. object={name}", this);
         }
     }
 
     /// <summary>
-    /// Resolves optional runtime helper references from the boss GameObject.
+    /// 보스 GameObject에서 선택적으로 사용하는 런타임 보조 참조를 해결한다.
     /// </summary>
     private void ResolveOptionalRuntimeReferences()
     {

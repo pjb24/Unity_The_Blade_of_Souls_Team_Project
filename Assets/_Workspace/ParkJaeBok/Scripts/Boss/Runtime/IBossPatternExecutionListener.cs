@@ -1,20 +1,20 @@
 /// <summary>
-/// Receives boss pattern lifecycle reports through explicit listener registration.
+/// 명시적인 Listener 등록을 통해 보스 패턴 실행 생명주기 보고를 수신한다.
 /// </summary>
 public interface IBossPatternExecutionListener
 {
     /// <summary>
-    /// Called when a boss pattern reports normal completion.
+    /// 보스 패턴이 정상적으로 완료되었을 때 호출된다.
     /// </summary>
     void OnBossPatternCompleted(BossPatternExecutionReport report);
 
     /// <summary>
-    /// Called when a boss pattern reports cancellation.
+    /// 보스 패턴이 취소되었을 때 호출된다.
     /// </summary>
     void OnBossPatternCancelled(BossPatternExecutionReport report);
 
     /// <summary>
-    /// Called when a boss pattern reports failure.
+    /// 보스 패턴이 실패했을 때 호출된다.
     /// </summary>
     void OnBossPatternFailed(BossPatternExecutionReport report);
 }

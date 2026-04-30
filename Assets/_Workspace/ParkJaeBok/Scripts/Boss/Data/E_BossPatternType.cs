@@ -1,5 +1,5 @@
 /// <summary>
-/// Defines the supported boss pattern setting groups.
+/// 지원하는 보스 패턴 설정 그룹을 정의한다.
 /// </summary>
 public enum E_BossPatternType
 {
