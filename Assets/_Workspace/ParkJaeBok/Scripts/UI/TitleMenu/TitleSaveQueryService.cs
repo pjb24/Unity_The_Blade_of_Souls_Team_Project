@@ -2,19 +2,19 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Provides title menu save data queries by delegating all save inspection to SaveDataStore.
+/// 모든 세이브 데이터 조회를 SaveDataStore에 위임하여 타이틀 메뉴용 세이브 데이터 조회 기능을 제공한다.
 /// </summary>
 public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
 {
-    [Tooltip("SaveDataStore used to query title menu save state. If empty, SaveDataStore.Instance is used.")]
-    [SerializeField] private SaveDataStore _saveDataStore; // Storage service used to decide Continue and Load Game availability.
+    [Tooltip("타이틀 메뉴 세이브 상태 조회에 사용할 SaveDataStore. 비어있으면 SaveDataStore.Instance를 사용한다.")]
+    [SerializeField] private SaveDataStore _saveDataStore; // Continue 및 Load Game 활성 여부 판단에 사용하는 저장소 서비스.
 
     public event Action SaveDataChanged;
 
-    private SaveDataStore _listeningSaveDataStore; // SaveDataStore whose change events are currently forwarded by this service.
+    private SaveDataStore _listeningSaveDataStore; // 현재 이 서비스가 변경 이벤트를 전달받고 있는 SaveDataStore.
 
     /// <summary>
-    /// Subscribes to save data changes so title menu buttons can refresh immediately.
+    /// 세이브 데이터 변경 이벤트를 구독하여 타이틀 메뉴 버튼이 즉시 갱신되도록 한다.
     /// </summary>
     private void OnEnable()
     {
@@ -22,7 +22,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Unsubscribes from save data changes.
+    /// 세이브 데이터 변경 이벤트 구독을 해제한다.
     /// </summary>
     private void OnDisable()
     {
@@ -30,7 +30,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Returns whether Continue can use the last selected valid slot data.
+    /// 마지막으로 선택된 유효한 슬롯 데이터를 Continue에서 사용할 수 있는지 여부를 반환한다.
     /// </summary>
     public bool HasContinueData()
     {
@@ -39,7 +39,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Returns whether Load Game has at least one valid slot data.
+    /// Load Game에서 사용할 수 있는 유효한 슬롯 데이터가 하나 이상 존재하는지 여부를 반환한다.
     /// </summary>
     public bool HasLoadableData()
     {
@@ -48,7 +48,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Returns whether the requested slot contains valid progress data.
+    /// 요청된 슬롯에 유효한 진행 데이터가 존재하는지 여부를 반환한다.
     /// </summary>
     public bool HasUsedProgressInSlot(int slotIndex)
     {
@@ -57,7 +57,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Returns the last selected slot index only when that slot still contains valid data.
+    /// 해당 슬롯이 여전히 유효한 데이터일 때만 마지막으로 선택된 슬롯 인덱스를 반환한다.
     /// </summary>
     public bool TryGetLastUsedSlotIndex(out int slotIndex)
     {
@@ -73,7 +73,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Returns whether an existing progress save should trigger New Game overwrite warnings.
+    /// 기존 진행 데이터가 존재하여 New Game 시작 시 덮어쓰기 경고가 필요한지 여부를 반환한다.
     /// </summary>
     public bool HasExistingProgress()
     {
@@ -81,7 +81,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Resolves the SaveDataStore used for title menu save queries.
+    /// 타이틀 메뉴 세이브 조회에 사용할 SaveDataStore를 가져온다.
     /// </summary>
     private SaveDataStore ResolveSaveDataStore()
     {
@@ -92,7 +92,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
 
         if (_saveDataStore == null)
         {
-            Debug.LogWarning("[TitleSaveQueryService] SaveDataStore was not found. Title save queries return false.", this);
+            Debug.LogWarning("[TitleSaveQueryService] SaveDataStore를 찾을 수 없음. 타이틀 세이브 조회는 false를 반환함.", this);
             return null;
         }
 
@@ -101,7 +101,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Forwards SaveDataStore change events through the title save query service.
+    /// SaveDataStore의 변경 이벤트를 이 서비스로 전달한다.
     /// </summary>
     private void BindSaveDataStoreListener(bool shouldBind)
     {
@@ -135,7 +135,7 @@ public class TitleSaveQueryService : MonoBehaviour, ITitleSaveQueryService
     }
 
     /// <summary>
-    /// Notifies title menu presenters that save-dependent UI state should be recalculated.
+    /// 세이브 데이터 변경 시 타이틀 UI가 다시 계산되도록 알린다.
     /// </summary>
     private void HandleSaveDataChanged(SaveGameData saveGameData)
     {

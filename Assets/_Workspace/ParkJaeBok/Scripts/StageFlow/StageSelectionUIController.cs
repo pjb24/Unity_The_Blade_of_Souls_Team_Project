@@ -674,7 +674,7 @@ public class StageSelectionUIController : NetworkBehaviour
     /// <summary>
     /// 권한 없는 Client의 열기 요청을 Server 로그로 남깁니다.
     /// </summary>
-    [Rpc(SendTo.Server, RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ReportUnauthorizedOpenRpc(RpcParams rpcParams = default)
     {
         Debug.LogWarning($"[StageSelectionUIController] Client is not allowed to open stage selection UI. senderClientId={rpcParams.Receive.SenderClientId}", this);
@@ -683,7 +683,7 @@ public class StageSelectionUIController : NetworkBehaviour
     /// <summary>
     /// 권한 없는 Client의 닫기 요청을 Server 로그로 남깁니다.
     /// </summary>
-    [Rpc(SendTo.Server, RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ReportUnauthorizedCloseRpc(RpcParams rpcParams = default)
     {
         Debug.LogWarning($"[StageSelectionUIController] Client is not allowed to close stage selection UI. senderClientId={rpcParams.Receive.SenderClientId}", this);
@@ -692,7 +692,7 @@ public class StageSelectionUIController : NetworkBehaviour
     /// <summary>
     /// 권한 없는 Client의 스테이지 선택 요청을 Server 로그로 남깁니다.
     /// </summary>
-    [Rpc(SendTo.Server, RequireOwnership = false)]
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
     private void ReportUnauthorizedSelectRpc(string stageId, RpcParams rpcParams = default)
     {
         Debug.LogWarning($"[StageSelectionUIController] Client is not allowed to select stages. senderClientId={rpcParams.Receive.SenderClientId}, stageId={stageId}", this);
