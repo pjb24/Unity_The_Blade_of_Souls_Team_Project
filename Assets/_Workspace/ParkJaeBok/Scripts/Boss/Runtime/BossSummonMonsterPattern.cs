@@ -104,7 +104,12 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
             return false;
         }
 
-        settings = _bossController.PatternData.SummonMonsterPattern;
+        if (!_bossController.PatternData.TryGetSummonMonsterPattern(_bossController.CurrentPatternId, out settings))
+        {
+            Debug.LogWarning($"[BossSummonMonsterPattern] SummonMonster settings were not found for PatternId. object={name}, patternId={_bossController.CurrentPatternId}", this);
+            return false;
+        }
+
         return true;
     }
 
@@ -211,6 +216,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
 
             ValidateSpawnedEnemyAiFlow(spawnedMonster);
             spawnedAnyMonster = true;
+            MarkPatternEffectApplied();
             if (!playedAttackCue)
             {
                 _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.SummonMonster, spawnPoint.position);

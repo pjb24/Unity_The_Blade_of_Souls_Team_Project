@@ -21,6 +21,7 @@ public abstract class BossPatternBase : NetworkBehaviour
     private int _nextExecutionId; // Monotonic execution id source for this pattern instance.
     private int _currentExecutionId; // Execution id currently running.
     private bool _isExecuting; // Whether this pattern is currently executing.
+    private bool _hasAppliedEffectInCurrentExecution; // Whether this execution already produced a gameplay effect that should count for usage limits if cancelled.
 
     /// <summary>
     /// Gets the pattern type used in reports.
@@ -202,12 +203,27 @@ public abstract class BossPatternBase : NetworkBehaviour
     }
 
     /// <summary>
+    /// Marks that the current pattern execution has produced a gameplay effect.
+    /// </summary>
+    protected void MarkPatternEffectApplied()
+    {
+        if (!_isExecuting)
+        {
+            LogFailureOnce("EffectAppliedWhileNotExecuting");
+            return;
+        }
+
+        _hasAppliedEffectInCurrentExecution = true;
+    }
+
+    /// <summary>
     /// Clears per-execution failure log state so the next execution can log the same reason again.
     /// </summary>
     private void ResetFailureLogState()
     {
         _hasLoggedFailureInCurrentExecution = false;
         _loggedFailureReasonInCurrentExecution = string.Empty;
+        _hasAppliedEffectInCurrentExecution = false;
     }
 
     /// <summary>
@@ -230,7 +246,7 @@ public abstract class BossPatternBase : NetworkBehaviour
     private BossPatternExecutionReport CreateReport(string reason)
     {
         string safeReason = string.IsNullOrWhiteSpace(reason) ? string.Empty : reason; // Normalized report reason.
-        return new BossPatternExecutionReport(this, _patternType, _currentExecutionId, safeReason);
+        return new BossPatternExecutionReport(this, _patternType, _currentExecutionId, safeReason, _hasAppliedEffectInCurrentExecution);
     }
 
     /// <summary>

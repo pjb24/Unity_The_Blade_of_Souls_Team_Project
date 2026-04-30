@@ -99,6 +99,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
             return;
         }
 
+        MarkPatternEffectApplied();
         ReportPatternCompleted("FanProjectileCompleted");
     }
 
@@ -115,7 +116,12 @@ public sealed class BossFanProjectilePattern : BossPatternBase
             return false;
         }
 
-        settings = _bossController.PatternData.FanProjectilePattern;
+        if (!_bossController.PatternData.TryGetFanProjectilePattern(_bossController.CurrentPatternId, out settings))
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] FanProjectile settings were not found for PatternId. object={name}, patternId={_bossController.CurrentPatternId}", this);
+            return false;
+        }
+
         return true;
     }
 

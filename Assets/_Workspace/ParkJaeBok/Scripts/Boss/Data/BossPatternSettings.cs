@@ -166,7 +166,7 @@ public struct HealthPhaseSettings
     [Min(0)]
     [SerializeField] private int _phaseIndex; // Phase index used to group pattern availability.
 
-    [Tooltip("Inclusive minimum normalized health ratio for this phase.")]
+    [Tooltip("Exclusive minimum normalized health ratio for this phase.")]
     [Range(0f, 1f)]
     [SerializeField] private float _minHealthRatio; // Minimum normalized health ratio for phase activation.
 
@@ -226,12 +226,14 @@ public struct HealthPhaseSettings
             _maxHealthRatio = clampedMax;
         }
 
-        if (_minHealthRatio > _maxHealthRatio)
+        if (_minHealthRatio >= _maxHealthRatio)
         {
-            Debug.LogWarning($"[BossPatternData] MinHealthRatio was greater than MaxHealthRatio and values were swapped. index={index}, phase={_phaseIndex}, min={_minHealthRatio}, max={_maxHealthRatio}", logContext);
-            float previousMin = _minHealthRatio;
-            _minHealthRatio = _maxHealthRatio;
-            _maxHealthRatio = previousMin;
+            Debug.LogWarning($"[BossPatternData] MinHealthRatio must be lower than MaxHealthRatio and was corrected. index={index}, phase={_phaseIndex}, min={_minHealthRatio}, max={_maxHealthRatio}", logContext);
+            _maxHealthRatio = Mathf.Clamp01(_minHealthRatio + 0.01f);
+            if (_maxHealthRatio <= _minHealthRatio)
+            {
+                _minHealthRatio = Mathf.Clamp01(_maxHealthRatio - 0.01f);
+            }
         }
     }
 }
@@ -242,20 +244,20 @@ public struct HealthPhaseSettings
 [Serializable]
 public struct PatternUsageLimit
 {
+    [Tooltip("Health phase index that owns this usage limit.")]
+    [Min(0)]
+    [SerializeField] private int _phaseIndex; // HealthPhaseSettings PhaseIndex that owns this PatternId usage cap.
+
     [Tooltip("Common pattern id that these usage limits belong to.")]
     [SerializeField] private string _patternId; // Common pattern id linked to this usage limit.
 
-    [Tooltip("Maximum consecutive uses allowed for the pattern. Zero means no limit.")]
-    [Min(0)]
-    [SerializeField] private int _maxConsecutiveUseCount; // Consecutive use cap for future pattern selection.
+    [Tooltip("Maximum uses allowed in this health phase. Zero disables this pattern in the phase, negative means unlimited.")]
+    [SerializeField] private int _maxUseCount; // Phase-local maximum use count for this PatternId.
 
-    [Tooltip("Maximum total uses allowed during one boss encounter. Zero means no limit.")]
-    [Min(0)]
-    [SerializeField] private int _maxEncounterUseCount; // Encounter-wide use cap for future pattern selection.
-
-    [Tooltip("Minimum number of other patterns that must run before this pattern can repeat.")]
-    [Min(0)]
-    [SerializeField] private int _minimumOtherPatternCountBeforeRepeat; // Repeat spacing rule for future pattern selection.
+    /// <summary>
+    /// Gets the health phase index that owns this usage limit.
+    /// </summary>
+    public int PhaseIndex => _phaseIndex;
 
     /// <summary>
     /// Gets the common pattern id for this usage limit.
@@ -263,19 +265,31 @@ public struct PatternUsageLimit
     public string PatternId => _patternId;
 
     /// <summary>
-    /// Gets the maximum consecutive use count.
+    /// Gets the maximum use count for this PatternId inside the configured health phase.
     /// </summary>
-    public int MaxConsecutiveUseCount => _maxConsecutiveUseCount;
+    public int MaxUseCount => _maxUseCount;
 
     /// <summary>
-    /// Gets the maximum encounter use count.
+    /// Gets the maximum encounter use count for compatibility with older code paths.
     /// </summary>
-    public int MaxEncounterUseCount => _maxEncounterUseCount;
+    public int MaxEncounterUseCount => _maxUseCount;
 
     /// <summary>
-    /// Gets the minimum count of other patterns before this pattern can repeat.
+    /// Corrects invalid usage limit values and reports authoring issues.
     /// </summary>
-    public int MinimumOtherPatternCountBeforeRepeat => _minimumOtherPatternCountBeforeRepeat;
+    public void ValidateOnValidate(UnityEngine.Object logContext, int index)
+    {
+        if (_phaseIndex < 0)
+        {
+            Debug.LogWarning($"[BossPatternData] UsageLimit PhaseIndex was below zero and clamped. index={index}, patternId={_patternId}, value={_phaseIndex}", logContext);
+            _phaseIndex = 0;
+        }
+
+        if (string.IsNullOrWhiteSpace(_patternId))
+        {
+            Debug.LogWarning($"[BossPatternData] UsageLimit PatternId is empty. index={index}, phaseIndex={_phaseIndex}", logContext);
+        }
+    }
 }
 
 /// <summary>
