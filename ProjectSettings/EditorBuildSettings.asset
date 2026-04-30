@@ -17,6 +17,12 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scene/1 Chapter.unity
     guid: 7d54c946f7468e347b23225b7c17d3a2
+  - enabled: 1
+    path: Assets/Scene/BossMap_Hallway.unity
+    guid: cd09a338a7f285245a84032d7b104543
+  - enabled: 1
+    path: Assets/Scene/BossMap_Main.unity
+    guid: c8eef637cb25edc4db77d1df6e2dcd15
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

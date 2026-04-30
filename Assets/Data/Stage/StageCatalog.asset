@@ -15,5 +15,7 @@ MonoBehaviour:
   _stages:
   - {fileID: 11400000, guid: 13777d2463dbb374ea9e0307fa846a54, type: 2}
   - {fileID: 11400000, guid: 8cecb3ecdc7226448893e9d55bd51e3a, type: 2}
+  - {fileID: 11400000, guid: 0407f4b2ddd30234c9d271fe3e5a2d56, type: 2}
+  - {fileID: 11400000, guid: 11af973adad8f2d45ae2120abe72ba2b, type: 2}
   - {fileID: 11400000, guid: 63c832a5c86202f469b1e255e5af849f, type: 2}
   _townStageId: Village
