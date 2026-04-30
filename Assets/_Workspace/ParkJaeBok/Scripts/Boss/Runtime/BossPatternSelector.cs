@@ -56,7 +56,7 @@ public sealed class BossPatternSelector
         for (int index = 0; index < commonSettings.Length; index++)
         {
             PatternCommonSettings settings = commonSettings[index]; // Current pattern settings entry evaluated as a selection candidate.
-            if (!IsCandidateAllowed(bossController, bossTransform, target, settings))
+            if (!IsCandidateAllowed(bossController, bossTransform, target, settings, index))
             {
                 continue;
             }
@@ -77,6 +77,8 @@ public sealed class BossPatternSelector
 
         if (_candidateCount <= 0)
         {
+            Debug.LogWarning($"[BossPatternSelector] No selectable boss pattern candidates were found. object={bossController.name}, state={bossController.CurrentState}, phaseIndex={bossController.GetCurrentHealthPhaseIndex()}");
+            bossController.ReportNoSelectablePatternFallback();
             return false;
         }
 
@@ -116,7 +118,7 @@ public sealed class BossPatternSelector
     /// <summary>
     /// Returns whether the settings entry satisfies every selector-owned candidate condition.
     /// </summary>
-    private bool IsCandidateAllowed(BossController bossController, Transform bossTransform, Transform target, PatternCommonSettings settings)
+    private bool IsCandidateAllowed(BossController bossController, Transform bossTransform, Transform target, PatternCommonSettings settings, int commonSettingsIndex)
     {
         if (!settings.Enabled)
         {
@@ -138,7 +140,7 @@ public sealed class BossPatternSelector
             return false;
         }
 
-        if (!bossController.CanSelectPatternSettings(settings))
+        if (!bossController.CanSelectPatternSettings(settings, commonSettingsIndex))
         {
             return false;
         }

@@ -118,7 +118,12 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return false;
         }
 
-        settings = _bossController.PatternData.GroundSpikePattern;
+        if (!_bossController.PatternData.TryGetGroundSpikePattern(_bossController.CurrentPatternId, out settings))
+        {
+            Debug.LogWarning($"[BossGroundSpikePattern] GroundSpike settings were not found for PatternId. object={name}, patternId={_bossController.CurrentPatternId}", this);
+            return false;
+        }
+
         return true;
     }
 
@@ -174,6 +179,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
 
         PlaySynchronizedVfxOrWarn(settings.AttackEffectId, settings.AttackVfxPrefab, spikePosition, "AttackVFXMissing", false);
         _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.GroundSpike, spikePosition);
+        MarkPatternEffectApplied();
         EnableSpikeHitCollider(spikeInstance);
         ApplySpikeHit(settings, spikePosition);
 
@@ -215,9 +221,11 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     private void BroadcastGroundSpikeVfxRpc(int effectIdValue, Vector3 position, bool isWarningVfx)
     {
         ResolveReferences();
-        GroundSpikePatternSettings settings = _bossController != null && _bossController.PatternData != null
-            ? _bossController.PatternData.GroundSpikePattern
-            : default; // Local settings copy used only to resolve optional prefab fallback presentation.
+        GroundSpikePatternSettings settings = default; // Local settings copy used only to resolve optional prefab fallback presentation.
+        if (_bossController != null && _bossController.PatternData != null)
+        {
+            _bossController.PatternData.TryGetGroundSpikePattern(_bossController.CurrentPatternId, out settings);
+        }
         GameObject fallbackPrefab = isWarningVfx ? settings.WarningVfxPrefab : settings.AttackVfxPrefab; // Optional prefab fallback when EffectService id is not configured.
         string missingReason = isWarningVfx ? "WarningVFXMissing" : "AttackVFXMissing"; // Warning reason reported if neither EffectService id nor prefab fallback is available.
         PlayLocalVfxOrWarn((E_EffectId)effectIdValue, fallbackPrefab, position, missingReason);

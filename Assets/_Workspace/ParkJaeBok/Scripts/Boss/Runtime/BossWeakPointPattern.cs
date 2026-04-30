@@ -23,6 +23,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     private bool[] _weakPointDestroyedBuffer; // Reusable weak point destruction state buffer.
     private HealthComponent[] _timeLimitDamageTargetBuffer; // Reusable Player HealthComponent buffer damaged when Pattern 4 times out.
     private BossPatternData _bufferPatternData; // PatternData instance used when the current buffers were allocated.
+    private string _activePatternId = string.Empty; // PatternId captured when Pattern 4 entry starts and reused by post-entry timers.
     private int _selectedWeakPointPositionCount; // Number of valid weak point positions selected for the current execution.
     private int _spawnedWeakPointCount; // Number of weak point objects spawned for the active Pattern 4 flow.
     private int _destroyedWeakPointCount; // Number of spawned weak points destroyed in the active Pattern 4 flow.
@@ -68,6 +69,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         _isEntryResolved = false;
         _isWeakPointFlowResolved = false;
+        _activePatternId = _bossController.CurrentPatternId;
         if (!TryGetSettings(out WeakPointPatternSettings settings))
         {
             FailEntry("MissingWeakPointSettings");
@@ -215,7 +217,13 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return false;
         }
 
-        settings = _bossController.PatternData.WeakPointPattern;
+        string patternId = !string.IsNullOrWhiteSpace(_activePatternId) ? _activePatternId : _bossController.CurrentPatternId; // Captured PatternId survives after entry completion clears BossController current pattern state.
+        if (!_bossController.PatternData.TryGetWeakPointPattern(patternId, out settings))
+        {
+            Debug.LogWarning($"[BossWeakPointPattern] WeakPoint settings were not found for PatternId. object={name}, patternId={patternId}", this);
+            return false;
+        }
+
         return true;
     }
 
@@ -519,6 +527,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         _isEntryResolved = true;
         _bossController.NotifyPatternFourEntryCompleted();
         _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.WeakPoint, transform.position);
+        MarkPatternEffectApplied();
         StartWeakPointTimeLimitTimer(settings.WeakPointTimeLimit);
         ReportPatternCompleted("WeakPointEntryCompleted");
     }

@@ -51,6 +51,9 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     [Tooltip("HealthPhase array index recorded when the current pattern execution was confirmed.")]
     [SerializeField] private int _currentPatternHealthPhaseIndex = -1; // HealthPhase index captured at pattern execution confirmation time.
 
+    [Tooltip("Pattern Id currently being executed by the boss.")]
+    [SerializeField] private string _currentPatternId = string.Empty; // Runtime PatternId currently owned by the authority instance.
+
     [Header("Debug")]
     [Tooltip("Whether missing required references should be reported during inspector validation.")]
     [SerializeField] private bool _warnMissingRequiredReferences = true; // Inspector validation warning toggle for missing references.
@@ -78,6 +81,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     private bool _hasLoggedHealthRatioFallbackWarning; // Prevents repeated health ratio fallback warnings from this controller state.
     private bool _hasLoggedHealthPhaseLookupWarning; // Prevents repeated HealthPhase lookup warnings from this controller state.
     private bool _hasLoggedCommonSettingsLookupWarning; // Prevents repeated common settings lookup warnings from this controller state.
+    private bool _hasLoggedUsageLimitWarning; // Prevents repeated usage limit warning spam from this controller state.
     private bool _hasLoggedHealthListenerMissingWarning; // Prevents repeated warnings when boss death cannot subscribe to HealthComponent.
     private bool _hasLoggedPresentationControllerMissingWarning; // Prevents repeated presentation bridge missing warnings from this controller state.
     private bool _hasLoggedBossStateSyncFallbackWarning; // Prevents repeated warnings when network state sync cannot be sent.
@@ -156,6 +160,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// Gets the HealthPhase index captured when the current pattern execution was confirmed.
     /// </summary>
     public int CurrentPatternHealthPhaseIndex => _currentPatternHealthPhaseIndex;
+
+    /// <summary>
+    /// Gets the PatternId captured for the current pattern execution.
+    /// </summary>
+    public string CurrentPatternId => _currentPatternId;
 
     /// <summary>
     /// Gets the current pattern instance handle reserved for future pattern execution.
@@ -359,6 +368,26 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// </summary>
     public bool TryStartPatternExecution(BossPatternBase pattern)
     {
+        if (pattern == null)
+        {
+            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because pattern is null. object={name}", this);
+            return false;
+        }
+
+        if (!TryResolveFirstSelectableSettingsForPatternType(pattern.PatternType, out PatternCommonSettings settings))
+        {
+            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because no selectable PatternId was found for PatternType. object={name}, patternType={pattern.PatternType}", this);
+            return false;
+        }
+
+        return TryStartPatternExecution(pattern, settings);
+    }
+
+    /// <summary>
+    /// Starts a boss pattern with the selected PatternId settings through the common pattern execution API.
+    /// </summary>
+    public bool TryStartPatternExecution(BossPatternBase pattern, PatternCommonSettings selectedSettings)
+    {
         if (!TryEnsureAuthority("TryStartPatternExecution"))
         {
             return false;
@@ -382,6 +411,18 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
+        if (pattern.PatternType != selectedSettings.PatternType)
+        {
+            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because PatternType does not match selected settings. object={name}, componentType={pattern.PatternType}, selectedType={selectedSettings.PatternType}, patternId={selectedSettings.PatternId}", this);
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(selectedSettings.PatternId))
+        {
+            Debug.LogWarning($"[BossController] TryStartPatternExecution failed because selected PatternId is empty. object={name}, patternType={selectedSettings.PatternType}", this);
+            return false;
+        }
+
         if (pattern.PatternType == E_BossPatternType.WeakPoint && _isWeakPointPatternActive)
         {
             Debug.LogWarning($"[BossController] TryStartPatternExecution blocked because Pattern 4 is already active. object={name}", this);
@@ -400,12 +441,13 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        if (!TryRecordPatternUseForConfirmedExecution(pattern.PatternType))
+        if (!TryCapturePatternSelectionContextForExecution(selectedSettings))
         {
-            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by HealthPhase or usage limits. object={name}, patternType={pattern.PatternType}", this);
+            Debug.LogWarning($"[BossController] TryStartPatternExecution blocked by HealthPhase or usage limits. object={name}, patternType={pattern.PatternType}, patternId={selectedSettings.PatternId}", this);
             return false;
         }
 
+        _currentPatternId = selectedSettings.PatternId;
         SetCurrentPatternReference(pattern.PatternType, pattern, true);
         SetState(E_BossState.PatternExecuting);
         PlayPresentationCueInternal(E_BossPresentationCue.PatternStarted, pattern.PatternType, transform.position);
@@ -720,6 +762,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// </summary>
     public bool CanSelectPatternSettings(PatternCommonSettings settings)
     {
+        if (!TryGetCommonSettingsIndex(settings.PatternId, settings.PatternType, out int commonSettingsIndex))
+        {
+            return false;
+        }
+
+        return CanSelectPatternSettings(settings, commonSettingsIndex);
+    }
+
+    /// <summary>
+    /// Returns whether a concrete common settings entry at the given index can be selected by the boss selector.
+    /// </summary>
+    public bool CanSelectPatternSettings(PatternCommonSettings settings, int commonSettingsIndex)
+    {
         if (!CanSelectPattern())
         {
             return false;
@@ -740,7 +795,15 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        return TryGetPatternSelectionContext(settings, out _, out _);
+        return TryGetPatternSelectionContext(settings, commonSettingsIndex, out _);
+    }
+
+    /// <summary>
+    /// Reports that pattern selection had no valid candidate and the boss remains idle.
+    /// </summary>
+    public void ReportNoSelectablePatternFallback()
+    {
+        Debug.LogWarning($"[BossController] No selectable pattern was found for the current HealthPhase. Boss remains Idle. object={name}, phaseIndex={GetCurrentHealthPhaseIndex()}", this);
     }
 
     /// <summary>
@@ -749,6 +812,40 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     public bool TrySelectPattern(Transform target, out PatternCommonSettings selectedSettings)
     {
         return _patternSelector.TrySelectPattern(this, target, out selectedSettings);
+    }
+
+    /// <summary>
+    /// Resolves the first selectable CommonSettings entry for a PatternType for direct component-driven execution.
+    /// </summary>
+    private bool TryResolveFirstSelectableSettingsForPatternType(E_BossPatternType patternType, out PatternCommonSettings selectedSettings)
+    {
+        selectedSettings = default;
+        if (_patternData == null || _patternData.CommonSettings == null)
+        {
+            Debug.LogWarning($"[BossController] Cannot resolve selectable settings because PatternData or CommonSettings is missing. object={name}, patternType={patternType}", this);
+            return false;
+        }
+
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Designer-authored CommonSettings searched in order for direct execution.
+        for (int index = 0; index < commonSettings.Length; index++)
+        {
+            PatternCommonSettings settings = commonSettings[index]; // Candidate settings entry for this PatternType.
+            if (settings.PatternType != patternType)
+            {
+                continue;
+            }
+
+            if (!CanSelectPatternSettings(settings, index))
+            {
+                continue;
+            }
+
+            selectedSettings = settings;
+            return true;
+        }
+
+        Debug.LogWarning($"[BossController] No selectable CommonSettings entry exists for PatternType. object={name}, patternType={patternType}", this);
+        return false;
     }
 
     /// <summary>
@@ -858,7 +955,20 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return 1f;
         }
 
-        return Mathf.Clamp01(_healthComponent.GetHealthNormalized());
+        float maxHealth = _healthComponent.GetMaxHealth(); // Existing HealthComponent max health used as the ratio denominator.
+        if (maxHealth <= 0f)
+        {
+            if (!_hasLoggedHealthRatioFallbackWarning)
+            {
+                Debug.LogWarning($"[BossController] Health ratio fell back to 1 because MaxHealth was not positive. object={name}, maxHealth={maxHealth}", this);
+                _hasLoggedHealthRatioFallbackWarning = true;
+            }
+
+            return 1f;
+        }
+
+        float currentHealth = _healthComponent.GetCurrentHealth(); // Existing HealthComponent current health used as the ratio numerator.
+        return Mathf.Clamp01(currentHealth / maxHealth);
     }
 
     /// <summary>
@@ -890,7 +1000,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         for (int index = 0; index < healthPhaseSettings.Length; index++)
         {
             HealthPhaseSettings settings = healthPhaseSettings[index]; // Current HealthPhase candidate checked against the ratio.
-            if (clampedHealthRatio < settings.MinHealthRatio || clampedHealthRatio > settings.MaxHealthRatio)
+            if (clampedHealthRatio > settings.MaxHealthRatio || clampedHealthRatio <= settings.MinHealthRatio)
             {
                 continue;
             }
@@ -913,6 +1023,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     public int GetHealthPhasePatternUseCount(int healthPhaseIndex, E_BossPatternType patternType)
     {
         if (!TryGetCommonSettingsIndex(patternType, out int commonSettingsIndex))
+        {
+            return 0;
+        }
+
+        return GetHealthPhasePatternUseCountByIndex(healthPhaseIndex, commonSettingsIndex);
+    }
+
+    /// <summary>
+    /// Returns the use count recorded for a PatternId in a HealthPhase index.
+    /// </summary>
+    public int GetHealthPhasePatternUseCount(int healthPhaseIndex, string patternId)
+    {
+        if (!TryGetCommonSettingsIndex(patternId, out int commonSettingsIndex))
         {
             return 0;
         }
@@ -1108,6 +1231,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         _hasLoggedHealthRatioFallbackWarning = false;
         _hasLoggedHealthPhaseLookupWarning = false;
         _hasLoggedCommonSettingsLookupWarning = false;
+        _hasLoggedUsageLimitWarning = false;
         _hasLoggedHealthListenerMissingWarning = false;
         _hasLoggedPresentationControllerMissingWarning = false;
         _hasLoggedBossStateSyncFallbackWarning = false;
@@ -1228,6 +1352,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     {
         _currentPatternHealthPhaseIndex = -1;
         _currentPatternCommonSettingsIndex = -1;
+        _currentPatternId = string.Empty;
     }
 
     /// <summary>
@@ -1268,6 +1393,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         }
 
         PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, report.PatternType, transform.position);
+        ApplyUsageCountForPatternResult(report, resultLabel);
         ApplyCooldownsForPatternResult(report.PatternType, resultLabel);
         ClearCurrentPatternReference();
         ClearCurrentPatternSelectionContext();
@@ -1338,9 +1464,9 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// Records HealthPhase usage for a pattern after authority confirms execution.
+    /// Captures HealthPhase and CommonSettings context for the selected PatternId before execution starts.
     /// </summary>
-    private bool TryRecordPatternUseForConfirmedExecution(E_BossPatternType patternType)
+    private bool TryCapturePatternSelectionContextForExecution(PatternCommonSettings settings)
     {
         if (!IsBossLogicAuthority())
         {
@@ -1352,23 +1478,71 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
-        if (!TryGetPatternSelectionContext(patternType, out int healthPhaseIndex, out int commonSettingsIndex))
+        if (_currentState == E_BossState.Dead)
         {
             return false;
         }
 
-        EnsureHealthPhaseUsageStorage();
-        int usageIndex = GetHealthPhaseUsageIndex(healthPhaseIndex, commonSettingsIndex);
-        if (usageIndex < 0)
+        if (!TryGetPatternSelectionContext(settings, out int healthPhaseIndex, out int commonSettingsIndex))
         {
-            Debug.LogWarning($"[BossController] HealthPhase usage count was not recorded because the index was invalid. object={name}, phaseIndex={healthPhaseIndex}, commonIndex={commonSettingsIndex}", this);
             return false;
         }
 
-        _healthPhasePatternUseCounts[usageIndex]++;
         _currentPatternHealthPhaseIndex = healthPhaseIndex;
         _currentPatternCommonSettingsIndex = commonSettingsIndex;
         return true;
+    }
+
+    /// <summary>
+    /// Applies HealthPhase usage after a pattern completes or after a cancelled pattern already produced an effect.
+    /// </summary>
+    private void ApplyUsageCountForPatternResult(BossPatternExecutionReport report, string resultLabel)
+    {
+        if (!ShouldCountPatternUsage(report, resultLabel))
+        {
+            return;
+        }
+
+        IncrementCapturedPatternUsage(report);
+    }
+
+    /// <summary>
+    /// Returns whether a pattern result should increase phase-local usage count.
+    /// </summary>
+    private bool ShouldCountPatternUsage(BossPatternExecutionReport report, string resultLabel)
+    {
+        if (!IsBossLogicAuthority() || _currentState == E_BossState.Dead)
+        {
+            return false;
+        }
+
+        if (resultLabel == "Completed")
+        {
+            return true;
+        }
+
+        if (resultLabel == "Cancelled" && report.HasAppliedEffect)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Increments the captured HealthPhase and PatternId usage count.
+    /// </summary>
+    private void IncrementCapturedPatternUsage(BossPatternExecutionReport report)
+    {
+        EnsureHealthPhaseUsageStorage();
+        int usageIndex = GetHealthPhaseUsageIndex(_currentPatternHealthPhaseIndex, _currentPatternCommonSettingsIndex);
+        if (usageIndex < 0)
+        {
+            Debug.LogWarning($"[BossController] HealthPhase usage count was not recorded because the captured index was invalid. object={name}, phaseIndex={_currentPatternHealthPhaseIndex}, commonIndex={_currentPatternCommonSettingsIndex}, patternId={_currentPatternId}, result={report.Reason}", this);
+            return;
+        }
+
+        _healthPhasePatternUseCounts[usageIndex]++;
     }
 
     /// <summary>
@@ -1414,6 +1588,33 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         if (!TryGetCommonSettingsIndex(settings.PatternId, settings.PatternType, out commonSettingsIndex))
         {
+            return false;
+        }
+
+        return TryGetPatternSelectionContext(settings, commonSettingsIndex, out healthPhaseIndex);
+    }
+
+    /// <summary>
+    /// Resolves HealthPhase context for a concrete CommonSettings index and rejects duplicate PatternId entries.
+    /// </summary>
+    private bool TryGetPatternSelectionContext(PatternCommonSettings settings, int commonSettingsIndex, out int healthPhaseIndex)
+    {
+        healthPhaseIndex = -1;
+
+        if (_patternData == null || _patternData.CommonSettings == null || commonSettingsIndex < 0 || commonSettingsIndex >= _patternData.CommonSettings.Length)
+        {
+            return false;
+        }
+
+        if (!IsFirstCommonSettingsPatternIdIndex(settings.PatternId, commonSettingsIndex))
+        {
+            Debug.LogWarning($"[BossController] Ignored duplicate CommonSettings PatternId entry. object={name}, patternId={settings.PatternId}, patternType={settings.PatternType}, duplicateIndex={commonSettingsIndex}", this);
+            return false;
+        }
+
+        if (_patternData.CommonSettings[commonSettingsIndex].PatternId != settings.PatternId || _patternData.CommonSettings[commonSettingsIndex].PatternType != settings.PatternType)
+        {
+            Debug.LogWarning($"[BossController] Ignored duplicate or stale CommonSettings entry. object={name}, patternId={settings.PatternId}, patternType={settings.PatternType}, index={commonSettingsIndex}", this);
             return false;
         }
 
@@ -1472,23 +1673,64 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
+    /// Returns whether the supplied CommonSettings index is the first entry with its PatternId.
+    /// </summary>
+    private bool IsFirstCommonSettingsPatternIdIndex(string patternId, int commonSettingsIndex)
+    {
+        if (_patternData == null || _patternData.CommonSettings == null || string.IsNullOrWhiteSpace(patternId))
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _patternData.CommonSettings.Length; index++)
+        {
+            if (_patternData.CommonSettings[index].PatternId != patternId)
+            {
+                continue;
+            }
+
+            return index == commonSettingsIndex;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Returns whether the HealthPhase use count has reached the configured usage limit.
     /// </summary>
     private bool IsPatternUsageLimitExceeded(int healthPhaseIndex, int commonSettingsIndex, string patternId)
     {
-        if (!TryGetPatternUsageLimit(patternId, out PatternUsageLimit usageLimit))
+        if (!TryGetPatternUsageLimit(healthPhaseIndex, patternId, out PatternUsageLimit usageLimit))
         {
             return false;
         }
 
-        int maxUseCount = usageLimit.MaxEncounterUseCount; // Phase-local maximum use count; zero means unlimited.
-        if (maxUseCount <= 0)
+        int maxUseCount = usageLimit.MaxUseCount; // Phase-local maximum use count; zero disables, negative means unlimited.
+        if (maxUseCount < 0)
         {
+            if (!_hasLoggedUsageLimitWarning)
+            {
+                Debug.LogWarning($"[BossController] UsageLimit MaxUseCount is negative and treated as unlimited. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}, maxUseCount={maxUseCount}", this);
+                _hasLoggedUsageLimitWarning = true;
+            }
+
             return false;
+        }
+
+        if (maxUseCount == 0)
+        {
+            Debug.LogWarning($"[BossController] Pattern excluded because UsageLimit MaxUseCount is zero. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}", this);
+            return true;
         }
 
         int currentUseCount = GetHealthPhasePatternUseCountByIndex(healthPhaseIndex, commonSettingsIndex);
-        return currentUseCount >= maxUseCount;
+        if (currentUseCount < maxUseCount)
+        {
+            return false;
+        }
+
+        Debug.LogWarning($"[BossController] Pattern excluded because phase-local UsageLimit was reached. object={name}, phaseIndex={healthPhaseIndex}, patternId={patternId}, currentUseCount={currentUseCount}, maxUseCount={maxUseCount}", this);
+        return true;
     }
 
     /// <summary>
@@ -1578,9 +1820,52 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
+    /// Finds the first common settings entry matching the PatternId regardless of PatternType.
+    /// </summary>
+    private bool TryGetCommonSettingsIndex(string patternId, out int commonSettingsIndex)
+    {
+        commonSettingsIndex = -1;
+        if (string.IsNullOrEmpty(patternId))
+        {
+            return false;
+        }
+
+        if (_patternData == null || _patternData.CommonSettings == null || _patternData.CommonSettings.Length == 0)
+        {
+            if (!_hasLoggedCommonSettingsLookupWarning)
+            {
+                Debug.LogWarning($"[BossController] Common settings lookup failed because PatternData or CommonSettings is missing. object={name}, patternId={patternId}", this);
+                _hasLoggedCommonSettingsLookupWarning = true;
+            }
+
+            return false;
+        }
+
+        PatternCommonSettings[] commonSettings = _patternData.CommonSettings; // Designer-authored common settings array evaluated in order.
+        for (int index = 0; index < commonSettings.Length; index++)
+        {
+            if (commonSettings[index].PatternId != patternId)
+            {
+                continue;
+            }
+
+            commonSettingsIndex = index;
+            return true;
+        }
+
+        if (!_hasLoggedCommonSettingsLookupWarning)
+        {
+            Debug.LogWarning($"[BossController] Common settings lookup found no matching PatternId. object={name}, patternId={patternId}", this);
+            _hasLoggedCommonSettingsLookupWarning = true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Finds the usage limit settings for a pattern id.
     /// </summary>
-    private bool TryGetPatternUsageLimit(string patternId, out PatternUsageLimit usageLimit)
+    private bool TryGetPatternUsageLimit(int healthPhaseArrayIndex, string patternId, out PatternUsageLimit usageLimit)
     {
         usageLimit = default;
         if (_patternData == null || _patternData.UsageLimits == null || _patternData.UsageLimits.Length == 0 || string.IsNullOrEmpty(patternId))
@@ -1588,10 +1873,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return false;
         }
 
+        if (_patternData.HealthPhaseSettings == null || healthPhaseArrayIndex < 0 || healthPhaseArrayIndex >= _patternData.HealthPhaseSettings.Length)
+        {
+            return false;
+        }
+
+        int phaseIndex = _patternData.HealthPhaseSettings[healthPhaseArrayIndex].PhaseIndex; // Designer-authored PhaseIndex used by phase-local usage limit rows.
         PatternUsageLimit[] usageLimits = _patternData.UsageLimits; // Designer-authored usage limit array searched by pattern id.
         for (int index = 0; index < usageLimits.Length; index++)
         {
-            if (usageLimits[index].PatternId != patternId)
+            if (usageLimits[index].PhaseIndex != phaseIndex || usageLimits[index].PatternId != patternId)
             {
                 continue;
             }

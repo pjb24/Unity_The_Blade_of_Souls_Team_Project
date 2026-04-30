@@ -65,19 +65,6 @@ MonoBehaviour:
     _startupSeconds: 0
     _activeSeconds: 0
     _recoverySeconds: 0
-  - _patternId: WeakPoint_LowHealth
-    _enabled: 1
-    _patternType: 4
-    _selectionWeight: 0
-    _priority: 1
-    _requireTarget: 0
-    _allowDuringWeakPointActive: 0
-    _cooldownSeconds: 45
-    _minimumTargetSqrDistance: 0
-    _maximumTargetSqrDistance: 0
-    _startupSeconds: 0
-    _activeSeconds: 0
-    _recoverySeconds: 0
   _healthPhaseSettings:
   - _phaseIndex: 0
     _minHealthRatio: 0.7
@@ -97,48 +84,46 @@ MonoBehaviour:
     _minHealthRatio: 0
     _maxHealthRatio: 0.3
     _availablePatternIds:
-    - WeakPoint_LowHealth
+    - WeakPoint
     - FanProjectile
     - GroundSpike
     - SummonMonster
   _usageLimits:
-  - _patternId: WeakPoint
-    _maxConsecutiveUseCount: 1
-    _maxEncounterUseCount: 1
-    _minimumOtherPatternCountBeforeRepeat: 0
-  - _patternId: WeakPoint_LowHealth
-    _maxConsecutiveUseCount: 0
-    _maxEncounterUseCount: 0
-    _minimumOtherPatternCountBeforeRepeat: 0
-  _fanProjectilePattern:
-    _enabled: 1
+  - _phaseIndex: 1
+    _patternId: WeakPoint
+    _maxUseCount: 1
+  - _phaseIndex: 2
+    _patternId: WeakPoint
+    _maxUseCount: -1
+  _fanProjectilePatterns:
+  - _enabled: 1
     _patternId: FanProjectile
     _projectilePrefab: {fileID: 4632990942025474203, guid: fbfeed0092fbdc14e81a12c9c1a57dbb, type: 3}
     _spawnPointCount: 3
     _projectileCount: 5
     _fanAngleDegrees: 60
     _projectileSpeed: 5
-    _projectileLifetime: 8
+    _projectileLifetime: 10
     _damage: 100
     _projectileCollisionLayerMask:
       serializedVersion: 2
       m_Bits: 192
-    _statusTag: FanProjectile
-  _groundSpikePattern:
-    _enabled: 1
+    _statusTag: 
+  _groundSpikePatterns:
+  - _enabled: 1
     _patternId: GroundSpike
     _spikePrefab: {fileID: 525794478471237259, guid: 5e5a2a028408eb3418002af0bcf8c224, type: 3}
     _warningVfxPrefab: {fileID: 0}
-    _warningEffectId: 15
+    _warningEffectId: 0
     _attackVfxPrefab: {fileID: 0}
-    _attackEffectId: 13
+    _attackEffectId: 0
     _raycastStartYOffset: 0
     _groundRaycastDistance: 10
     _groundLayerMask:
       serializedVersion: 2
       m_Bits: 64
-    _warningSeconds: 5
-    _spikeHitDuration: 5
+    _warningSeconds: 2
+    _spikeHitDuration: 1
     _spikeCount: 1
     _intervalSeconds: 0
     _boxSize: {x: 0, y: 0}
@@ -147,19 +132,19 @@ MonoBehaviour:
       m_Bits: 128
     _damage: 100
     _statusTag: 
-  _summonMonsterPattern:
-    _enabled: 1
+  _summonMonsterPatterns:
+  - _enabled: 1
     _patternId: SummonMonster
     _monsterPrefab: {fileID: 8153201445621807567, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
     _spawnPointCount: 2
     _maxAliveCount: 0
     _spawnIntervalSeconds: 0
-  _weakPointPattern:
-    _enabled: 1
+  _weakPointPatterns:
+  - _enabled: 1
     _patternId: WeakPoint
     _weakPointPrefab: {fileID: 3319988911712295143, guid: 6a98607952811f94b87b9ba25501a79f, type: 3}
     _weakPointDestroyVfxPrefab: {fileID: 0}
-    _weakPointDestroyEffectId: 13
+    _weakPointDestroyEffectId: 0
     _weakPointCount: 3
     _weakPointPositionRetryCount: 1
     _minDistanceBetweenWeakPoints: 0
