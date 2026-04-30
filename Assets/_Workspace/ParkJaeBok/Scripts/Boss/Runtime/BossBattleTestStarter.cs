@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
+#if UNITY_EDITOR
 /// <summary>
 /// Provides designer-friendly test entry points for calling BossController.StartBattle during Play Mode.
 /// </summary>
@@ -227,3 +228,4 @@ public sealed class BossBattleTestStarter : MonoBehaviour
         }
     }
 }
+#endif

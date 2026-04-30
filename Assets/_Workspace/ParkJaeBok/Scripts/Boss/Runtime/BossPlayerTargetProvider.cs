@@ -37,9 +37,6 @@ public sealed class BossPlayerTargetProvider : MonoBehaviour
     [Min(1)]
     [SerializeField] private int _playerHealthBufferSize = 4; // Reusable Player HealthComponent buffer capacity for all-target operations.
 
-    [Tooltip("Whether fallback scan usage should be reported as a Warning.")]
-    [SerializeField] private bool _warnWhenFallbackScanUsed = true; // Warning toggle for fallback target scans.
-
     private Collider2D[] _candidateBuffer = new Collider2D[0]; // Reusable collider buffer used by fallback target scans.
     private ContactFilter2D _playerContactFilter; // Reusable layer and trigger filter for fallback target scans.
     private bool _hasLoggedFallbackScanWarning; // Prevents repeated fallback scan warnings from this provider state.
@@ -230,7 +227,7 @@ public sealed class BossPlayerTargetProvider : MonoBehaviour
         targetHealth = null;
         targetNetworkObject = null;
 
-        if (_warnWhenFallbackScanUsed && !_hasLoggedFallbackScanWarning)
+        if (!_hasLoggedFallbackScanWarning)
         {
             Debug.LogWarning($"[BossPlayerTargetProvider] Existing target detector did not provide a valid target. Fallback scan is running. object={name}", this);
             _hasLoggedFallbackScanWarning = true;
@@ -308,7 +305,7 @@ public sealed class BossPlayerTargetProvider : MonoBehaviour
     /// </summary>
     private void CollectFallbackScanPlayers(Vector3 bossPosition, HealthComponent[] playerHealthBuffer, ref int collectedCount)
     {
-        if (_warnWhenFallbackScanUsed && !_hasLoggedFallbackScanWarning)
+        if (!_hasLoggedFallbackScanWarning)
         {
             Debug.LogWarning($"[BossPlayerTargetProvider] Player registry was not found. Fallback scan is collecting Player targets. object={name}", this);
             _hasLoggedFallbackScanWarning = true;

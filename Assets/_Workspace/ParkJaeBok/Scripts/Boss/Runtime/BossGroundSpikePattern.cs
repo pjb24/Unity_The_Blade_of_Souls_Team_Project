@@ -173,6 +173,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
         }
 
         PlaySynchronizedVfxOrWarn(settings.AttackEffectId, settings.AttackVfxPrefab, spikePosition, "AttackVFXMissing", false);
+        _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.GroundSpike, spikePosition);
         EnableSpikeHitCollider(spikeInstance);
         ApplySpikeHit(settings, spikePosition);
 

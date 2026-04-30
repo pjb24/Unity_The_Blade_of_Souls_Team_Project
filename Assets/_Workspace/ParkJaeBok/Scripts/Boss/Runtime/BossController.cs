@@ -6,7 +6,7 @@ using UnityEngine;
 /// Controls boss battle authority, basic runtime state, and battle lifecycle entry points.
 /// </summary>
 [DisallowMultipleComponent]
-public class BossController : NetworkBehaviour, IBossPatternExecutionListener
+public class BossController : NetworkBehaviour, IBossPatternExecutionListener, IHealthListener
 {
     [Header("Required References")]
     [Tooltip("Boss pattern configuration asset that stores pure pattern settings.")]
@@ -23,6 +23,12 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
 
     [Tooltip("Common Player target provider used by boss patterns during execution.")]
     [SerializeField] private BossPlayerTargetProvider _playerTargetProvider; // Shared Player target search provider used by boss pattern execution.
+
+    [Tooltip("Presentation controller that synchronizes boss Animator, VFX, and Sound cues to clients and host.")]
+    [SerializeField] private BossPresentationController _presentationController; // Presentation-only bridge used after authority confirms boss state or pattern events.
+
+    [Tooltip("Pattern 4 component that owns weak point timers and spawned weak point cleanup.")]
+    [SerializeField] private BossWeakPointPattern _weakPointPattern; // Pattern 4 runtime owner cleaned directly when the boss dies after weak point entry.
 
     [Header("Common Pattern Settings")]
     [Tooltip("Additional common cooldown in seconds applied between future boss pattern requests.")]
@@ -65,10 +71,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     private bool _isBattleActive; // Whether the boss battle lifecycle is currently active on the authority instance.
     private bool _isPatternSelectionEnabled; // Whether future pattern selection is allowed to run.
     private bool _isCurrentPatternListenerRegistered; // Whether this controller is registered to the current pattern report callbacks.
+    private bool _isHealthListenerRegistered; // Whether this controller is subscribed to the existing HealthComponent callbacks.
+    private bool _hasEnteredDeadCleanup; // Prevents repeated death cleanup and Dead presentation from duplicate health notifications.
+    private bool _isResolvingBossDeath; // Whether current pattern reports are being received as part of boss death cleanup.
     private bool _hasLoggedAuthorityWarning; // Prevents repeated authority warning logs from the same controller state.
     private bool _hasLoggedHealthRatioFallbackWarning; // Prevents repeated health ratio fallback warnings from this controller state.
     private bool _hasLoggedHealthPhaseLookupWarning; // Prevents repeated HealthPhase lookup warnings from this controller state.
     private bool _hasLoggedCommonSettingsLookupWarning; // Prevents repeated common settings lookup warnings from this controller state.
+    private bool _hasLoggedHealthListenerMissingWarning; // Prevents repeated warnings when boss death cannot subscribe to HealthComponent.
+    private bool _hasLoggedPresentationControllerMissingWarning; // Prevents repeated presentation bridge missing warnings from this controller state.
+    private bool _hasLoggedBossStateSyncFallbackWarning; // Prevents repeated warnings when network state sync cannot be sent.
 
     /// <summary>
     /// Gets the boss pattern data asset reference.
@@ -166,8 +178,26 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     private void Awake()
     {
         ResolveOptionalRuntimeReferences();
+        RegisterHealthListener();
         EnsurePatternCooldownStorage();
         EnsureHealthPhaseUsageStorage();
+    }
+
+    /// <summary>
+    /// Registers boss death listeners when the component becomes active.
+    /// </summary>
+    private void OnEnable()
+    {
+        ResolveOptionalRuntimeReferences();
+        RegisterHealthListener();
+    }
+
+    /// <summary>
+    /// Removes boss death listeners when the component becomes inactive.
+    /// </summary>
+    private void OnDisable()
+    {
+        UnregisterHealthListener();
     }
 
     /// <summary>
@@ -175,6 +205,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     /// </summary>
     private void OnValidate()
     {
+        ResolveOptionalRuntimeReferences();
         ValidateCommonSettings();
         ValidateRequiredReferences();
     }
@@ -199,6 +230,60 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     }
 
     /// <summary>
+    /// Receives Health changed notifications; boss death handling only needs OnDied.
+    /// </summary>
+    public void OnHealthChanged(HealthChangeData data)
+    {
+    }
+
+    /// <summary>
+    /// Receives damage notifications and lets OnDied perform the final death transition.
+    /// </summary>
+    public void OnDamaged(DamageResult result)
+    {
+    }
+
+    /// <summary>
+    /// Receives heal notifications; boss death handling does not need heal behavior.
+    /// </summary>
+    public void OnHealed(HealResult result)
+    {
+    }
+
+    /// <summary>
+    /// Receives the existing HealthComponent death callback and enters Dead state on the authority instance.
+    /// </summary>
+    public void OnDied()
+    {
+        if (!IsBossLogicAuthority())
+        {
+            return;
+        }
+
+        EnterDeadState();
+    }
+
+    /// <summary>
+    /// Receives revive notifications and clears the one-shot death cleanup guard.
+    /// </summary>
+    public void OnRevived()
+    {
+        if (!IsBossLogicAuthority())
+        {
+            return;
+        }
+
+        _hasEnteredDeadCleanup = false;
+    }
+
+    /// <summary>
+    /// Receives max health changed notifications; boss death handling does not need max health behavior.
+    /// </summary>
+    public void OnMaxHealthChanged(float previousMaxHealth, float currentMaxHealth)
+    {
+    }
+
+    /// <summary>
     /// Starts the boss battle lifecycle on the authority instance.
     /// </summary>
     public void StartBattle()
@@ -217,6 +302,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         _isPatternSelectionEnabled = true;
         _isInvincible = false;
         _isWeakPointPatternActive = false;
+        _hasEnteredDeadCleanup = false;
         EnterIdleState();
     }
 
@@ -322,6 +408,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
 
         SetCurrentPatternReference(pattern.PatternType, pattern, true);
         SetState(E_BossState.PatternExecuting);
+        PlayPresentationCueInternal(E_BossPresentationCue.PatternStarted, pattern.PatternType, transform.position);
 
         if (!pattern.StartPatternExecution())
         {
@@ -410,6 +497,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     }
 
     /// <summary>
+    /// Plays an authority-confirmed boss presentation cue without allowing clients to decide combat state.
+    /// </summary>
+    public void PlayPresentationCue(E_BossPresentationCue cue, E_BossPatternType patternType, Vector3 worldPosition)
+    {
+        if (!TryEnsureAuthority("PlayPresentationCue"))
+        {
+            return;
+        }
+
+        PlayPresentationCueInternal(cue, patternType, worldPosition);
+    }
+
+    /// <summary>
     /// Records that Pattern 4 entered its weak point phase and starts the required global cooldown.
     /// </summary>
     public void NotifyPatternFourEntryCompleted()
@@ -419,8 +519,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        bool wasInvincible = _isInvincible; // Previous invincibility state used to avoid duplicate presentation cues.
         _isWeakPointPatternActive = true;
         _isInvincible = true;
+        if (!wasInvincible)
+        {
+            PlayPresentationCueInternal(E_BossPresentationCue.InvincibleStarted, E_BossPatternType.WeakPoint, transform.position);
+        }
+
         StartGlobalCooldownInternal("Pattern4EntryCompleted");
     }
 
@@ -448,9 +554,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
         CancelCurrentRegularPatternForPatternFourEnd("Pattern4TimedOut");
         _isWeakPointPatternActive = false;
         _isInvincible = false;
+        if (wasInvincible)
+        {
+            PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
+        }
+
+        PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, E_BossPatternType.WeakPoint, transform.position);
         _isPatternSelectionEnabled = true;
         EnterIdleState();
         StartGlobalCooldownInternal("Pattern4TimedOut");
@@ -466,8 +579,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
         _isWeakPointPatternActive = false;
         _isInvincible = false;
+        if (wasInvincible)
+        {
+            PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
+        }
+
         StartGlobalCooldownInternal("Pattern4EntryFailed");
     }
 
@@ -481,9 +600,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
         CancelCurrentRegularPatternForPatternFourEnd("Pattern4AllWeakPointsDestroyed");
         _isWeakPointPatternActive = false;
         _isInvincible = false;
+        if (wasInvincible)
+        {
+            PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
+        }
+
+        PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, E_BossPatternType.WeakPoint, transform.position);
     }
 
     /// <summary>
@@ -504,8 +630,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         }
 
         StopRuntimeCoroutine(ref _groggyTimerCoroutine);
+        bool wasInvincible = _isInvincible; // Previous invincibility state used to emit the matching presentation cue.
         _isWeakPointPatternActive = false;
         _isInvincible = false;
+        if (wasInvincible)
+        {
+            PlayPresentationCueInternal(E_BossPresentationCue.InvincibleEnded, E_BossPatternType.WeakPoint, transform.position);
+        }
+
         EnterGroggyState();
         _groggyTimerCoroutine = StartCoroutine(RunGroggyTimer(safeDuration, reason));
     }
@@ -527,6 +659,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         }
 
         _isPatternSelectionEnabled = true;
+        PlayPresentationCueInternal(E_BossPresentationCue.GroggyEnded, E_BossPatternType.WeakPoint, transform.position);
         StartGlobalCooldownInternal("GroggyEnded");
         EnterIdleState();
     }
@@ -812,6 +945,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     {
         CancelCurrentPattern("EnterGroggyState");
         SetState(E_BossState.Groggy);
+        PlayPresentationCueInternal(E_BossPresentationCue.GroggyStarted, E_BossPatternType.WeakPoint, transform.position);
     }
 
     /// <summary>
@@ -819,9 +953,23 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     /// </summary>
     private void EnterDeadState()
     {
+        if (_hasEnteredDeadCleanup)
+        {
+            return;
+        }
+
+        _hasEnteredDeadCleanup = true;
+        _isResolvingBossDeath = true;
+        _isPatternSelectionEnabled = false;
+        StopAllRuntimeTimers();
         CancelCurrentPattern("EnterDeadState");
+        CleanupWeakPointPatternForBossDeath();
+        _isWeakPointPatternActive = false;
+        _isInvincible = false;
         _isBattleActive = false;
         SetState(E_BossState.Dead);
+        PlayPresentationCueInternal(E_BossPresentationCue.Dead, E_BossPatternType.None, transform.position);
+        _isResolvingBossDeath = false;
     }
 
     /// <summary>
@@ -830,11 +978,66 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
     private void SetState(E_BossState nextState)
     {
         _currentState = nextState;
+        SyncBossStateToClients(nextState);
 
         if (_currentState == E_BossState.Dead || _currentState == E_BossState.Groggy)
         {
             _isPatternSelectionEnabled = false;
         }
+    }
+
+    /// <summary>
+    /// Applies server-replicated boss state on clients without mutating combat authority data.
+    /// </summary>
+    private void ApplyReplicatedBossState(int stateValue)
+    {
+        E_BossState replicatedState = (E_BossState)stateValue; // Server-authored state value delivered through RPC.
+        _currentState = replicatedState;
+        if (replicatedState == E_BossState.Dead)
+        {
+            _isBattleActive = false;
+            _isWeakPointPatternActive = false;
+            _isInvincible = false;
+        }
+
+        if (replicatedState == E_BossState.Dead || replicatedState == E_BossState.Groggy)
+        {
+            _isPatternSelectionEnabled = false;
+        }
+    }
+
+    /// <summary>
+    /// Sends the server-confirmed boss state to clients through NGO RPC when networking is active.
+    /// </summary>
+    private void SyncBossStateToClients(E_BossState state)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO singleton used to decide whether state synchronization is required.
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return;
+        }
+
+        if (!IsSpawned)
+        {
+            if (!_hasLoggedBossStateSyncFallbackWarning)
+            {
+                Debug.LogWarning($"[BossController] Boss state sync skipped because NetworkObject is not spawned. object={name}, state={state}", this);
+                _hasLoggedBossStateSyncFallbackWarning = true;
+            }
+
+            return;
+        }
+
+        SyncBossStateRpc((int)state);
+    }
+
+    /// <summary>
+    /// Receives a server-confirmed boss state and mirrors it locally without deciding combat logic.
+    /// </summary>
+    [Rpc(SendTo.ClientsAndHost)]
+    private void SyncBossStateRpc(int stateValue)
+    {
+        ApplyReplicatedBossState(stateValue);
     }
 
     /// <summary>
@@ -846,6 +1049,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         _isPatternSelectionEnabled = false;
         _isInvincible = false;
         _isWeakPointPatternActive = false;
+        _hasEnteredDeadCleanup = false;
+        _isResolvingBossDeath = false;
         _currentPatternType = E_BossPatternType.None;
         ClearCurrentPatternSelectionContext();
         ClearCurrentPatternReference();
@@ -903,6 +1108,68 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         _hasLoggedHealthRatioFallbackWarning = false;
         _hasLoggedHealthPhaseLookupWarning = false;
         _hasLoggedCommonSettingsLookupWarning = false;
+        _hasLoggedHealthListenerMissingWarning = false;
+        _hasLoggedPresentationControllerMissingWarning = false;
+        _hasLoggedBossStateSyncFallbackWarning = false;
+    }
+
+    /// <summary>
+    /// Cleans Pattern 4 timers and weak point objects that may outlive the entry pattern execution.
+    /// </summary>
+    private void CleanupWeakPointPatternForBossDeath()
+    {
+        ResolveOptionalRuntimeReferences();
+        if (_weakPointPattern == null)
+        {
+            if (_isWeakPointPatternActive)
+            {
+                Debug.LogWarning($"[BossController] Pattern 4 cleanup skipped because BossWeakPointPattern is missing during boss death. object={name}", this);
+            }
+
+            return;
+        }
+
+        _weakPointPattern.CleanupForBossDeath();
+    }
+
+    /// <summary>
+    /// Subscribes to the existing HealthComponent death notifications through AddListener.
+    /// </summary>
+    private void RegisterHealthListener()
+    {
+        ResolveOptionalRuntimeReferences();
+        if (_isHealthListenerRegistered)
+        {
+            return;
+        }
+
+        if (_healthComponent == null)
+        {
+            if (!_hasLoggedHealthListenerMissingWarning)
+            {
+                Debug.LogWarning($"[BossController] HealthComponent is missing. Boss death listener registration skipped. object={name}", this);
+                _hasLoggedHealthListenerMissingWarning = true;
+            }
+
+            return;
+        }
+
+        _healthComponent.AddListener(this);
+        _isHealthListenerRegistered = true;
+    }
+
+    /// <summary>
+    /// Unsubscribes from the existing HealthComponent death notifications through RemoveListener.
+    /// </summary>
+    private void UnregisterHealthListener()
+    {
+        if (!_isHealthListenerRegistered || _healthComponent == null)
+        {
+            return;
+        }
+
+        _healthComponent.RemoveListener(this);
+        _isHealthListenerRegistered = false;
     }
 
     /// <summary>
@@ -993,6 +1260,14 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
             return;
         }
 
+        if (_isResolvingBossDeath)
+        {
+            ClearCurrentPatternReference();
+            ClearCurrentPatternSelectionContext();
+            return;
+        }
+
+        PlayPresentationCueInternal(E_BossPresentationCue.PatternEnded, report.PatternType, transform.position);
         ApplyCooldownsForPatternResult(report.PatternType, resultLabel);
         ClearCurrentPatternReference();
         ClearCurrentPatternSelectionContext();
@@ -1001,6 +1276,26 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         {
             SetState(E_BossState.Idle);
         }
+    }
+
+    /// <summary>
+    /// Sends a presentation cue through the configured presentation bridge after authority has confirmed the event.
+    /// </summary>
+    private void PlayPresentationCueInternal(E_BossPresentationCue cue, E_BossPatternType patternType, Vector3 worldPosition)
+    {
+        ResolveOptionalRuntimeReferences();
+        if (_presentationController == null)
+        {
+            if (!_hasLoggedPresentationControllerMissingWarning)
+            {
+                Debug.LogWarning($"[BossController] BossPresentationController is missing. Presentation cue skipped. object={name}, cue={cue}, patternType={patternType}", this);
+                _hasLoggedPresentationControllerMissingWarning = true;
+            }
+
+            return;
+        }
+
+        _presentationController.PlayCue(cue, patternType, worldPosition);
     }
 
     /// <summary>
@@ -1564,6 +1859,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         {
             Debug.LogWarning($"[BossController] BossPlayerTargetProvider is missing on {name}. Boss patterns cannot use the shared Player search path.", this);
         }
+
+        if (_presentationController == null)
+        {
+            Debug.LogWarning($"[BossController] BossPresentationController is missing on {name}. Boss presentation cues cannot be synchronized.", this);
+        }
+
+        if (_weakPointPattern == null)
+        {
+            Debug.LogWarning($"[BossController] BossWeakPointPattern is missing on {name}. Boss death cannot directly clean Pattern 4 weak points after entry.", this);
+        }
     }
 
     /// <summary>
@@ -1574,6 +1879,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener
         if (_playerTargetProvider == null)
         {
             _playerTargetProvider = GetComponent<BossPlayerTargetProvider>();
+        }
+
+        if (_presentationController == null)
+        {
+            _presentationController = GetComponent<BossPresentationController>();
+        }
+
+        if (_weakPointPattern == null)
+        {
+            _weakPointPattern = GetComponent<BossWeakPointPattern>();
         }
     }
 }

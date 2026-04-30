@@ -14,10 +14,6 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     [Tooltip("Scene anchor set that provides monster spawn points.")]
     [SerializeField] private BossPatternAnchorSet _anchorSet; // Scene monster spawn point source used by Pattern 3.
 
-    [Header("Spawn Fallback")]
-    [Tooltip("Whether Pattern 3 should warn when no existing SpawnManager, EnemySpawner, or ObjectPool path is available.")]
-    [SerializeField] private bool _warnWhenUsingInstantiateFallback = true; // Warning toggle for direct monster Instantiate fallback.
-
     private int[] _spawnPointIndexBuffer; // Reusable index buffer initialized with every spawn point index at execution start.
     private Transform[] _selectedSpawnPointBuffer; // Reusable selected spawn point buffer filled from the shuffled index buffer.
     private int _selectedSpawnPointCount; // Number of valid selected entries written during the latest execution.
@@ -198,6 +194,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
         WarnMissingExistingSpawnPathsOnce();
 
         bool spawnedAnyMonster = false; // Whether at least one monster was successfully created by Pattern 3.
+        bool playedAttackCue = false; // Whether the summon attack presentation cue has already been emitted for this execution.
         for (int index = 0; index < actualSpawnCount; index++)
         {
             Transform spawnPoint = _selectedSpawnPointBuffer[index]; // Selected scene spawn point used for this monster.
@@ -214,6 +211,11 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
 
             ValidateSpawnedEnemyAiFlow(spawnedMonster);
             spawnedAnyMonster = true;
+            if (!playedAttackCue)
+            {
+                _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.SummonMonster, spawnPoint.position);
+                playedAttackCue = true;
+            }
         }
 
         return spawnedAnyMonster;
@@ -327,7 +329,7 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     /// </summary>
     private void LogInstantiateFallbackOnce()
     {
-        if (!_warnWhenUsingInstantiateFallback || _hasLoggedObjectPoolMissing)
+        if (_hasLoggedObjectPoolMissing)
         {
             return;
         }

@@ -141,6 +141,26 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
+    /// Stops every active Pattern 4 runtime object and timer when the boss dies.
+    /// </summary>
+    public void CleanupForBossDeath()
+    {
+        ResolveReferences();
+        if (_bossController != null && !_bossController.IsBossLogicAuthority())
+        {
+            LogFailureOnce("WeakPointDeathCleanupWithoutAuthority");
+            return;
+        }
+
+        StopEntryFallbackTimer();
+        StopWeakPointTimeLimitTimer();
+        RemoveRemainingWeakPoints();
+        ClearWeakPointRuntimeBuffers();
+        _isEntryResolved = true;
+        _isWeakPointFlowResolved = true;
+    }
+
+    /// <summary>
     /// Receives a weak point destruction report from a spawned weak point object.
     /// </summary>
     public void HandleWeakPointDestroyed(BossWeakPointObject weakPointObject, int weakPointIndex)
@@ -172,6 +192,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         _destroyedWeakPointCount++;
 
         Vector3 destroyPosition = weakPointObject != null ? weakPointObject.transform.position : _weakPointPositionBuffer[weakPointIndex]; // Position used for destruction VFX.
+        _bossController.PlayPresentationCue(E_BossPresentationCue.WeakPointDestroyed, E_BossPatternType.WeakPoint, destroyPosition);
         PlayWeakPointDestroyVfx(destroyPosition);
         CleanupWeakPointObject(weakPointObject, weakPointIndex);
 
@@ -497,6 +518,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         _isEntryResolved = true;
         _bossController.NotifyPatternFourEntryCompleted();
+        _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.WeakPoint, transform.position);
         StartWeakPointTimeLimitTimer(settings.WeakPointTimeLimit);
         ReportPatternCompleted("WeakPointEntryCompleted");
     }
@@ -713,6 +735,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         weakPointObject = EnsureWeakPointBridge(spawnedObject);
         weakPointObject.Initialize(this, weakPointIndex);
         SpawnWeakPointNetworkObjectIfNeeded(weakPointPrefab, spawnedObject, shouldUseNetwork);
+        _bossController.PlayPresentationCue(E_BossPresentationCue.WeakPointCreated, E_BossPatternType.WeakPoint, position);
         return true;
     }
 

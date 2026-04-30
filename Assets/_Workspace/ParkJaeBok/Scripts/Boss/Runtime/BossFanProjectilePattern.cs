@@ -92,6 +92,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
             return;
         }
 
+        _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.FanProjectile, spawnPoint.position);
         if (!FireProjectiles(settings, spawnPoint, targetTransform))
         {
             ReportPatternFailed("ProjectileSpawnFailed");

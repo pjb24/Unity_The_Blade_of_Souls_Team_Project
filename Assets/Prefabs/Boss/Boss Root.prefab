@@ -875,6 +875,7 @@ GameObject:
   - component: {fileID: 7964338826940540576}
   - component: {fileID: 1194544836538915617}
   - component: {fileID: 163197937894529695}
+  - component: {fileID: 2806870294695063343}
   m_Layer: 8
   m_Name: Boss Root
   m_TagString: Untagged
@@ -975,6 +976,8 @@ MonoBehaviour:
   _healthComponent: {fileID: 7499435228633890958}
   _hitReceiver: {fileID: 6078429381991306388}
   _playerTargetProvider: {fileID: 8855505317964246999}
+  _presentationController: {fileID: 2806870294695063343}
+  _weakPointPattern: {fileID: 1194544836538915617}
   _commonPatternCooldownSeconds: 4
   _currentState: 0
   _isInvincible: 0
@@ -999,12 +1002,11 @@ MonoBehaviour:
   _bossTransform: {fileID: 2326021272048947885}
   _playerLayerMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 128
   _playerTag: Player
   _defaultExecutionRange: 20
   _candidateBufferSize: 16
   _playerHealthBufferSize: 4
-  _warnWhenFallbackScanUsed: 1
 --- !u!114 &2506688360464795491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1099,7 +1101,6 @@ MonoBehaviour:
   _patternLogLabel: 
   _bossController: {fileID: 2001514356791471925}
   _anchorSet: {fileID: 8004796325948814738}
-  _warnWhenUsingInstantiateFallback: 1
 --- !u!114 &1194544836538915617
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1135,6 +1136,47 @@ MonoBehaviour:
   _summonMonsterPattern: {fileID: 7964338826940540576}
   _startBattleOnStart: 1
   _autoStartDelaySeconds: 0
+--- !u!114 &2806870294695063343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b5f94c9f274bf17438048708187c50c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossPresentationController
+  ShowTopMostFoldoutHeaderGroup: 1
+  _animator: {fileID: 6139070501727823020}
+  _presentationOrigin: {fileID: 2326021272048947885}
+  _cueSettings:
+  - _cue: 1
+    _patternType: 1
+    _animatorTriggerName: FanProjectile
+    _effectId: 0
+    _soundId: 0
+  - _cue: 1
+    _patternType: 2
+    _animatorTriggerName: GroundSpike
+    _effectId: 0
+    _soundId: 0
+  - _cue: 1
+    _patternType: 3
+    _animatorTriggerName: SummonMonster
+    _effectId: 0
+    _soundId: 0
+  - _cue: 1
+    _patternType: 4
+    _animatorTriggerName: WeakPoint
+    _effectId: 0
+    _soundId: 0
+  - _cue: 10
+    _patternType: 0
+    _animatorTriggerName: Dead
+    _effectId: 0
+    _soundId: 0
 --- !u!1 &8075390241886384120
 GameObject:
   m_ObjectHideFlags: 0

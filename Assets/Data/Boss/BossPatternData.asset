@@ -159,7 +159,7 @@ MonoBehaviour:
     _patternId: WeakPoint
     _weakPointPrefab: {fileID: 3319988911712295143, guid: 6a98607952811f94b87b9ba25501a79f, type: 3}
     _weakPointDestroyVfxPrefab: {fileID: 0}
-    _weakPointDestroyEffectId: 0
+    _weakPointDestroyEffectId: 13
     _weakPointCount: 3
     _weakPointPositionRetryCount: 1
     _minDistanceBetweenWeakPoints: 0
