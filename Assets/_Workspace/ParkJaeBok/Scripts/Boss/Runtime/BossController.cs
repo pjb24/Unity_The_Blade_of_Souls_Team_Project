@@ -8,6 +8,16 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class BossController : NetworkBehaviour, IBossPatternExecutionListener, IHealthListener
 {
+    private readonly NetworkVariable<int> _replicatedState = new NetworkVariable<int>(
+        (int)E_BossState.None,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // Host가 확정한 보스 상태를 Client가 따라가기 위해 복제하는 값
+
+    private readonly NetworkVariable<bool> _replicatedBattleActive = new NetworkVariable<bool>(
+        false,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server); // Host가 확정한 보스 전투 활성 여부를 Client가 따라가기 위해 복제하는 값
+
     [Header("필수 참조")]
     [Tooltip("순수 패턴 설정을 저장하는 보스 패턴 설정 애셋")]
     [SerializeField] private BossPatternData _patternData; // 향후 보스 패턴 로직에서 사용할 ScriptableObject 설정
@@ -220,7 +230,32 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// 현재 인스턴스가 보스 로직 권한을 가지는지 반환한다.
+    /// 네트워크 스폰 이후 Host가 확정한 보스 전투 상태 복제를 구독하고 현재 값을 즉시 반영한다.
+    /// </summary>
+    public override void OnNetworkSpawn()
+    {
+        _replicatedState.OnValueChanged += HandleReplicatedStateChanged;
+        _replicatedBattleActive.OnValueChanged += HandleReplicatedBattleActiveChanged;
+
+        ApplyReplicatedBossState(_replicatedState.Value, _replicatedBattleActive.Value);
+
+        if (IsServer)
+        {
+            PublishBossStateSnapshot();
+        }
+    }
+
+    /// <summary>
+    /// 네트워크 디스폰 시 보스 전투 상태 복제 구독을 해제한다.
+    /// </summary>
+    public override void OnNetworkDespawn()
+    {
+        _replicatedState.OnValueChanged -= HandleReplicatedStateChanged;
+        _replicatedBattleActive.OnValueChanged -= HandleReplicatedBattleActiveChanged;
+    }
+
+    /// <summary>
+    /// 현재 인스턴스가 보스 로직 권한을 가지고 있는지 반환한다.
     /// </summary>
     public bool IsBossLogicAuthority()
     {
@@ -313,6 +348,19 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         _isWeakPointPatternActive = false; // 약점 패턴 상태 초기화
         _hasEnteredDeadCleanup = false; // 사망 정리 상태 초기화
         EnterIdleState(); // Idle 상태 진입
+    }
+
+    /// <summary>
+    /// 현재 보스가 사망 상태인지 반환한다.
+    /// </summary>
+    public bool IsDead()
+    {
+        if (_currentState == E_BossState.Dead)
+        {
+            return true;
+        }
+
+        return _healthComponent != null && _healthComponent.IsDead;
     }
 
     /// <summary>
@@ -1113,6 +1161,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     private void SetState(E_BossState nextState)
     {
         _currentState = nextState;
+        PublishBossStateSnapshot();
         SyncBossStateToClients(nextState); // 클라이언트에 상태 동기화
 
         if (_currentState == E_BossState.Dead || _currentState == E_BossState.Groggy)
@@ -1128,6 +1177,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     {
         E_BossState replicatedState = (E_BossState)stateValue; // RPC를 통해 전달된 서버 상태 값
         _currentState = replicatedState;
+        _isBattleActive = _replicatedBattleActive.Value;
 
         if (replicatedState == E_BossState.Dead)
         {
@@ -1143,7 +1193,29 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// 네트워크가 활성 상태일 때 서버에서 확정된 보스 상태를 클라이언트에 전송한다.
+    /// Host가 복제한 보스 상태와 전투 활성 여부를 로컬 표시 상태에 반영한다.
+    /// </summary>
+    private void ApplyReplicatedBossState(int stateValue, bool battleActive)
+    {
+        E_BossState replicatedState = (E_BossState)stateValue; // Host가 확정한 보스 상태 값
+        _currentState = replicatedState;
+        _isBattleActive = battleActive;
+
+        if (replicatedState == E_BossState.Dead)
+        {
+            _isBattleActive = false;
+            _isWeakPointPatternActive = false;
+            _isInvincible = false;
+        }
+
+        if (replicatedState == E_BossState.Dead || replicatedState == E_BossState.Groggy)
+        {
+            _isPatternSelectionEnabled = false;
+        }
+    }
+
+    /// <summary>
+    /// 네트워크가 활성 상태이면 Host가 확정한 보스 상태를 Client에 전송한다.
     /// </summary>
     private void SyncBossStateToClients(E_BossState state)
     {
@@ -1168,8 +1240,36 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     }
 
     /// <summary>
-    /// 서버에서 확정된 보스 상태를 수신하여 로컬에 반영한다. 전투 로직 결정은 수행하지 않는다.
+    /// Host에서 현재 보스 상태 스냅샷을 NetworkVariable에 기록한다.
     /// </summary>
+    private void PublishBossStateSnapshot()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // NetworkVariable 기록 가능 여부를 판단하는 NGO 세션 참조
+        if (networkManager == null || !networkManager.IsListening || !IsServer || !IsSpawned)
+        {
+            return;
+        }
+
+        _replicatedState.Value = (int)_currentState;
+        _replicatedBattleActive.Value = _isBattleActive;
+    }
+
+    /// <summary>
+    /// 복제된 보스 상태 값이 바뀌면 Client 로컬 상태에 반영한다.
+    /// </summary>
+    private void HandleReplicatedStateChanged(int previousValue, int currentValue)
+    {
+        ApplyReplicatedBossState(currentValue, _replicatedBattleActive.Value);
+    }
+
+    /// <summary>
+    /// 복제된 보스 전투 활성 여부가 바뀌면 Client 로컬 상태에 반영한다.
+    /// </summary>
+    private void HandleReplicatedBattleActiveChanged(bool previousValue, bool currentValue)
+    {
+        ApplyReplicatedBossState(_replicatedState.Value, currentValue);
+    }
+
     [Rpc(SendTo.ClientsAndHost)]
     private void SyncBossStateRpc(int stateValue)
     {

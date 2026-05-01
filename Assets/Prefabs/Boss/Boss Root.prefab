@@ -874,8 +874,11 @@ GameObject:
   - component: {fileID: 338479934886841198}
   - component: {fileID: 7964338826940540576}
   - component: {fileID: 1194544836538915617}
-  - component: {fileID: 163197937894529695}
   - component: {fileID: 2806870294695063343}
+  - component: {fileID: 400823587022845212}
+  - component: {fileID: -3536936884536391884}
+  - component: {fileID: 163308252279486875}
+  - component: {fileID: 4748036699083423920}
   m_Layer: 8
   m_Name: Boss Root
   m_TagString: Untagged
@@ -984,6 +987,7 @@ MonoBehaviour:
   _isWeakPointPatternActive: 0
   _currentPatternType: 0
   _currentPatternHealthPhaseIndex: -1
+  _currentPatternId: 
   _warnMissingRequiredReferences: 1
 --- !u!114 &8855505317964246999
 MonoBehaviour:
@@ -1118,24 +1122,6 @@ MonoBehaviour:
   _patternLogLabel: 
   _bossController: {fileID: 2001514356791471925}
   _anchorSet: {fileID: 8004796325948814738}
---- !u!114 &163197937894529695
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6292150401021066319}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5962f11cb6435794f977b4090dc9f26b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BossBattleTestStarter
-  _bossController: {fileID: 2001514356791471925}
-  _fanProjectilePattern: {fileID: 2201502889722818408}
-  _groundSpikePattern: {fileID: 338479934886841198}
-  _summonMonsterPattern: {fileID: 7964338826940540576}
-  _startBattleOnStart: 1
-  _autoStartDelaySeconds: 0
 --- !u!114 &2806870294695063343
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1177,6 +1163,80 @@ MonoBehaviour:
     _animatorTriggerName: Dead
     _effectId: 0
     _soundId: 0
+--- !u!114 &400823587022845212
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61c364afa6fcffc44acbb0e7d229ce6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossBehaviorStartTrigger
+  _targetBossController: {fileID: 2001514356791471925}
+--- !u!114 &-3536936884536391884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49536117f326c0b428c68fd81c7a07f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossRuntimeAiPatternDriver
+  _bossController: {fileID: 2001514356791471925}
+  _runAiOnEnable: 1
+  _decisionIntervalSeconds: 0.25
+  _retryIntervalSeconds: 0.75
+  _targetSearchRange: 0
+--- !u!114 &163308252279486875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5b2ae18f55aa164c8dd3ec7ac7b5e53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossPatternDistanceGizmoDrawer
+  _patternData: {fileID: 11400000, guid: dea45232cb584554f8e508c2ab5d7d27, type: 2}
+  _bossController: {fileID: 2001514356791471925}
+  _drawOrigin: {fileID: 2326021272048947885}
+  _drawOnlyWhenSelected: 1
+  _drawDisabledPatterns: 0
+  _drawMinimumDistance: 1
+  _drawMaximumDistance: 1
+  _drawLabels: 1
+  _labelYOffset: 0.35
+  _fanProjectileColor: {r: 1, g: 0.45, b: 0.1, a: 0.85}
+  _groundSpikeColor: {r: 0.9, g: 0.15, b: 0.15, a: 0.85}
+  _summonMonsterColor: {r: 0.2, g: 0.75, b: 0.25, a: 0.85}
+  _weakPointColor: {r: 0.25, g: 0.55, b: 1, a: 0.85}
+  _fallbackColor: {r: 1, g: 1, b: 1, a: 0.65}
+--- !u!114 &4748036699083423920
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5962f11cb6435794f977b4090dc9f26b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossBattleTestStarter
+  _bossController: {fileID: 2001514356791471925}
+  _fanProjectilePattern: {fileID: 2201502889722818408}
+  _groundSpikePattern: {fileID: 338479934886841198}
+  _summonMonsterPattern: {fileID: 7964338826940540576}
+  _startBattleOnStart: 0
+  _autoStartDelaySeconds: 0
 --- !u!1 &8075390241886384120
 GameObject:
   m_ObjectHideFlags: 0

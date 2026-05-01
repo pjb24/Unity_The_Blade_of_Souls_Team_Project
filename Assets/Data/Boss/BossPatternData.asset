@@ -22,7 +22,7 @@ MonoBehaviour:
     _allowDuringWeakPointActive: 1
     _cooldownSeconds: 4
     _minimumTargetSqrDistance: 0
-    _maximumTargetSqrDistance: 12
+    _maximumTargetSqrDistance: 300
     _startupSeconds: 0
     _activeSeconds: 0
     _recoverySeconds: 0
@@ -35,7 +35,7 @@ MonoBehaviour:
     _allowDuringWeakPointActive: 1
     _cooldownSeconds: 12
     _minimumTargetSqrDistance: 0
-    _maximumTargetSqrDistance: 6
+    _maximumTargetSqrDistance: 320
     _startupSeconds: 0
     _activeSeconds: 0
     _recoverySeconds: 0
