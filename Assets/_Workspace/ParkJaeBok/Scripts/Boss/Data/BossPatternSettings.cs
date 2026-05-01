@@ -481,9 +481,6 @@ public struct GroundSpikePatternSettings
     [Min(0f)]
     [SerializeField] private float _intervalSeconds; // 가시 활성화 사이의 시간 간격
 
-    [Tooltip("각 가시 피격에 사용할 박스 영역 크기")]
-    [SerializeField] private Vector2 _boxSize; // 각 가시의 박스 피격 영역 크기
-
     [Tooltip("가시에 맞은 HitReceiver 대상을 찾을 때 사용하는 LayerMask")]
     [SerializeField] private LayerMask _spikeTargetLayerMask; // 패턴 2 권한 측 Overlap 검사에 사용할 피격 대상 레이어
 
@@ -568,11 +565,6 @@ public struct GroundSpikePatternSettings
     /// 가시 피격 사이의 지연 시간을 반환한다.
     /// </summary>
     public float IntervalSeconds => _intervalSeconds;
-
-    /// <summary>
-    /// 가시 박스 크기를 반환한다.
-    /// </summary>
-    public Vector2 BoxSize => _boxSize;
 
     /// <summary>
     /// 가시 피격 대상 LayerMask를 반환한다.

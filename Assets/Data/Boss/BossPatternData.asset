@@ -126,7 +126,6 @@ MonoBehaviour:
     _spikeHitDuration: 1
     _spikeCount: 1
     _intervalSeconds: 0
-    _boxSize: {x: 0, y: 0}
     _spikeTargetLayerMask:
       serializedVersion: 2
       m_Bits: 128

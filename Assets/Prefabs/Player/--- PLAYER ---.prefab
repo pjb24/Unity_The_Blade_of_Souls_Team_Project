@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1632356955
+  GlobalObjectIdHash: 2122165157
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -978,6 +978,10 @@ PrefabInstance:
       propertyPath: _healthComponent
       value: 
       objectReference: {fileID: 420058020910919654}
+    - target: {fileID: 1103223790922391718, guid: 465aa0e9abeccc24a91ab133a6ecc79d, type: 3}
+      propertyPath: _postHitInvincibilitySeconds
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1720630311412823130, guid: 465aa0e9abeccc24a91ab133a6ecc79d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

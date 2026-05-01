@@ -18,11 +18,12 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     [Min(0f)]
     [SerializeField] private float _executionRange = 20f; // 패턴 2 실행 시에만 사용하는 Player 탐색 거리
 
-    [Tooltip("실행 시 배열 할당 없이 하나의 스파이크 히트에서 검사할 최대 Collider2D 개수")]
+    [Tooltip("가시 프리팹 Collider2D 겹침 결과를 수집할 리스트의 초기 용량 기준입니다.")]
     [Min(1)]
-    [SerializeField] private int _maxHitColliderCandidates = 16; // 패턴 2에서 사용하는 Non-alloc 히트 검사 버퍼 크기
+    [SerializeField] private int _maxHitColliderCandidates = 16; // 가시 프리팹 Collider2D 겹침 결과를 수집할 리스트의 초기 용량 기준
 
     private Coroutine _executionCoroutine; // 경고 지연 및 히트 지속 시간을 관리하는 패턴 2 실행 코루틴
+    private GameObject _activeSpikeInstance; // 현재 역할을 수행 중인 가시 인스턴스
     private Collider2D _activeSpikeHitCollider; // 패턴 2 데미지 타이밍 동안 활성화되는 스파이크 히트 콜라이더
     private int _nextSpikeHitSerial; // 패턴 2 HitRequest 고유 ID 생성을 위한 증가형 시리얼
     private bool _hasLoggedSpikeObjectPoolFallback; // 스파이크 생성 시 직접 Instantiate fallback 경고 중복 방지
@@ -102,7 +103,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     protected override void OnPatternExecutionCancelled(string reason)
     {
         StopExecutionCoroutine();
-        DisableActiveSpikeHitCollider();
+        CleanupActiveSpikeInstance();
     }
 
     /// <summary>
@@ -178,6 +179,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             yield break;
         }
 
+        _activeSpikeInstance = spikeInstance;
         PlaySynchronizedVfxOrWarn(settings.AttackEffectId, settings.AttackVfxPrefab, spikePosition, "AttackVFXMissing", false);
         _bossController.PlayPresentationCue(E_BossPresentationCue.PatternAttack, E_BossPatternType.GroundSpike, spikePosition);
         MarkPatternEffectApplied();
@@ -189,7 +191,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             yield return new WaitForSeconds(settings.SpikeHitDuration);
         }
 
-        DisableActiveSpikeHitCollider();
+        CleanupActiveSpikeInstance();
         _executionCoroutine = null;
         ReportPatternCompleted("GroundSpikeCompleted");
     }
@@ -347,7 +349,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
-    /// 설정된 OverlapBox를 통해 HitReceiver 대상에게 스파이크 피해를 적용한다.
+    /// 생성된 가시 프리팹의 Collider2D 범위를 기준으로 HitReceiver 대상에게 스파이크 피해를 적용한다.
     /// </summary>
     private void ApplySpikeHit(GroundSpikePatternSettings settings, Vector3 spikePosition)
     {
@@ -357,17 +359,19 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return;
         }
 
+        if (_activeSpikeHitCollider == null)
+        {
+            LogFailureOnce("SpikeHitColliderMissingForOverlap");
+            return;
+        }
+
         _hitColliderList.Clear();
         _hitReceiverList.Clear();
+        EnsureHitColliderListCapacity();
 
         ConfigureSpikeHitFilter(settings.SpikeTargetLayerMask);
 
-        Physics2D.OverlapBox(
-            spikePosition,
-            settings.BoxSize,
-            0f,
-            _spikeHitFilter,
-            _hitColliderList);
+        _activeSpikeHitCollider.Overlap(_spikeHitFilter, _hitColliderList); // 가시 프리팹 Collider2D가 실제로 겹친 피격 후보를 수집
 
         for (int index = 0; index < _hitColliderList.Count; index++)
         {
@@ -472,6 +476,38 @@ public sealed class BossGroundSpikePattern : BossPatternBase
     }
 
     /// <summary>
+    /// 역할을 마친 가시 인스턴스의 Collider2D를 비활성화하고 네트워크 상태에 맞게 제거한다.
+    /// </summary>
+    private void CleanupActiveSpikeInstance()
+    {
+        DisableActiveSpikeHitCollider();
+
+        if (_activeSpikeInstance == null)
+        {
+            return;
+        }
+
+        NetworkObject spikeNetworkObject = _activeSpikeInstance.GetComponent<NetworkObject>(); // NGO Spawn 상태에 따라 제거 방식을 결정할 NetworkObject
+        if (spikeNetworkObject != null && spikeNetworkObject.IsSpawned)
+        {
+            if (_bossController != null && _bossController.IsBossLogicAuthority())
+            {
+                spikeNetworkObject.Despawn(true);
+            }
+            else
+            {
+                LogFailureOnce("SpikeDespawnAuthorityMissing");
+            }
+
+            _activeSpikeInstance = null;
+            return;
+        }
+
+        Destroy(_activeSpikeInstance);
+        _activeSpikeInstance = null;
+    }
+
+    /// <summary>
     /// 실행 중인 코루틴을 중지하고 참조를 초기화한다.
     /// </summary>
     private void StopExecutionCoroutine()
@@ -544,5 +580,18 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             layerMask = targetLayerMask,
             useTriggers = true
         };
+    }
+
+    /// <summary>
+    /// 가시 프리팹 Collider2D 겹침 결과를 받을 리스트가 디자이너 설정 기준 용량을 확보했는지 확인한다.
+    /// </summary>
+    private void EnsureHitColliderListCapacity()
+    {
+        if (_hitColliderList.Capacity >= _maxHitColliderCandidates)
+        {
+            return;
+        }
+
+        _hitColliderList.Capacity = _maxHitColliderCandidates;
     }
 }
