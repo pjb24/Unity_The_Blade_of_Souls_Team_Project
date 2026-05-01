@@ -90,6 +90,10 @@ public class Checkpoint : MonoBehaviour
     [Tooltip("동일 Stage 안에서 고유해야 하는 Checkpoint ID입니다.")]
     [SerializeField] private string _checkpointId; // 동일 Stage 안에서 고유해야 하는 체크포인트 ID입니다.
 
+    [Header("Start Checkpoint")]
+    [Tooltip("스테이지 시작 시 자동 활성화할 시작 위치 체크포인트인지 설정합니다. 씬 이름이 아니라 이 값으로 시작 체크포인트를 판별하며, 중복 설정 시 Checkpoint ID 오름차순 첫 항목이 폴백으로 선택됩니다.")]
+    [SerializeField] private bool _isStageStartCheckpoint; // 스테이지 시작 위치에 수동 배치한 체크포인트인지 판별하는 설정값입니다.
+
     [Header("Respawn Points")]
     [Tooltip("싱글플레이 리스폰 기준 Transform입니다.")]
     [SerializeField] private Transform _respawnPointSingle; // 싱글플레이 리스폰 위치입니다.
@@ -128,6 +132,7 @@ public class Checkpoint : MonoBehaviour
 
     public string StageId => _stageId;
     public string CheckpointId => _checkpointId;
+    public bool IsStageStartCheckpoint => _isStageStartCheckpoint;
     public E_CheckpointState CurrentState => _currentState;
 
     /// <summary>
