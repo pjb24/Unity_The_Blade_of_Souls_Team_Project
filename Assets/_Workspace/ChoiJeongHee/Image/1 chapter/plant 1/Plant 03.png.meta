@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 19de04b5d5ebc214fa8fdccf84d334fe
+guid: 3f0e2e1e478625a4db26c440d24d8674
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1617318374004429397
-    second: 11111111-Photoroom_0
+      213: 5749959442513104592
+    second: Plant 03_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,7 +51,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 20
+  spritePixelsToUnits: 150
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: 11111111-Photoroom_0
+      name: Plant 03_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 551
-        height: 466
+        width: 1014
+        height: 1550
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: bade0ccf1812e89e0800000000000000
-      internalID: -1617318374004429397
+      spriteID: 0de85ebf5a5fbcf40800000000000000
+      internalID: 5749959442513104592
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      11111111-Photoroom_0: -1617318374004429397
+      Plant 03_0: 5749959442513104592
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
