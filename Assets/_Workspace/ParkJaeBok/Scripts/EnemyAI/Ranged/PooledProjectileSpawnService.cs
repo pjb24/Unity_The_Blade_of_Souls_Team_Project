@@ -42,25 +42,19 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
             return null;
         }
 
-        PooledRangedProjectile projectile = Acquire(prefab);
+        PooledRangedProjectile projectile = shouldSpawnNetworkObject
+            ? AcquireNetworkProjectile(prefab, position, direction, owner, speed, lifetime, isVisualOnly, visualInstanceId)
+            : Acquire(prefab);
         if (projectile == null)
         {
             return null;
         }
 
-        if (shouldSpawnNetworkObject)
+        if (!shouldSpawnNetworkObject)
         {
-            projectile.transform.SetParent(null);
-        }
-
-        projectile.transform.position = position;
-        projectile.gameObject.SetActive(true);
-        projectile.Initialize(direction, speed, lifetime, owner, isVisualOnly, visualInstanceId);
-
-        if (shouldSpawnNetworkObject && !TrySpawnNetworkObjectProjectile(projectile))
-        {
-            ReturnToPool(projectile);
-            return null;
+            projectile.transform.position = position;
+            projectile.gameObject.SetActive(true);
+            projectile.Initialize(direction, speed, lifetime, owner, isVisualOnly, visualInstanceId);
         }
 
         if (isVisualOnly && visualInstanceId > 0)
@@ -108,20 +102,22 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
         }
 
         int createdCount = GetCreatedCount(prefab);
-        bool hasMaxLimit = _maxCountPerPrefab > 0;
-        if (hasMaxLimit && createdCount >= _maxCountPerPrefab)
-        {
-            Debug.LogWarning($"[PooledProjectileSpawnService] MaxCount exceeded for {prefab.name}. Spawn denied.");
-            return null;
-        }
-
         if (!_allowAutoExpand && createdCount > 0)
         {
             Debug.LogWarning($"[PooledProjectileSpawnService] Pool empty for {prefab.name} and auto expand disabled.");
             return null;
         }
 
-        Debug.LogWarning($"[PooledProjectileSpawnService] Pool expanded for {prefab.name}.");
+        bool hasMaxLimit = _maxCountPerPrefab > 0;
+        if (hasMaxLimit && createdCount >= _maxCountPerPrefab)
+        {
+            Debug.LogWarning($"[PooledProjectileSpawnService] MaxCount exceeded for {prefab.name}. Overflow projectile will be created and managed by pool. max={_maxCountPerPrefab}, newCount={createdCount + 1}");
+        }
+        else
+        {
+            Debug.LogWarning($"[PooledProjectileSpawnService] Pool expanded for {prefab.name}.");
+        }
+
         GameObject createdObject = Instantiate(prefab, transform);
         PooledRangedProjectile createdProjectile = createdObject.GetComponent<PooledRangedProjectile>();
         if (createdProjectile == null)
@@ -140,6 +136,37 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
     }
 
     /// <summary>
+    /// NetworkObject Projectile을 NetworkObjectPoolManager를 통해 서버 권한으로 대여하고 Spawn합니다.
+    /// </summary>
+    private PooledRangedProjectile AcquireNetworkProjectile(GameObject prefab, Vector2 position, Vector2 direction, GameObject owner, float speed, float lifetime, bool isVisualOnly, int visualInstanceId)
+    {
+        NetworkObjectPoolManager networkPoolManager = NetworkObjectPoolManager.Instance; // NetworkObject 전용 Pool 관리자입니다.
+        if (networkPoolManager == null)
+        {
+            Debug.LogWarning($"[PooledProjectileSpawnService] NetworkObjectPoolManager missing. prefab={prefab.name}", this);
+            return null;
+        }
+
+        NetworkObject networkObject = networkPoolManager.SpawnNetworkObject(prefab, position, Quaternion.identity, null, owner);
+        if (networkObject == null)
+        {
+            return null;
+        }
+
+        PooledRangedProjectile projectile = networkObject.GetComponent<PooledRangedProjectile>();
+        if (projectile == null)
+        {
+            Debug.LogWarning($"[PooledProjectileSpawnService] Network projectile has no PooledRangedProjectile. prefab={prefab.name}", networkObject);
+            networkPoolManager.DespawnNetworkObject(networkObject);
+            return null;
+        }
+
+        projectile.BindReturnHandler(ReturnToPool);
+        projectile.Initialize(direction, speed, lifetime, owner, isVisualOnly, visualInstanceId);
+        return projectile;
+    }
+
+    /// <summary>
     /// 사용 종료된 Projectile을 비활성화하고 풀로 반환합니다.
     /// </summary>
     private void ReturnToPool(PooledRangedProjectile projectile)
@@ -154,9 +181,23 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
             _visualProjectileById.Remove(projectile.VisualInstanceId);
         }
 
+        NetworkObject networkObject = projectile.GetComponent<NetworkObject>();
+        PooledObjectMarker marker = projectile.GetComponent<PooledObjectMarker>();
+        if (networkObject != null && marker != null)
+        {
+            NetworkObjectPoolManager networkPoolManager = NetworkObjectPoolManager.Instance;
+            if (networkPoolManager != null && networkPoolManager.DespawnNetworkObject(networkObject))
+            {
+                return;
+            }
+
+            Debug.LogWarning($"[PooledProjectileSpawnService] Network pool return failed. projectile={projectile.name}", projectile);
+            return;
+        }
+
         if (!_sourcePrefabByInstance.TryGetValue(projectile, out GameObject prefab) || prefab == null)
         {
-            Destroy(projectile.gameObject);
+            Debug.LogWarning($"[PooledProjectileSpawnService] Return failed because source prefab is missing. projectile={projectile.name}", projectile);
             return;
         }
 
@@ -200,7 +241,7 @@ public class PooledProjectileSpawnService : MonoBehaviour, IProjectileSpawnServi
         {
             if (!_hasLoggedNetworkObjectPoolMissingWarning)
             {
-                Debug.LogWarning("[PooledProjectileSpawnService] NetworkObject Pool was not found. Host/Server will use pooled instances and NetworkObject.Spawn.");
+                Debug.LogWarning("[PooledProjectileSpawnService] Host/Server will route NetworkObject projectile through NetworkObjectPoolManager.");
                 _hasLoggedNetworkObjectPoolMissingWarning = true;
             }
 

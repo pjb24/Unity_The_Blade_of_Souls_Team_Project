@@ -5,7 +5,7 @@ using UnityEngine;
 /// 해당 보스 패턴으로 전달하는 브리지 역할을 수행한다.
 /// </summary>
 [DisallowMultipleComponent]
-public sealed class BossWeakPointObject : MonoBehaviour, IHealthListener
+public sealed class BossWeakPointObject : MonoBehaviour, IHealthListener, IPoolableObject
 {
     [Tooltip("기존 Health 시스템을 통해 플레이어 공격 데미지를 받는 HealthComponent")]
     [SerializeField] private HealthComponent _healthComponent; // 이 약점의 생명값으로 사용하는 기존 Health 시스템 컴포넌트
@@ -18,6 +18,24 @@ public sealed class BossWeakPointObject : MonoBehaviour, IHealthListener
     private bool _isInitialized; // Initialize를 통해 owner와 연결되었는지 여부
     private bool _isDestroyedNotified; // 사망 이벤트가 이미 owner에게 전달되었는지 여부
     private bool _isHealthListenerRegistered; // HealthComponent에 Listener로 등록되었는지 여부
+
+    /// <summary>
+    /// ObjectPool에서 대여될 때 이전 Pattern 연결 상태가 남지 않도록 초기 상태를 정리합니다.
+    /// </summary>
+    public void OnPoolSpawned(PoolSpawnContext context)
+    {
+        Release();
+        _isDestroyedNotified = false;
+        ResolveRuntimeComponents();
+    }
+
+    /// <summary>
+    /// ObjectPool로 반환될 때 Health Listener와 owner 참조를 정리합니다.
+    /// </summary>
+    public void OnPoolDespawned()
+    {
+        Release();
+    }
 
     /// <summary>
     /// 약점을 owner 패턴과 연결하고 Health/Hit 컴포넌트를 초기화한다.

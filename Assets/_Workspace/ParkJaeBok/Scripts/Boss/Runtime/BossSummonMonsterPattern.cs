@@ -248,6 +248,8 @@ public sealed class BossSummonMonsterPattern : BossPatternBase
     /// <summary>
     /// MonsterPrefab Instantiate fallback + 필요 시 NetworkObject Spawn 수행
     /// </summary>
+    // Monster는 AI, Health, Checkpoint, NetworkObject 소유권과 생명주기가 길게 연결되어 있어 이번 반복 임시 개체 Pool 적용 대상에서 제외합니다.
+    // 전투 중 짧게 생성/반환되는 VFX, Projectile, Spike, WeakPoint와 달리 재사용 시 상태 복원 범위가 넓으므로 별도 EnemySpawner 생명주기 설계 후 Pool로 전환해야 합니다.
     private bool TrySpawnMonsterFallback(GameObject monsterPrefab, Transform spawnPoint, out GameObject spawnedMonster)
     {
         spawnedMonster = null;

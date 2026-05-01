@@ -351,7 +351,7 @@ public class AudioManager : MonoBehaviour
         }
 
         Debug.LogWarning("[AudioManager] SFX 풀 최대치에 도달하여 임시 AudioSource를 생성합니다. 기존 재생은 중단하지 않습니다.", this);
-        return CreateTemporarySfxSource();
+        return ReuseOldestSfxSource();
     }
 
     /// <summary>
@@ -367,6 +367,26 @@ public class AudioManager : MonoBehaviour
         source.loop = false;
         source.dopplerLevel = 0f;
         ConfigureSfxSourceSpatialSettings(source);
+        return source;
+    }
+
+    /// <summary>
+    /// SFX Pool이 최대치에 도달했을 때 임시 생성/파괴 대신 기존 AudioSource를 정리하고 재사용합니다.
+    /// </summary>
+    private AudioSource ReuseOldestSfxSource()
+    {
+        if (_sfxSources.Count <= 0)
+        {
+            Debug.LogWarning("[AudioManager] SFX source list is empty while max pool reuse was requested. A pooled source will be created.", this);
+            return CreateSfxSource();
+        }
+
+        AudioSource source = _sfxSources[0]; // 가장 오래된 풀 등록 Source를 재사용 대상으로 선택합니다.
+        source.Stop();
+        source.clip = null;
+        source.loop = false;
+        _activeSfxBySource.Remove(source);
+        Debug.LogWarning($"[AudioManager] SFX pool max reached. Reusing pooled source instead of creating temporary GameObject. max={_maxSfxPoolSize}", this);
         return source;
     }
 
@@ -455,12 +475,6 @@ public class AudioManager : MonoBehaviour
         source.volume = CalculateSfxVolume(entry.Volume);
         source.Play();
 
-        if (_sfxSources.Contains(source) == false)
-        {
-            float destroyDelay = GetTemporarySfxDestroyDelay(source.clip, source.pitch);
-            _activeSfxBySource.Remove(source);
-            Destroy(source.gameObject, destroyDelay);
-        }
     }
 
     /// <summary>
@@ -509,9 +523,9 @@ public class AudioManager : MonoBehaviour
             source.Stop();
             _activeSfxBySource.Remove(source);
 
-            if (_sfxSources.Contains(source) == false && source.gameObject != null)
+            if (_sfxSources.Contains(source) == false)
             {
-                Destroy(source.gameObject);
+                Debug.LogWarning($"[AudioManager] Non pooled SFX source detected during stop. object={source.name}", source);
             }
         }
     }

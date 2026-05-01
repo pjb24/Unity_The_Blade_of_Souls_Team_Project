@@ -822,13 +822,16 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return false;
         }
 
-        LogWeakPointInstantiateFallbackOnce();
-
-        GameObject spawnedObject = Instantiate(
-            weakPointPrefab,
-            position,
-            Quaternion.identity
-        );
+        GameObject spawnedObject = null;
+        if (shouldUseNetwork && weakPointPrefab.GetComponent<NetworkObject>() != null)
+        {
+            NetworkObject pooledNetworkObject = NetworkObjectPoolManager.Instance.SpawnNetworkObject(weakPointPrefab, position, Quaternion.identity, null, gameObject);
+            spawnedObject = pooledNetworkObject != null ? pooledNetworkObject.gameObject : null;
+        }
+        else
+        {
+            spawnedObject = LocalObjectPoolManager.Instance.Spawn(weakPointPrefab, position, Quaternion.identity, null, gameObject);
+        }
 
         if (spawnedObject == null)
         {
@@ -944,10 +947,12 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         LogFailureOnce("WeakPointDestroyVfxPrefabFallbackUsed");
 
-        Instantiate(
+        LocalObjectPoolManager.Instance.Spawn(
             settings.WeakPointDestroyVfxPrefab,
             position,
-            Quaternion.identity
+            Quaternion.identity,
+            null,
+            gameObject
         );
     }
 
@@ -972,11 +977,11 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         if (networkObject != null && networkObject.IsSpawned)
         {
-            networkObject.Despawn(true);
+            NetworkObjectPoolManager.Instance.DespawnNetworkObject(networkObject);
             return;
         }
 
-        Destroy(weakPointObject.gameObject);
+        LocalObjectPoolManager.Instance.Return(weakPointObject.gameObject);
     }
 
     /// <summary>

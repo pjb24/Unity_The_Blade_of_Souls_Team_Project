@@ -264,7 +264,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
         }
 
         LogFailureOnce("VfxPrefabFallbackUsed");
-        Instantiate(vfxPrefab, position, Quaternion.identity);
+        LocalObjectPoolManager.Instance.Spawn(vfxPrefab, position, Quaternion.identity, null, gameObject);
     }
 
     /// <summary>
@@ -288,8 +288,25 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return false;
         }
 
-        LogSpikeObjectPoolFallbackOnce();
-        spikeInstance = Instantiate(spikePrefab, spikePosition, Quaternion.identity);
+        if (shouldUseNetwork && prefabNetworkObject != null)
+        {
+            NetworkObject pooledNetworkObject = NetworkObjectPoolManager.Instance.SpawnNetworkObject(spikePrefab, spikePosition, Quaternion.identity, null, gameObject);
+            if (pooledNetworkObject == null)
+            {
+                LogFailureOnce("SpikeNetworkPoolSpawnFailed");
+                return false;
+            }
+
+            spikeInstance = pooledNetworkObject.gameObject;
+            return true;
+        }
+
+        if (shouldUseNetwork && prefabNetworkObject == null)
+        {
+            LogNetworkSpawnFallbackOnce("Spike prefab has no NetworkObject. Server uses local pool only.");
+        }
+
+        spikeInstance = LocalObjectPoolManager.Instance.Spawn(spikePrefab, spikePosition, Quaternion.identity, null, gameObject);
         if (spikeInstance == null)
         {
             return false;
@@ -492,7 +509,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
         {
             if (_bossController != null && _bossController.IsBossLogicAuthority())
             {
-                spikeNetworkObject.Despawn(true);
+                NetworkObjectPoolManager.Instance.DespawnNetworkObject(spikeNetworkObject);
             }
             else
             {
@@ -503,7 +520,7 @@ public sealed class BossGroundSpikePattern : BossPatternBase
             return;
         }
 
-        Destroy(_activeSpikeInstance);
+        LocalObjectPoolManager.Instance.Return(_activeSpikeInstance);
         _activeSpikeInstance = null;
     }
 

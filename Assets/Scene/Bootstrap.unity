@@ -256,6 +256,106 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &99725062
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 99725065}
+  - component: {fileID: 99725066}
+  - component: {fileID: 99725063}
+  m_Layer: 0
+  m_Name: Pool Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &99725063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 99725062}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7c523bf0d6040744a115bef5f05a036, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkObjectPoolManager
+  _dontDestroyOnLoad: 1
+  _networkPrefabConfigs:
+  - Name: Boss Spike
+    _prefab: {fileID: 525794478471237259, guid: 5e5a2a028408eb3418002af0bcf8c224, type: 3}
+    _initialCount: 0
+    _maxCount: 0
+    _allowExpand: 1
+    _useAutoReturn: 0
+    _autoReturnSeconds: 0
+  - Name: Boss Projectile
+    _prefab: {fileID: 4632990942025474203, guid: fbfeed0092fbdc14e81a12c9c1a57dbb, type: 3}
+    _initialCount: 0
+    _maxCount: 0
+    _allowExpand: 1
+    _useAutoReturn: 0
+    _autoReturnSeconds: 0
+  - Name: Boss WeakPoint
+    _prefab: {fileID: 3319988911712295143, guid: 6a98607952811f94b87b9ba25501a79f, type: 3}
+    _initialCount: 0
+    _maxCount: 0
+    _allowExpand: 1
+    _useAutoReturn: 0
+    _autoReturnSeconds: 0
+  - Name: Skeleton Projectile
+    _prefab: {fileID: 4188268375735499229, guid: 5db9d8b6552d7844aa3eece835f8e88a, type: 3}
+    _initialCount: 0
+    _maxCount: 0
+    _allowExpand: 1
+    _useAutoReturn: 0
+    _autoReturnSeconds: 0
+  - Name: Blood Light
+    _prefab: {fileID: 8153201445621807567, guid: bd1e66997b11ecb4ea855b740da7ce30, type: 3}
+    _initialCount: 0
+    _maxCount: 0
+    _allowExpand: 1
+    _useAutoReturn: 0
+    _autoReturnSeconds: 0
+  _allowRuntimePoolForUnregisteredPrefab: 1
+  _runtimePoolMaxCount: 0
+--- !u!4 &99725065
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 99725062}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &99725066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 99725062}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 667a57d5c12f90445ad10478102f1d71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalObjectPoolManager
+  _dontDestroyOnLoad: 1
+  _prefabConfigs: []
+  _allowRuntimePoolForUnregisteredPrefab: 1
+  _runtimePoolMaxCount: 0
 --- !u!1001 &994384984
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -864,3 +964,4 @@ SceneRoots:
   - {fileID: 1482065452}
   - {fileID: 1537142223}
   - {fileID: 1996693374}
+  - {fileID: 99725065}

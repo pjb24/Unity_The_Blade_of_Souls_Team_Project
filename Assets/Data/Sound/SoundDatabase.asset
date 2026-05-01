@@ -15,7 +15,7 @@ MonoBehaviour:
   _entries:
   - _soundId: 1000
     _clip: {fileID: 8300000, guid: 80e2889bff67bcd41bc5a6271cdfc28d, type: 3}
-    _volume: 0
+    _volume: 0.4
     _basePitch: 1
     _loop: 1
     _useRandomPitch: 0
@@ -24,7 +24,7 @@ MonoBehaviour:
     _cooldownSeconds: 0
   - _soundId: 1001
     _clip: {fileID: 8300000, guid: d7c6f5f42acf5f644b7bef1c1c4a315d, type: 3}
-    _volume: 0
+    _volume: 0.2
     _basePitch: 1
     _loop: 1
     _useRandomPitch: 0
@@ -33,7 +33,7 @@ MonoBehaviour:
     _cooldownSeconds: 0
   - _soundId: 1002
     _clip: {fileID: 8300000, guid: 013fb6214f15c1340affe0a25af98bdd, type: 3}
-    _volume: 0
+    _volume: 0.5
     _basePitch: 1
     _loop: 1
     _useRandomPitch: 0

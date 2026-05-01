@@ -71,6 +71,7 @@ public class EffectPool
 
         if (_definition.FallbackPolicy == E_EffectFallbackPolicy.InstantiateNew)
         {
+            Debug.LogWarning($"[EffectPool] MaxPoolSize exceeded. Overflow effect instance will be created and managed by pool. id={_definition.EffectId}, prefab={_definition.Prefab.name}, max={_definition.MaxPoolSize}, newCount={_createdCount + 1}");
             EffectInstance overflow = CreateNewInstance();
             TrackActive(overflow);
             return overflow;

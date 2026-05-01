@@ -8,7 +8,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider2D))]
 [RequireComponent(typeof(Rigidbody2D))]
-public class PooledRangedProjectile : MonoBehaviour
+public class PooledRangedProjectile : MonoBehaviour, IPoolableObject
 {
     private const string GroundLayerName = "Ground"; // 환경 충돌 기본 레이어 이름입니다.
 
@@ -67,6 +67,37 @@ public class PooledRangedProjectile : MonoBehaviour
     public int VisualInstanceId => _visualInstanceId;
 
     /// <summary>
+    /// ObjectPool에서 대여될 때 이전 발사 상태가 남지 않도록 기본 상태를 정리합니다.
+    /// </summary>
+    public void OnPoolSpawned(PoolSpawnContext context)
+    {
+        _hitTargetIds.Clear();
+        _isInitialized = false;
+        _isVisualOnly = false;
+        _visualInstanceId = 0;
+        _owner = context.Owner;
+
+        if (_collider2D != null)
+        {
+            _collider2D.enabled = true;
+        }
+
+        if (_rigidbody2D != null)
+        {
+            _rigidbody2D.linearVelocity = Vector2.zero;
+            _rigidbody2D.angularVelocity = 0f;
+        }
+    }
+
+    /// <summary>
+    /// ObjectPool로 반환될 때 발사 상태, 소유자 참조, 이벤트 구독을 정리합니다.
+    /// </summary>
+    public void OnPoolDespawned()
+    {
+        ResetRuntimeStateForPool();
+    }
+
+    /// <summary>
     /// 필수 컴포넌트와 기본 물리 설정을 보정합니다.
     /// </summary>
     private void Awake()
@@ -95,18 +126,7 @@ public class PooledRangedProjectile : MonoBehaviour
     /// </summary>
     private void OnDisable()
     {
-        _isInitialized = false;
-        _isVisualOnly = false;
-        _visualInstanceId = 0;
-        _owner = null;
-
-        if (_rigidbody2D != null)
-        {
-            _rigidbody2D.linearVelocity = Vector2.zero;
-        }
-
-        _hitTargetIds.Clear();
-        _despawned = null;
+        ResetRuntimeStateForPool();
     }
 
     /// <summary>
@@ -397,7 +417,14 @@ public class PooledRangedProjectile : MonoBehaviour
             return;
         }
 
-        Instantiate(_hitEffectPrefab, worldPosition, Quaternion.identity);
+        LocalObjectPoolManager poolManager = LocalObjectPoolManager.Instance;
+        if (poolManager == null)
+        {
+            Debug.LogWarning($"[PooledRangedProjectile] Hit effect pool manager missing. prefab={_hitEffectPrefab.name}", this);
+            return;
+        }
+
+        poolManager.Spawn(_hitEffectPrefab, worldPosition, Quaternion.identity, null, gameObject);
     }
 
     /// <summary>
@@ -414,5 +441,30 @@ public class PooledRangedProjectile : MonoBehaviour
         }
 
         gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// 다음 대여에 이전 Projectile 상태가 섞이지 않도록 런타임 필드를 초기화합니다.
+    /// </summary>
+    private void ResetRuntimeStateForPool()
+    {
+        _isInitialized = false;
+        _isVisualOnly = false;
+        _visualInstanceId = 0;
+        _owner = null;
+
+        if (_rigidbody2D != null)
+        {
+            _rigidbody2D.linearVelocity = Vector2.zero;
+            _rigidbody2D.angularVelocity = 0f;
+        }
+
+        if (_collider2D != null)
+        {
+            _collider2D.enabled = true;
+        }
+
+        _hitTargetIds.Clear();
+        _despawned = null;
     }
 }

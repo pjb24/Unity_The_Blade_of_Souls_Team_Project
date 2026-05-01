@@ -30,6 +30,13 @@ public class CharacterVfxController : MonoBehaviour
     [Tooltip("피격 성공 시 1회 재생할 HitEffect EffectId입니다.")]
     [SerializeField] private E_EffectId _hitEffectId = E_EffectId.HitEffect; // 피격 성공 시 단발 재생할 이펙트 ID입니다.
 
+    [Header("OneShot Pool Fallback Prefabs")]
+    [Tooltip("JumpDust EffectId를 EffectService에서 재생하지 못할 때 LocalObjectPoolManager로 대여할 Jump VFX Prefab입니다.")]
+    [SerializeField] private GameObject _jumpDustPoolPrefab; // JumpDust EffectService 재생 실패 시 로컬 Pool에서 대여할 Prefab입니다.
+    [Tooltip("JumpDust Pool Prefab을 사용할 때 자동 반환까지 기다릴 시간(초)입니다. Prefab Config의 Auto Return 설정을 권장하며, 이 값은 설계 기준으로 Inspector에서 확인합니다.")]
+    [Min(0.01f)]
+    [SerializeField] private float _jumpDustPoolFallbackLifetime = 1.5f; // Jump VFX Pool Prefab의 권장 생존 시간입니다.
+
     [Header("Fallback")]
     [Tooltip("지속형 오브젝트 참조가 누락되면 EffectService Attach 방식 폴백을 사용할지 여부입니다.")]
     [SerializeField] private bool _allowPersistentEffectServiceFallback = true; // 지속형 오브젝트 누락 시 EffectService 폴백 허용 여부입니다.
@@ -143,7 +150,7 @@ public class CharacterVfxController : MonoBehaviour
     /// </summary>
     public void PlayJumpDustAt(Vector3 worldPosition)
     {
-        PlayJumpDustWorldOneShot(worldPosition);
+        PlayJumpDustWorldOneShotPooled(worldPosition);
     }
 
     /// <summary>
@@ -361,6 +368,47 @@ public class CharacterVfxController : MonoBehaviour
     /// <summary>
     /// JumpDust를 캐릭터 부착 없이 월드 좌표 고정 1회성으로 재생합니다.
     /// </summary>
+    /// <summary>
+    /// JumpDust를 EffectService Pool로 재생하고 실패하면 LocalObjectPoolManager Prefab Pool로 대체합니다.
+    /// </summary>
+    private void PlayJumpDustWorldOneShotPooled(Vector3 worldPosition)
+    {
+        if (_jumpDustEffectId == E_EffectId.None)
+        {
+            Debug.LogWarning($"[CharacterVfxController] JumpDust EffectId is None. Pool Prefab fallback will be used. object={name}", this);
+            PlayJumpDustPoolPrefab(worldPosition, "EffectIdNone");
+            return;
+        }
+
+        if (EffectService.Instance == null)
+        {
+            Debug.LogWarning($"[CharacterVfxController] EffectService missing. JumpDust Pool Prefab fallback will be used. object={name}", this);
+            PlayJumpDustPoolPrefab(worldPosition, "EffectServiceMissing");
+            return;
+        }
+
+        EffectRequest request = new EffectRequest();
+        request.EffectId = _jumpDustEffectId;
+        request.PlayMode = E_EffectPlayMode.Spawn;
+        request.Position = worldPosition;
+        request.LocalOffset = Vector3.zero;
+        request.FollowTarget = null;
+        request.AttachTarget = null;
+        request.Owner = null;
+        request.AutoReturnOverrideEnabled = true;
+        request.AutoReturn = true;
+        request.LifetimeOverride = 0f;
+        request.IgnoreDuplicateGuard = false;
+        request.FacingDirection = E_EffectFacingDirection.UsePrefab;
+
+        EffectHandle handle = EffectService.Instance.Play(request);
+        if (handle == null || !handle.IsValid)
+        {
+            Debug.LogWarning($"[CharacterVfxController] JumpDust EffectService handle is invalid. Pool Prefab fallback will be used. effectId={_jumpDustEffectId}, object={name}", this);
+            PlayJumpDustPoolPrefab(worldPosition, "EffectServiceHandleInvalid");
+        }
+    }
+
     private void PlayJumpDustWorldOneShot(Vector3 worldPosition)
     {
         if (_jumpDustEffectId == E_EffectId.None)
@@ -389,7 +437,37 @@ public class CharacterVfxController : MonoBehaviour
         request.IgnoreDuplicateGuard = false;
         request.FacingDirection = E_EffectFacingDirection.UsePrefab;
 
-        EffectService.Instance.Play(request);
+        EffectHandle handle = EffectService.Instance.Play(request);
+        if (handle == null || !handle.IsValid)
+        {
+            Debug.LogWarning($"[CharacterVfxController] JumpDust EffectService handle is invalid. Pool Prefab fallback will be used. effectId={_jumpDustEffectId}, object={name}", this);
+            PlayJumpDustPoolPrefab(worldPosition, "EffectServiceHandleInvalid");
+        }
+    }
+
+    /// <summary>
+    /// JumpDust EffectService 재생 실패 시 LocalObjectPoolManager로 Jump VFX Prefab을 대여합니다.
+    /// </summary>
+    private void PlayJumpDustPoolPrefab(Vector3 worldPosition, string reason)
+    {
+        if (_jumpDustPoolPrefab == null)
+        {
+            Debug.LogWarning($"[CharacterVfxController] JumpDust Pool Prefab is missing. reason={reason}, object={name}", this);
+            return;
+        }
+
+        LocalObjectPoolManager poolManager = LocalObjectPoolManager.Instance; // 로컬 전용 Jump VFX를 대여할 Pool 관리자입니다.
+        if (poolManager == null)
+        {
+            Debug.LogWarning($"[CharacterVfxController] LocalObjectPoolManager is missing for JumpDust. prefab={_jumpDustPoolPrefab.name}, object={name}", this);
+            return;
+        }
+
+        GameObject spawnedObject = poolManager.Spawn(_jumpDustPoolPrefab, worldPosition, Quaternion.identity, null, gameObject, _jumpDustPoolFallbackLifetime);
+        if (spawnedObject == null)
+        {
+            Debug.LogWarning($"[CharacterVfxController] JumpDust Pool Prefab spawn failed. prefab={_jumpDustPoolPrefab.name}, reason={reason}, object={name}", this);
+        }
     }
 
     /// <summary>
