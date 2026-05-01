@@ -275,7 +275,12 @@ public class GameFlowController : MonoBehaviour
     {
         _currentPlayMode = E_GamePlayMode.SinglePlayer;
         _currentMultiplayerSessionRole = E_MultiplayerSessionRole.None;
-        string sceneName = string.IsNullOrWhiteSpace(_singlePlayerStartSceneName) ? _defaultNewGameSceneName : _singlePlayerStartSceneName;
+        if (!PrepareRuntimeSaveDataForTitleStart("SinglePlayerStart"))
+        {
+            return false;
+        }
+
+        string sceneName = ResolveTownStartSceneName(_singlePlayerStartSceneName);
         return RequestStartNewGame(sceneName, _defaultNewGameLoadedState);
     }
 
@@ -347,8 +352,13 @@ public class GameFlowController : MonoBehaviour
     {
         _currentPlayMode = E_GamePlayMode.MultiplayerHost;
         _currentMultiplayerSessionRole = E_MultiplayerSessionRole.Host;
-        string sceneName = ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName);
-        return RequestStartNewGame(sceneName, _defaultNewGameLoadedState);
+        if (!PrepareRuntimeSaveDataForTitleStart("MultiplayerHostStart"))
+        {
+            return false;
+        }
+
+        string sceneName = ResolveTownStartSceneName(ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName));
+        return TryStartSceneLoad(sceneName, _defaultNewGameLoadedState, "RequestStartMultiplayerHost");
     }
 
     /// <summary>
@@ -358,8 +368,13 @@ public class GameFlowController : MonoBehaviour
     {
         _currentPlayMode = E_GamePlayMode.MultiplayerClient;
         _currentMultiplayerSessionRole = E_MultiplayerSessionRole.Client;
-        string sceneName = ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName);
-        return RequestStartNewGame(sceneName, _defaultNewGameLoadedState);
+        if (!PrepareRuntimeSaveDataForTitleStart("MultiplayerClientStart"))
+        {
+            return false;
+        }
+
+        string sceneName = ResolveTownStartSceneName(ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName));
+        return TryStartSceneLoad(sceneName, _defaultNewGameLoadedState, "RequestStartMultiplayerClient");
     }
 
     /// <summary>
@@ -421,10 +436,7 @@ public class GameFlowController : MonoBehaviour
             return false;
         }
 
-        if (!TryResolveContinueSceneName(out string sceneName))
-        {
-            sceneName = loadedSlotData.LastPlayedSceneName;
-        }
+        string sceneName = ResolveTownStartSceneName(loadedSlotData.LastPlayedSceneName);
 
         if (string.IsNullOrWhiteSpace(sceneName))
         {
@@ -480,6 +492,66 @@ public class GameFlowController : MonoBehaviour
         }
 
         return _defaultNewGameSceneName;
+    }
+
+    /// <summary>
+    /// 타이틀에서 게임 시작 시 항상 StageCatalog에 등록된 Town Stage 씬을 우선 해석합니다.
+    /// </summary>
+    private string ResolveTownStartSceneName(string fallbackSceneName)
+    {
+        if (_stageCatalog != null && _stageCatalog.TryGetTownStage(out StageDefinition townStage) && townStage != null)
+        {
+            if (string.IsNullOrWhiteSpace(townStage.SceneName))
+            {
+                LogWarning($"Town StageDefinition의 SceneName이 비어 있어 fallback 씬 이름을 사용합니다. stageId={townStage.StageId}, fallback={fallbackSceneName}");
+            }
+            else
+            {
+                if (_stageSession != null)
+                {
+                    _stageSession.SetNextStage(townStage);
+                }
+                else
+                {
+                    LogWarning("StageSession이 없어 Town Stage ID를 Runtime 세션에 기록하지 못했습니다.");
+                }
+
+                return townStage.SceneName;
+            }
+        }
+        else
+        {
+            LogWarning($"StageCatalog에서 Town Stage를 찾지 못해 fallback 씬 이름을 사용합니다. fallback={fallbackSceneName}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(fallbackSceneName))
+        {
+            return fallbackSceneName;
+        }
+
+        Debug.LogWarning($"[GameFlowController] Town 시작 씬 fallback이 비어 있어 defaultNewGameSceneName을 사용합니다. default={_defaultNewGameSceneName}", this);
+        return _defaultNewGameSceneName;
+    }
+
+    /// <summary>
+    /// 타이틀 시작 요청 직전에 현재 선택 슬롯의 플레이 데이터를 Runtime 단일 저장 흐름에 준비합니다.
+    /// </summary>
+    private bool PrepareRuntimeSaveDataForTitleStart(string triggerContext)
+    {
+        SaveDataStore saveDataStore = ResolveSaveDataStore();
+        if (saveDataStore == null)
+        {
+            return false;
+        }
+
+        E_SaveSlot currentSlot = saveDataStore.GetCurrentSlot(); // Title UI에서 선택된 현재 슬롯입니다.
+        if (!saveDataStore.EnsureRuntimePlayDataLoadedOrCreated(currentSlot, triggerContext))
+        {
+            LogWarning($"타이틀 시작 전 Runtime 저장 데이터 준비에 실패했습니다. slot={(int)currentSlot}, context={triggerContext}");
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -988,7 +1060,8 @@ public class GameFlowController : MonoBehaviour
         {
             _stageProgressRuntime.ApplySnapshot(new StageProgressRuntime.SnapshotData
             {
-                Records = new List<StageProgressRecord>()
+                Records = new List<StageProgressRecord>(),
+                CheckpointRecords = new List<CheckpointProgressRecord>()
             });
         }
         else

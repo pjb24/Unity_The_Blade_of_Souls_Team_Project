@@ -38,6 +38,7 @@ public class CheckpointStageController : NetworkBehaviour
 
     private readonly List<Checkpoint> _checkpoints = new List<Checkpoint>(); // Stage 내 체크포인트 목록입니다.
     private readonly Dictionary<string, Checkpoint> _checkpointById = new Dictionary<string, Checkpoint>(); // Checkpoint ID 기반 조회 인덱스입니다.
+    private readonly HashSet<string> _duplicateCheckpointIds = new HashSet<string>(); // 중복 감지된 Checkpoint ID는 임의 선택 방지를 위해 별도로 보관합니다.
     private readonly HashSet<string> _activatedCheckpointIds = new HashSet<string>(); // 현재 세션에서 활성화된 Checkpoint ID 집합입니다.
     private string _currentCheckpointId = string.Empty; // 현재 리스폰 지점으로 사용할 Checkpoint ID입니다.
     private Action<string> _checkpointChangedListeners; // 체크포인트 상태 변경 알림 리스너 체인입니다.
@@ -47,6 +48,39 @@ public class CheckpointStageController : NetworkBehaviour
 
     public string StageId => _stageId;
     public string CurrentCheckpointId => _currentCheckpointId;
+
+    /// <summary>
+    /// 현재 Stage 진입 시 사용할 체크포인트 기준 리스폰 포즈를 Host/싱글플레이 권한 흐름에서 해석합니다.
+    /// </summary>
+    public bool TryResolveStageEntryRespawnPose(ulong clientId, out Vector3 position, out Quaternion rotation)
+    {
+        position = Vector3.zero;
+        rotation = Quaternion.identity;
+
+        if (!CanMutateCheckpointState())
+        {
+            Debug.LogWarning($"[CheckpointStageController] Client는 Runtime 저장 데이터 기준으로 Stage 진입 체크포인트를 결정할 수 없습니다. stage={_stageId}, clientId={clientId}", this);
+            return false;
+        }
+
+        EnsureStageStartCheckpointInitialized();
+
+        if (!TryResolveStageEntryCheckpoint(out Checkpoint checkpoint))
+        {
+            return false;
+        }
+
+        Transform respawnPoint = checkpoint.ResolveRespawnPoint(NetworkManager.Singleton, clientId); // 플레이 모드와 ClientId에 맞는 체크포인트 리스폰 기준점입니다.
+        if (respawnPoint == null)
+        {
+            Debug.LogWarning($"[CheckpointStageController] Checkpoint RespawnPoint를 해석하지 못했습니다. stage={_stageId}, checkpoint={checkpoint.CheckpointId}, clientId={clientId}", checkpoint);
+            return false;
+        }
+
+        position = respawnPoint.position;
+        rotation = respawnPoint.rotation;
+        return true;
+    }
 
     /// <summary>
     /// Stage 공용 상호작용 입력 액션을 조회합니다.
@@ -415,16 +449,20 @@ public class CheckpointStageController : NetworkBehaviour
         string savedLastCheckpointId = savedRecord != null ? savedRecord.LastInteractedCheckpointId : string.Empty; // 기존 저장 데이터의 마지막 상호작용 체크포인트 ID입니다.
         HashSet<string> nextActivatedIds = BuildValidActivatedCheckpointSet(savedRecord); // 저장 데이터에서 유효한 활성 체크포인트만 복원한 집합입니다.
         bool hasSavedLastCheckpoint = !string.IsNullOrWhiteSpace(savedLastCheckpointId);
-        bool hasValidSavedLastCheckpoint = hasSavedLastCheckpoint && _checkpointById.ContainsKey(savedLastCheckpointId);
+        bool hasValidSavedLastCheckpoint = hasSavedLastCheckpoint && !_duplicateCheckpointIds.Contains(savedLastCheckpointId) && _checkpointById.ContainsKey(savedLastCheckpointId);
 
         if (hasSavedLastCheckpoint && !hasValidSavedLastCheckpoint)
         {
-            Debug.LogWarning($"[CheckpointStageController] 저장 데이터의 마지막 상호작용 Checkpoint ID가 현재 Stage에 없어 안전한 체크포인트로 복구합니다. stage={_stageId}, checkpoint={savedLastCheckpointId}", this);
+            Debug.LogWarning($"[CheckpointStageController] 저장 데이터의 마지막 상호작용 Checkpoint ID가 현재 Stage에서 유효하지 않아 시작 체크포인트 복구를 시도합니다. stage={_stageId}, checkpoint={savedLastCheckpointId}", this);
         }
 
         if (hasStartCheckpoint)
         {
             nextActivatedIds.Add(startCheckpoint.CheckpointId);
+            if (!hasSavedLastCheckpoint)
+            {
+                Debug.LogWarning($"[CheckpointStageController] 마지막 상호작용 Checkpoint ID가 비어 있어 시작 Checkpoint를 마지막 체크포인트로 사용합니다. stage={_stageId}, checkpoint={startCheckpoint.CheckpointId}", startCheckpoint);
+            }
         }
         else if (!hasSavedLastCheckpoint)
         {
@@ -438,11 +476,9 @@ public class CheckpointStageController : NetworkBehaviour
             {
                 nextCurrentCheckpointId = startCheckpoint.CheckpointId;
             }
-            else if (TryResolveSafeFallbackCheckpoint(out Checkpoint fallbackCheckpoint))
+            else
             {
-                nextCurrentCheckpointId = fallbackCheckpoint.CheckpointId;
-                nextActivatedIds.Add(nextCurrentCheckpointId);
-                Debug.LogWarning($"[CheckpointStageController] 시작 체크포인트를 찾지 못해 Checkpoint ID 문자열 오름차순 기준의 첫 번째 유효 체크포인트를 안전한 체크포인트로 사용합니다. stage={_stageId}, fallback={nextCurrentCheckpointId}", fallbackCheckpoint);
+                Debug.LogWarning($"[CheckpointStageController] 시작 체크포인트가 없어 마지막 상호작용 체크포인트를 자동 보정하지 않습니다. 임의 체크포인트 선택은 수행하지 않습니다. stage={_stageId}", this);
             }
         }
 
@@ -504,7 +540,53 @@ public class CheckpointStageController : NetworkBehaviour
             return null;
         }
 
+        if (selected != null && _duplicateCheckpointIds.Contains(selected.CheckpointId))
+        {
+            Debug.LogError($"[CheckpointStageController] 선택된 시작 체크포인트 ID가 중복되어 임의 선택하지 않습니다. stage={_stageId}, checkpoint={selected.CheckpointId}", selected);
+            return null;
+        }
+
         return selected;
+    }
+
+    /// <summary>
+    /// Runtime 저장 데이터의 마지막 체크포인트를 우선 사용하고, 없거나 유효하지 않으면 Inspector 지정 시작 체크포인트를 사용합니다.
+    /// </summary>
+    private bool TryResolveStageEntryCheckpoint(out Checkpoint checkpoint)
+    {
+        checkpoint = null;
+        ResolveStageId();
+        LoadCheckpointProgress();
+
+        if (!string.IsNullOrWhiteSpace(_currentCheckpointId))
+        {
+            if (_duplicateCheckpointIds.Contains(_currentCheckpointId))
+            {
+                Debug.LogError($"[CheckpointStageController] 마지막 사용 Checkpoint ID가 씬에서 중복되어 임의 선택하지 않습니다. stage={_stageId}, checkpoint={_currentCheckpointId}", this);
+            }
+            else if (_checkpointById.TryGetValue(_currentCheckpointId, out checkpoint) && checkpoint != null)
+            {
+                return true;
+            }
+            else
+            {
+                Debug.LogWarning($"[CheckpointStageController] 마지막 사용 Checkpoint ID에 해당하는 오브젝트가 씬에 없어 스테이지 시작 Checkpoint로 폴백합니다. stage={_stageId}, checkpoint={_currentCheckpointId}", this);
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[CheckpointStageController] 마지막 사용 Checkpoint ID가 비어 있어 스테이지 시작 Checkpoint로 폴백합니다. stage={_stageId}", this);
+        }
+
+        checkpoint = ResolveStageStartCheckpoint();
+        if (checkpoint == null)
+        {
+            Debug.LogError($"[CheckpointStageController] 스테이지 시작 Checkpoint가 설정되어 있지 않아 캐릭터를 임의 위치로 이동시키지 않습니다. stage={_stageId}", this);
+            return false;
+        }
+
+        Debug.LogWarning($"[CheckpointStageController] 스테이지 시작 Checkpoint 폴백을 적용합니다. stage={_stageId}, checkpoint={checkpoint.CheckpointId}", checkpoint);
+        return true;
     }
 
     /// <summary>
@@ -558,6 +640,12 @@ public class CheckpointStageController : NetworkBehaviour
                 continue;
             }
 
+            if (_duplicateCheckpointIds.Contains(checkpointId))
+            {
+                Debug.LogError($"[CheckpointStageController] 저장 데이터의 활성 Checkpoint ID가 현재 Stage에서 중복되어 제외합니다. stage={_stageId}, checkpoint={checkpointId}", this);
+                continue;
+            }
+
             if (!_checkpointById.ContainsKey(checkpointId))
             {
                 Debug.LogWarning($"[CheckpointStageController] 저장 데이터의 활성 Checkpoint ID가 현재 Stage에 없어 제외합니다. stage={_stageId}, checkpoint={checkpointId}", this);
@@ -568,35 +656,6 @@ public class CheckpointStageController : NetworkBehaviour
         }
 
         return validActivatedIds;
-    }
-
-    /// <summary>
-    /// 시작 체크포인트를 사용할 수 없을 때 Checkpoint ID 문자열 오름차순 기준의 첫 번째 유효 체크포인트를 안전한 복구 지점으로 선택합니다.
-    /// </summary>
-    private bool TryResolveSafeFallbackCheckpoint(out Checkpoint fallbackCheckpoint)
-    {
-        fallbackCheckpoint = null;
-        for (int i = 0; i < _checkpoints.Count; i++)
-        {
-            Checkpoint checkpoint = _checkpoints[i]; // 안전한 폴백 후보로 검사 중인 체크포인트입니다.
-            if (checkpoint == null || string.IsNullOrWhiteSpace(checkpoint.CheckpointId))
-            {
-                continue;
-            }
-
-            if (fallbackCheckpoint == null || string.Compare(checkpoint.CheckpointId, fallbackCheckpoint.CheckpointId, StringComparison.Ordinal) < 0)
-            {
-                fallbackCheckpoint = checkpoint;
-            }
-        }
-
-        if (fallbackCheckpoint != null)
-        {
-            return true;
-        }
-
-        Debug.LogWarning($"[CheckpointStageController] 안전한 체크포인트 폴백을 찾지 못했습니다. stage={_stageId}", this);
-        return false;
     }
 
     /// <summary>
@@ -943,6 +1002,7 @@ public class CheckpointStageController : NetworkBehaviour
     private void RebuildCheckpointIndex()
     {
         _checkpointById.Clear();
+        _duplicateCheckpointIds.Clear();
         for (int i = 0; i < _checkpoints.Count; i++)
         {
             Checkpoint checkpoint = _checkpoints[i]; // 인덱스에 반영할 체크포인트입니다.
@@ -959,7 +1019,8 @@ public class CheckpointStageController : NetworkBehaviour
 
             if (_checkpointById.ContainsKey(checkpoint.CheckpointId))
             {
-                Debug.LogWarning($"[CheckpointStageController] 동일 Stage 안에 중복 Checkpoint ID가 있습니다. stage={_stageId}, checkpoint={checkpoint.CheckpointId}", checkpoint);
+                _duplicateCheckpointIds.Add(checkpoint.CheckpointId);
+                Debug.LogError($"[CheckpointStageController] 동일 Stage 안에 중복 Checkpoint ID가 있습니다. 중복 ID는 저장 데이터 매칭에서 임의 선택하지 않습니다. stage={_stageId}, checkpoint={checkpoint.CheckpointId}", checkpoint);
                 continue;
             }
 

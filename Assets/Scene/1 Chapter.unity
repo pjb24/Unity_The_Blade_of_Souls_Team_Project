@@ -27499,6 +27499,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1850419177}
     m_Modifications:
+    - target: {fileID: 1531954867698276923, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: _isStageStartCheckpoint
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3579365690193072115, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
       propertyPath: m_Name
       value: Checkpoint Object
@@ -35757,6 +35761,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawnCoordinator
   _registry: {fileID: 1448528699}
+  _preferStageCheckpointSpawn: 1
   _failWhenRequestedSlotMissing: 1
   _verboseLogging: 0
 --- !u!114 &1448528699
@@ -44416,6 +44421,7 @@ MonoBehaviour:
   _collectSceneCheckpoints: 1
   _sharedInteractAction: {fileID: 615360954}
   _sharedInteractActionName: Interaction
+  _initializeStartCheckpointOnStageStart: 1
   _recoveryProcessor: {fileID: 1850419179}
 --- !u!1 &1859437043
 GameObject:

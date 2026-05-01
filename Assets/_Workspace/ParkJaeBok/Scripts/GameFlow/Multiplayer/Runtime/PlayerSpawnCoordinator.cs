@@ -12,6 +12,9 @@ public class PlayerSpawnCoordinator : MonoBehaviour
     [SerializeField] private PlayerSpawnPointRegistry _registry; // 슬롯별 스폰 포인트 조회를 담당하는 레지스트리 참조입니다.
 
     [Header("Policy")]
+    [Tooltip("현재 씬에 CheckpointStageController가 있으면 Runtime 저장 데이터의 마지막 Checkpoint를 기본 스폰 위치보다 우선 사용할지 여부입니다.")]
+    [SerializeField] private bool _preferStageCheckpointSpawn = true; // Stage 진입 시 Checkpoint 저장 데이터를 스폰 위치 결정에 우선 사용할지 여부입니다.
+
     [Tooltip("요청 슬롯이 누락되면 스폰을 실패 처리하고 Warning 로그를 남깁니다.")]
     [SerializeField] private bool _failWhenRequestedSlotMissing = true; // 요청 슬롯 누락 시 스폰 실패 정책 활성화 여부입니다.
 
@@ -60,7 +63,7 @@ public class PlayerSpawnCoordinator : MonoBehaviour
     public bool TryResolveSinglePlayerSpawnPose(out Vector3 position, out Quaternion rotation)
     {
         E_PlayerSpawnSlot slot = PlayerSpawnResolver.ResolveSinglePlayerSlot(); // 싱글플레이 규칙으로 선택된 스폰 슬롯입니다.
-        return TryResolveSpawnPose(slot, out position, out rotation, "SinglePlayer");
+        return TryResolveSpawnPose(slot, null, out position, out rotation, "SinglePlayer");
     }
 
     /// <summary>
@@ -69,7 +72,7 @@ public class PlayerSpawnCoordinator : MonoBehaviour
     public bool TryResolveMultiplayerSpawnPose(NetworkManager networkManager, ulong clientId, out Vector3 position, out Quaternion rotation)
     {
         E_PlayerSpawnSlot slot = PlayerSpawnResolver.ResolveMultiplayerSlot(networkManager, clientId); // 멀티플레이 규칙으로 선택된 스폰 슬롯입니다.
-        return TryResolveSpawnPose(slot, out position, out rotation, $"Multiplayer(clientId={clientId})");
+        return TryResolveSpawnPose(slot, clientId, out position, out rotation, $"Multiplayer(clientId={clientId})");
     }
 
     /// <summary>
@@ -166,12 +169,28 @@ public class PlayerSpawnCoordinator : MonoBehaviour
     }
 
     /// <summary>
-    /// 지정 슬롯의 스폰 포즈를 레지스트리에서 조회합니다.
+    /// 지정 슬롯의 스폰 포즈를 Checkpoint 우선, 기존 SpawnPoint 후순위로 조회합니다.
     /// </summary>
-    private bool TryResolveSpawnPose(E_PlayerSpawnSlot slot, out Vector3 position, out Quaternion rotation, string reasonContext)
+    private bool TryResolveSpawnPose(E_PlayerSpawnSlot slot, ulong? requestedClientId, out Vector3 position, out Quaternion rotation, string reasonContext)
     {
         position = Vector3.zero;
         rotation = Quaternion.identity;
+
+        if (ShouldWaitForHostCheckpointSpawn(slot, reasonContext))
+        {
+            return false;
+        }
+
+        if (TryResolveCheckpointSpawnPose(slot, requestedClientId, out position, out rotation, reasonContext))
+        {
+            return true;
+        }
+
+        if (_preferStageCheckpointSpawn && TryFindCheckpointStageController(out _))
+        {
+            Debug.LogWarning($"[PlayerSpawnCoordinator] Stage Checkpoint 스폰을 사용할 수 없어 기본 SpawnPoint로 폴백하지 않습니다. slot={slot}, context={reasonContext}", this);
+            return false;
+        }
 
         if (_registry == null)
         {
@@ -188,5 +207,109 @@ public class PlayerSpawnCoordinator : MonoBehaviour
 
         Debug.LogWarning($"[PlayerSpawnCoordinator] 요청 슬롯 스폰 포인트가 누락되었습니다. slot={slot}, context={reasonContext}, scene={gameObject.scene.name}", this);
         return !_failWhenRequestedSlotMissing;
+    }
+
+    /// <summary>
+    /// Stage 씬에 배치된 CheckpointStageController를 통해 저장 데이터 기반 체크포인트 스폰 포즈를 우선 해석합니다.
+    /// </summary>
+    private bool TryResolveCheckpointSpawnPose(E_PlayerSpawnSlot slot, ulong? requestedClientId, out Vector3 position, out Quaternion rotation, string reasonContext)
+    {
+        position = Vector3.zero;
+        rotation = Quaternion.identity;
+
+        if (!_preferStageCheckpointSpawn)
+        {
+            return false;
+        }
+
+        if (!TryFindCheckpointStageController(out CheckpointStageController checkpointStageController))
+        {
+            return false;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // 멀티플레이 권한과 ClientId를 확인하는 NGO 세션 참조입니다.
+        ulong clientId = ResolveClientIdForCheckpointSpawn(networkManager, slot, requestedClientId); // Checkpoint의 Host/Client별 리스폰 포인트 선택에 사용할 ClientId입니다.
+        if (!checkpointStageController.TryResolveStageEntryRespawnPose(clientId, out position, out rotation))
+        {
+            Debug.LogWarning($"[PlayerSpawnCoordinator] Stage Checkpoint 스폰 포즈 해석에 실패했습니다. 기본 SpawnPoint로 폴백하지 않습니다. slot={slot}, context={reasonContext}", this);
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 멀티플레이 Client가 Stage 체크포인트 위치를 직접 계산하지 않고 Host 동기화를 기다려야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldWaitForHostCheckpointSpawn(E_PlayerSpawnSlot slot, string reasonContext)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening || !networkManager.IsClient || networkManager.IsServer)
+        {
+            return false;
+        }
+
+        if (!_preferStageCheckpointSpawn || !TryFindCheckpointStageController(out _))
+        {
+            return false;
+        }
+
+        Debug.LogWarning($"[PlayerSpawnCoordinator] Client는 Stage Checkpoint 스폰 위치를 직접 결정하지 않습니다. Host 동기화를 대기합니다. slot={slot}, context={reasonContext}", this);
+        return true;
+    }
+
+    /// <summary>
+    /// 현재 활성 씬에서 Stage 체크포인트 컨트롤러를 찾습니다.
+    /// </summary>
+    private bool TryFindCheckpointStageController(out CheckpointStageController checkpointStageController)
+    {
+        checkpointStageController = null;
+        CheckpointStageController[] controllers = FindObjectsByType<CheckpointStageController>(FindObjectsInactive.Exclude, FindObjectsSortMode.None); // 활성 씬의 체크포인트 컨트롤러 후보입니다.
+        Scene activeScene = SceneManager.GetActiveScene();
+
+        for (int i = 0; i < controllers.Length; i++)
+        {
+            CheckpointStageController candidate = controllers[i];
+            if (candidate == null || candidate.gameObject.scene != activeScene)
+            {
+                continue;
+            }
+
+            checkpointStageController = candidate;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Checkpoint 리스폰 포인트 선택에 사용할 ClientId를 스폰 슬롯과 네트워크 상태에서 해석합니다.
+    /// </summary>
+    private ulong ResolveClientIdForCheckpointSpawn(NetworkManager networkManager, E_PlayerSpawnSlot slot, ulong? requestedClientId)
+    {
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return NetworkManager.ServerClientId;
+        }
+
+        if (requestedClientId.HasValue)
+        {
+            return requestedClientId.Value;
+        }
+
+        if (slot == E_PlayerSpawnSlot.Client)
+        {
+            foreach (ulong clientId in networkManager.ConnectedClientsIds)
+            {
+                if (clientId != NetworkManager.ServerClientId)
+                {
+                    return clientId;
+                }
+            }
+
+            Debug.LogWarning("[PlayerSpawnCoordinator] Client 슬롯에 해당하는 연결 ClientId를 찾지 못해 ServerClientId를 폴백으로 사용합니다.", this);
+        }
+
+        return NetworkManager.ServerClientId;
     }
 }

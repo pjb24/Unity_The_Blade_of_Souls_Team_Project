@@ -762,6 +762,17 @@ public class TitlePlayModePresenter : MonoBehaviour
     private void ApplySlotBeforePlay(int slotIndex)
     {
         _lastAppliedSlotIndex = Mathf.Max(1, slotIndex);
+        SaveDataStore saveDataStore = SaveDataStore.Instance; // Title에서 선택한 슬롯을 GameFlow 시작 전 Runtime 저장소에 반영하기 위한 단일 저장 접근점입니다.
+        if (saveDataStore == null)
+        {
+            Debug.LogWarning($"[TitlePlayModePresenter] SaveDataStore가 없어 선택 슬롯을 Runtime에 반영하지 못했습니다. slot={_lastAppliedSlotIndex}", this);
+            return;
+        }
+
+        if (!saveDataStore.SetCurrentSlot((E_SaveSlot)_lastAppliedSlotIndex))
+        {
+            Debug.LogWarning($"[TitlePlayModePresenter] 선택 슬롯이 유효하지 않아 Runtime 저장소에 반영하지 못했습니다. slot={_lastAppliedSlotIndex}", this);
+        }
     }
 
     /// <summary>

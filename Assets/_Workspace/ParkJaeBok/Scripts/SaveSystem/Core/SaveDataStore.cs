@@ -336,6 +336,33 @@ public class SaveDataStore : MonoBehaviour
     }
 
     /// <summary>
+    /// 게임 시작 전에 선택 슬롯 데이터를 Runtime에 준비하고, 저장 데이터가 없으면 새 게임 기본 데이터로 초기화합니다.
+    /// </summary>
+    public bool EnsureRuntimePlayDataLoadedOrCreated(E_SaveSlot slot, string triggerContext)
+    {
+        if (!TryValidateSlot(slot, out int slotIndex))
+        {
+            return false;
+        }
+
+        if (TryLoadSlotData(slot, out _))
+        {
+            return true;
+        }
+
+        if (!CanUsePlayData($"EnsureRuntimePlayDataLoadedOrCreated.{slotIndex}"))
+        {
+            return false;
+        }
+
+        _currentSlot = slot;
+        Debug.LogWarning($"[SaveDataStore] 선택 슬롯 저장 데이터가 없어 새 게임 Runtime 데이터로 초기화합니다. slot={slotIndex}, context={triggerContext}", this);
+        CreateDefaultRuntimePlayData(slot, $"EnsureRuntimePlayDataLoadedOrCreated.{triggerContext}");
+        ApplyRuntimePlayDataToSystems($"EnsureRuntimePlayDataLoadedOrCreated.{triggerContext}");
+        return true;
+    }
+
+    /// <summary>
     /// 지정 슬롯의 플레이 저장 파일을 삭제하고, 현재 슬롯이면 런타임 플레이 데이터도 초기화합니다.
     /// </summary>
     public bool DeleteSlot(E_SaveSlot slot)
