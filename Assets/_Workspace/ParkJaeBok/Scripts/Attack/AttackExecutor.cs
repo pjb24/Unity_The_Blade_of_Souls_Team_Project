@@ -19,9 +19,13 @@ public class AttackExecutor : MonoBehaviour
     [SerializeField] private NetworkObject _networkObject; // 네트워크 실행 권한(서버/소유권) 판정을 위한 NetworkObject 참조입니다.
 
     [Header("Action -> AttackSpec Mapping")]
+    [Tooltip("Owner Client의 공격 판정 요청을 서버 RPC로 전달하는 기존 플레이어 네트워크 동기화 컴포넌트입니다. 비어 있으면 부모 계층에서 자동 탐색합니다.")]
+    [SerializeField] private PlayerNetworkSync _playerNetworkSync; // 멀티플레이에서 Owner Client 공격 HitWindow를 서버 판정으로 연결하기 위한 네트워크 릴레이 참조입니다.
     [SerializeField] private AttackActionMap[] _actionMaps; // 액션 타입별 공격 스펙 매핑 배열입니다.
 
     [Header("Execution")]
+    [Tooltip("Owner Client에서 열린 공격 HitWindow를 서버 권한 공격 판정 RPC로 전달할지 여부입니다.")]
+    [SerializeField] private bool _routeOwnerClientAttackToServer = true; // 멀티플레이 Client Owner가 보스/적에게 공격 판정을 요청할 수 있도록 서버 RPC 경로를 사용할지 여부입니다.
     [SerializeField] private bool _autoExecuteOnHitWindowOpen = true; // HitWindow가 열릴 때 자동으로 현재 액션 공격을 1회 실행할지 여부입니다.
     [Tooltip("네트워크 스폰 상태에서는 서버 인스턴스에서만 공격 판정을 수행할지 여부입니다.")]
     [SerializeField] private bool _executeOnlyOnServerWhenSpawned = true; // 네트워크 스폰 상태에서는 서버 인스턴스에서만 공격 판정을 실행할지 여부입니다.
@@ -78,6 +82,7 @@ public class AttackExecutor : MonoBehaviour
         TryResolveActionController();
         TryResolvePlayerMovement();
         TryResolveNetworkObject();
+        TryResolvePlayerNetworkSync(false);
         TryResolveFacingFallbackReferences();
         RebuildSpecMap();
         RebuildDamageModifierProviderCache();
@@ -174,6 +179,19 @@ public class AttackExecutor : MonoBehaviour
     /// </summary>
     public bool TryExecuteActionAttack(E_ActionType actionType, int executionId)
     {
+        if (ShouldRouteAttackExecutionToServer())
+        {
+            return _playerNetworkSync.TryRequestAttackExecutionOnServer(actionType, executionId);
+        }
+
+        return TryExecuteActionAttackInternal(actionType, executionId, true);
+    }
+
+    /// <summary>
+    /// 현재 인스턴스 권한 기준으로 공격 판정을 실제 실행합니다.
+    /// </summary>
+    private bool TryExecuteActionAttackInternal(E_ActionType actionType, int executionId, bool requireLocalHitWindow)
+    {
         if (!TryResolveActionController())
         {
             Debug.LogWarning($"[AttackExecutor] Missing ActionController on {name}.");
@@ -185,7 +203,7 @@ public class AttackExecutor : MonoBehaviour
             return false;
         }
 
-        if (!_actionController.IsHitWindowOpen)
+        if (requireLocalHitWindow && !_actionController.IsHitWindowOpen)
         {
             Debug.LogWarning($"[AttackExecutor] HitWindow is closed. action={actionType}, actor={name}");
             return false;
@@ -239,6 +257,49 @@ public class AttackExecutor : MonoBehaviour
     }
 
     /// <summary>
+    /// 서버 RPC 릴레이가 검증된 Owner Client 공격 요청을 서버 권한 판정으로 실행합니다.
+    /// </summary>
+    public bool TryExecuteNetworkAuthorityAttack(E_ActionType actionType, int executionId)
+    {
+        return TryExecuteActionAttackInternal(actionType, executionId, false);
+    }
+
+    /// <summary>
+    /// 현재 로컬 인스턴스의 공격 요청을 서버 RPC 경로로 전달해야 하는지 검사합니다.
+    /// </summary>
+    private bool ShouldRouteAttackExecutionToServer()
+    {
+        if (!_routeOwnerClientAttackToServer || !_executeOnlyOnServerWhenSpawned)
+        {
+            return false;
+        }
+
+        if (_networkObject == null)
+        {
+            TryResolveNetworkObject();
+        }
+
+        if (_networkObject == null || !_networkObject.IsSpawned)
+        {
+            return false;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening || networkManager.IsServer)
+        {
+            return false;
+        }
+
+        if (!_networkObject.IsOwner)
+        {
+            Debug.LogWarning($"[AttackExecutor] Non-owner Client cannot request server attack execution. object={name}", this);
+            return false;
+        }
+
+        return TryResolvePlayerNetworkSync(true);
+    }
+
+    /// <summary>
     /// 현재 런타임 권한 정책 기준으로 공격 판정 시뮬레이션 실행 가능 여부를 판정합니다.
     /// </summary>
     private bool CanExecuteAttackSimulation()
@@ -276,6 +337,11 @@ public class AttackExecutor : MonoBehaviour
             }
 
             return true;
+        }
+
+        if (!NetworkManager.Singleton.IsServer && _warnWhenNetworkAuthorityUnavailable)
+        {
+            Debug.LogWarning($"[AttackExecutor] Client instance has no authority to execute attack simulation directly. object={name}", this);
         }
 
         return NetworkManager.Singleton.IsServer;
@@ -445,6 +511,33 @@ public class AttackExecutor : MonoBehaviour
         }
 
         _networkObject = GetComponent<NetworkObject>();
+        if (_networkObject == null)
+        {
+            _networkObject = GetComponentInParent<NetworkObject>();
+        }
+    }
+
+    /// <summary>
+    /// Owner Client 공격 요청을 서버 RPC로 중계할 PlayerNetworkSync 참조를 보정합니다.
+    /// </summary>
+    private bool TryResolvePlayerNetworkSync(bool warnIfMissing)
+    {
+        if (_playerNetworkSync == null)
+        {
+            _playerNetworkSync = GetComponentInParent<PlayerNetworkSync>();
+        }
+
+        if (_playerNetworkSync != null)
+        {
+            return true;
+        }
+
+        if (warnIfMissing)
+        {
+            Debug.LogWarning($"[AttackExecutor] PlayerNetworkSync not found. Client attack request cannot be routed to server. object={name}", this);
+        }
+
+        return false;
     }
 
     /// <summary>

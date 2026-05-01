@@ -1,31 +1,33 @@
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// 가장 가까운 유효한 Player를 향해 풀링된 투사체를 부채꼴 형태로 발사하여 패턴 1을 실행한다.
+/// 가장 가까운 유효 Player를 향해 조준된 투사체를 부채꼴 형태로 발사하여 패턴 1을 실행한다.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class BossFanProjectilePattern : BossPatternBase
 {
     [Header("필수 참조")]
-    [Tooltip("권한, 패턴 데이터, 앵커, Player 탐색을 소유하는 보스 컨트롤러")]
-    [SerializeField] private BossController _bossController; // 패턴 1 실행에 필요한 보스 권한 및 공통 데이터 소스
+    [Tooltip("권한, 패턴 데이터, 앵커, Player 탐색을 소유하는 보스 컨트롤러입니다.")]
+    [SerializeField] private BossController _bossController; // 패턴 1 실행에 필요한 보스 권한 및 공통 데이터 소스입니다.
 
-    [Tooltip("투사체 생성 위치를 제공하는 씬 앵커 세트")]
-    [SerializeField] private BossPatternAnchorSet _anchorSet; // 패턴 1에서 사용하는 씬 투사체 생성 위치 소스
+    [Tooltip("투사체 생성 위치를 제공하는 보스 패턴 앵커 세트입니다.")]
+    [SerializeField] private BossPatternAnchorSet _anchorSet; // 패턴 1에서 사용하는 투사체 생성 위치 목록입니다.
 
-    [Tooltip("투사체 생성 서비스 소스. IProjectileSpawnService를 구현해야 한다")]
-    [SerializeField] private MonoBehaviour _projectileSpawnServiceSource; // 투사체 생성 서비스 인터페이스를 위한 직렬화된 MonoBehaviour 소스
+    [Tooltip("투사체 생성 서비스입니다. IProjectileSpawnService를 구현해야 합니다.")]
+    [SerializeField] private MonoBehaviour _projectileSpawnServiceSource; // 투사체 생성 서비스 인터페이스를 위한 직렬화된 MonoBehaviour 참조입니다.
 
     [Header("실행")]
-    [Tooltip("패턴 1 시작 시 가장 가까운 Player를 탐색할 범위")]
+    [Tooltip("패턴 1 시작 시 가장 가까운 Player를 탐색할 범위입니다.")]
     [Min(0f)]
-    [SerializeField] private float _executionRange = 20f; // 패턴 1 실행 시 Player 탐색에 사용하는 거리
+    [SerializeField] private float _executionRange = 20f; // 패턴 1 실행 중 Player 탐색에 사용하는 거리입니다.
 
-    [Tooltip("서비스가 할당되지 않았을 경우 씬 전체에서 투사체 생성 서비스를 탐색하는 fallback 허용 여부")]
-    [SerializeField] private bool _allowSceneProjectileSpawnServiceFallback = true; // 기존 투사체 생성 서비스 fallback 허용 여부
+    [Tooltip("서비스가 할당되지 않은 경우 씬 전체에서 투사체 생성 서비스를 검색할지 여부입니다.")]
+    [SerializeField] private bool _allowSceneProjectileSpawnServiceFallback = true; // 기존 투사체 생성 서비스 fallback 허용 여부입니다.
 
-    private IProjectileSpawnService _projectileSpawnService; // 패턴 1에서 재사용하는 기존 투사체 생성 서비스
-    private bool _hasLoggedProjectileSpawnServiceFallback; // 투사체 생성 서비스 fallback 경고 중복 방지
+    private IProjectileSpawnService _projectileSpawnService; // 패턴 1에서 투사체 생성/소멸을 요청하는 기존 서비스입니다.
+    private int _projectileVisualSequence; // 서버가 생성한 보스 투사체와 Client 시각 투사체를 연결하는 복제 ID 시퀀스입니다.
+    private bool _hasLoggedProjectileSpawnServiceFallback; // 투사체 생성 서비스 fallback 경고 중복 방지 플래그입니다.
 
     /// <summary>
     /// 실행 시작 전에 필요한 런타임 참조를 해결한다.
@@ -36,13 +38,13 @@ public sealed class BossFanProjectilePattern : BossPatternBase
     }
 
     /// <summary>
-    /// 잘못된 인스펙터 값을 보정하고 참조를 다시 설정한다.
+    /// Inspector 값과 참조를 검증하고 보정한다.
     /// </summary>
     private void OnValidate()
     {
         if (_executionRange < 0f)
         {
-            Debug.LogWarning($"[BossFanProjectilePattern] ExecutionRange가 0보다 작아서 보정됨. object={name}, value={_executionRange}", this);
+            Debug.LogWarning($"[BossFanProjectilePattern] ExecutionRange가 0보다 작아 보정됨. object={name}, value={_executionRange}", this);
             _executionRange = 0f;
         }
 
@@ -105,7 +107,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
     }
 
     /// <summary>
-    /// 보스 패턴 데이터에서 패턴 1 설정을 가져온다.
+    /// 보스 패턴 데이터에서 현재 PatternId에 맞는 패턴 1 설정을 가져온다.
     /// </summary>
     private bool TryGetSettings(out FanProjectilePatternSettings settings)
     {
@@ -162,7 +164,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
     }
 
     /// <summary>
-    /// 공통 Player 타겟 제공자를 통해 가장 가까운 Player를 찾는다.
+    /// 공통 Player 대상 제공자를 통해 가장 가까운 Player를 찾는다.
     /// </summary>
     private bool TryResolveTarget(out Transform targetTransform)
     {
@@ -186,13 +188,13 @@ public sealed class BossFanProjectilePattern : BossPatternBase
             return null;
         }
 
-        Vector3 targetPosition = targetTransform.position; // 거리 비교에 사용하는 Player 위치
-        float nearestSqrDistance = float.MaxValue; // 현재까지 가장 가까운 거리 제곱값
-        Transform nearestSpawnPoint = null; // 가장 가까운 생성 위치
+        Vector3 targetPosition = targetTransform.position; // 거리 비교에 사용하는 Player 위치입니다.
+        float nearestSqrDistance = float.MaxValue; // 현재까지 가장 가까운 거리 제곱값입니다.
+        Transform nearestSpawnPoint = null; // 현재까지 가장 가까운 생성 위치입니다.
 
         for (int index = 0; index < projectileSpawnPoints.Length; index++)
         {
-            Transform candidateSpawnPoint = projectileSpawnPoints[index]; // 현재 검사 대상 생성 위치
+            Transform candidateSpawnPoint = projectileSpawnPoints[index]; // 현재 검사 중인 생성 위치입니다.
             if (candidateSpawnPoint == null)
             {
                 continue;
@@ -212,12 +214,12 @@ public sealed class BossFanProjectilePattern : BossPatternBase
     }
 
     /// <summary>
-    /// 설정된 개수의 투사체를 타겟 방향을 중심으로 균등한 부채꼴 형태로 발사한다.
+    /// 설정된 개수의 투사체를 대상 방향을 중심으로 균등한 부채꼴 형태로 발사한다.
     /// </summary>
     private bool FireProjectiles(FanProjectilePatternSettings settings, Transform spawnPoint, Transform targetTransform)
     {
-        Vector2 spawnPosition = spawnPoint.position; // 이 부채꼴 발사에서 모든 투사체가 사용할 월드 위치
-        Vector2 baseDirection = (Vector2)(targetTransform.position - spawnPoint.position); // 생성 위치에서 타겟으로 향하는 방향
+        Vector2 spawnPosition = spawnPoint.position; // 모든 투사체가 사용하는 월드 생성 위치입니다.
+        Vector2 baseDirection = (Vector2)(targetTransform.position - spawnPoint.position); // 생성 위치에서 대상까지의 기준 방향입니다.
         if (baseDirection.sqrMagnitude <= Mathf.Epsilon)
         {
             baseDirection = Vector2.right;
@@ -233,8 +235,9 @@ public sealed class BossFanProjectilePattern : BossPatternBase
 
         for (int index = 0; index < projectileCount; index++)
         {
-            float angle = firstAngle + (angleStep * index); // 중심 방향을 기준으로 한 현재 투사체 각도 오프셋
+            float angle = firstAngle + (angleStep * index); // 기준 방향에서 현재 투사체가 회전할 각도입니다.
             Vector2 projectileDirection = RotateDirection(baseDirection, angle);
+            int projectileVisualId = ShouldReplicateProjectileVisuals() ? NextProjectileVisualId() : 0;
             PooledRangedProjectile projectile = _projectileSpawnService.RequestSpawn(
                 settings.ProjectilePrefab,
                 spawnPosition,
@@ -243,7 +246,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
                 settings.ProjectileSpeed,
                 settings.ProjectileLifetime,
                 false,
-                0);
+                projectileVisualId);
 
             if (projectile == null)
             {
@@ -251,9 +254,152 @@ public sealed class BossFanProjectilePattern : BossPatternBase
             }
 
             projectile.ConfigureHitSettings(settings.Damage, settings.ProjectileCollisionLayerMask, settings.StatusTag);
+
+            if (projectileVisualId > 0)
+            {
+                projectile.AddListener(HandleAuthoritativeProjectileDespawned);
+                SpawnProjectileVisualRpc(projectileVisualId, settings.PatternId, spawnPosition, projectileDirection, settings.ProjectileSpeed, settings.ProjectileLifetime);
+            }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// 서버가 확정한 보스 투사체 발사 결과를 Client 시각 투사체로 생성한다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void SpawnProjectileVisualRpc(int projectileVisualId, string patternId, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
+    {
+        if (!TryGetVisualProjectilePrefab(patternId, out GameObject projectilePrefab))
+        {
+            return;
+        }
+
+        SpawnProjectileVisual(projectileVisualId, projectilePrefab, firePosition, direction, projectileSpeed, projectileLifetime);
+    }
+
+    /// <summary>
+    /// 서버가 확정한 보스 투사체 종료 결과를 Client 시각 투사체에 적용한다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void DespawnProjectileVisualRpc(int projectileVisualId)
+    {
+        if (projectileVisualId <= 0)
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] 잘못된 시각 투사체 ID로 Despawn 요청됨. object={name}, visualId={projectileVisualId}", this);
+            return;
+        }
+
+        if (!TryResolveProjectileSpawnService())
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] Client에서 ProjectileSpawnService를 찾지 못해 시각 투사체 Despawn을 건너뜁니다. object={name}, visualId={projectileVisualId}", this);
+            return;
+        }
+
+        _projectileSpawnService.TryDespawnVisual(projectileVisualId);
+    }
+
+    /// <summary>
+    /// Client 인스턴스에서 데미지 없는 시각 전용 보스 투사체를 생성한다.
+    /// </summary>
+    private void SpawnProjectileVisual(int projectileVisualId, GameObject projectilePrefab, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
+    {
+        if (projectilePrefab == null)
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] Client 시각 투사체 프리팹이 null입니다. object={name}, visualId={projectileVisualId}", this);
+            return;
+        }
+
+        if (!TryResolveProjectileSpawnService())
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] Client에서 ProjectileSpawnService를 찾지 못해 시각 투사체 Spawn을 건너뜁니다. object={name}, visualId={projectileVisualId}", this);
+            return;
+        }
+
+        _projectileSpawnService.RequestSpawn(
+            projectilePrefab,
+            firePosition,
+            direction,
+            gameObject,
+            projectileSpeed,
+            projectileLifetime,
+            true,
+            projectileVisualId);
+    }
+
+    /// <summary>
+    /// Client가 수신한 PatternId를 기준으로 동일한 투사체 프리팹을 보스 패턴 데이터에서 찾는다.
+    /// </summary>
+    private bool TryGetVisualProjectilePrefab(string patternId, out GameObject projectilePrefab)
+    {
+        projectilePrefab = null;
+        ResolveReferences();
+
+        if (_bossController == null || _bossController.PatternData == null)
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] Client에서 BossPatternData를 찾지 못해 투사체 프리팹 조회 실패. object={name}, patternId={patternId}", this);
+            return false;
+        }
+
+        if (!_bossController.PatternData.TryGetFanProjectilePattern(patternId, out FanProjectilePatternSettings settings))
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] Client에서 PatternId에 해당하는 FanProjectile 설정을 찾지 못했습니다. object={name}, patternId={patternId}", this);
+            return false;
+        }
+
+        projectilePrefab = settings.ProjectilePrefab;
+        if (projectilePrefab == null)
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] Client에서 조회한 FanProjectile 프리팹이 null입니다. object={name}, patternId={patternId}", this);
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 서버 투사체가 종료되면 연결된 Client 시각 투사체에도 종료를 복제한다.
+    /// </summary>
+    private void HandleAuthoritativeProjectileDespawned(PooledRangedProjectile projectile, E_ProjectileDespawnReason reason)
+    {
+        if (projectile == null)
+        {
+            return;
+        }
+
+        projectile.RemoveListener(HandleAuthoritativeProjectileDespawned);
+
+        if (!ShouldReplicateProjectileVisuals() || projectile.VisualInstanceId <= 0)
+        {
+            return;
+        }
+
+        DespawnProjectileVisualRpc(projectile.VisualInstanceId);
+    }
+
+    /// <summary>
+    /// 네트워크 세션에서 서버가 Client 시각 투사체를 복제해야 하는지 판정한다.
+    /// </summary>
+    private bool ShouldReplicateProjectileVisuals()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO 세션 활성 여부 확인에 사용하는 매니저 참조입니다.
+        return networkManager != null && networkManager.IsListening && IsServer && IsSpawned;
+    }
+
+    /// <summary>
+    /// Client 시각 투사체와 서버 투사체를 연결할 복제 ID를 발급한다.
+    /// </summary>
+    private int NextProjectileVisualId()
+    {
+        _projectileVisualSequence++;
+        if (_projectileVisualSequence <= 0)
+        {
+            _projectileVisualSequence = 1;
+            Debug.LogWarning($"[BossFanProjectilePattern] Projectile visual sequence overflow. Fallback to 1. object={name}", this);
+        }
+
+        return _projectileVisualSequence;
     }
 
     /// <summary>
@@ -323,7 +469,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
 
         if (!_hasLoggedProjectileSpawnServiceFallback)
         {
-            Debug.LogWarning($"[BossFanProjectilePattern] 씬 fallback PooledProjectileSpawnService 사용됨. object={name}, service={sceneSpawnService.name}", this);
+            Debug.LogWarning($"[BossFanProjectilePattern] 씬 fallback PooledProjectileSpawnService 사용. object={name}, service={sceneSpawnService.name}", this);
             _hasLoggedProjectileSpawnServiceFallback = true;
         }
 

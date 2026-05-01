@@ -29,13 +29,13 @@ public sealed class BossRuntimeAiPatternDriver : MonoBehaviour
     [Min(0f)]
     [SerializeField] private float _targetSearchRange; // 패턴 거리 조건 평가에 사용할 Player 타겟 탐색 반경
 
-    private Coroutine _aiRoutine; // 런타임 AI 패턴 선택 루프 코루틴
-    private BossPatternBase[] _patternsByType; // E_BossPatternType 값을 인덱스로 사용하는 패턴 컴포넌트 캐시
-    private bool _hasLoggedAuthorityWarning; // Client 직접 실행 차단 경고 중복 방지 플래그
-    private bool _hasLoggedMissingBossWarning; // BossController 누락 경고 중복 방지 플래그
-    private bool _hasLoggedMissingTargetProviderWarning; // PlayerTargetProvider 누락 경고 중복 방지 플래그
-    private bool _hasLoggedMissingPatternWarning; // 선택된 패턴 타입의 실행 컴포넌트 누락 경고 중복 방지 플래그
-    private bool _hasLoggedDuplicatePatternWarning; // 같은 패턴 타입 컴포넌트 중복 경고 중복 방지 플래그
+    private Coroutine _aiRoutine; // 보스 AI 패턴 선택 루프 코루틴입니다.
+    private BossPatternBase[] _patternsByType; // E_BossPatternType 값을 인덱스로 사용하는 패턴 컴포넌트 캐시입니다.
+    private bool _hasLoggedAuthorityWarning; // Client 직접 실행 차단 경고 중복 방지 플래그입니다.
+    private bool _hasLoggedMissingBossWarning; // BossController 누락 경고 중복 방지 플래그입니다.
+    private bool _hasLoggedMissingTargetProviderWarning; // PlayerTargetProvider 누락 경고 중복 방지 플래그입니다.
+    private bool _hasLoggedMissingPatternWarning; // 선택된 패턴 타입의 실행 컴포넌트 누락 경고 중복 방지 플래그입니다.
+    private bool _hasLoggedDuplicatePatternWarning; // 같은 패턴 타입 컴포넌트 중복 경고 중복 방지 플래그입니다.
 
     /// <summary>
     /// 런타임 시작 전에 같은 GameObject 기준으로 BossController 참조를 보정한다.

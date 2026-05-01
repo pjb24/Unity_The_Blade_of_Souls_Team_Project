@@ -21,6 +21,9 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     [Tooltip("서버 확정 체력 상태를 복제하고 로컬 HealthComponent에 반영할 대상 참조입니다.")]
     [SerializeField] private HealthComponent _healthComponent; // 서버 확정 체력 스냅샷을 기록할 HealthComponent 참조입니다.
 
+    [Tooltip("Owner Client의 공격 HitWindow 요청을 서버 권한 공격 판정으로 실행할 AttackExecutor 참조입니다. 비어 있으면 자식 계층에서 자동 탐색합니다.")]
+    [SerializeField] private AttackExecutor _attackExecutor; // 멀티플레이에서 클라이언트 플레이어 공격을 서버 판정으로 실행하기 위한 AttackExecutor 참조입니다.
+
     [Header("Action State Sync")]
     [Tooltip("Owner가 확정한 액션 상태를 서버를 통해 전파할지 여부입니다.")]
     [SerializeField] private bool _enableActionStateSync = true; // 액션 상태 네트워크 동기화 활성화 여부입니다.
@@ -143,6 +146,11 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         if (_playerMovement == null)
         {
             _playerMovement = GetComponent<PlayerMovement>();
+        }
+
+        if (_attackExecutor == null)
+        {
+            _attackExecutor = GetComponentInChildren<AttackExecutor>(true);
         }
 
         if (_healthComponent == null)
@@ -347,6 +355,32 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// Owner Client에서 열린 공격 HitWindow를 서버 권한 공격 판정 RPC로 요청합니다.
+    /// </summary>
+    public bool TryRequestAttackExecutionOnServer(E_ActionType actionType, int executionId)
+    {
+        if (!IsSpawned)
+        {
+            Debug.LogWarning($"[PlayerNetworkSync] Cannot request attack execution before network spawn. object={name}", this);
+            return false;
+        }
+
+        if (!IsOwner)
+        {
+            Debug.LogWarning($"[PlayerNetworkSync] Non-owner Client cannot request attack execution. object={name}", this);
+            return false;
+        }
+
+        if (IsServer)
+        {
+            return TryResolveAttackExecutor() && _attackExecutor.TryExecuteNetworkAuthorityAttack(actionType, executionId);
+        }
+
+        SubmitAttackExecutionRpc((int)actionType, executionId);
+        return true;
+    }
+
+    /// <summary>
     /// Owner가 보고한 액션 상태를 서버에서 소유권 검증 후 확정해 복제 변수에 기록합니다.
     /// </summary>
     [Rpc(SendTo.Server)]
@@ -368,6 +402,39 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         }
 
         PublishReplicatedActionState(actionTypeValue, isRunning, shouldPublishStartEvent: isRunning);
+    }
+
+    /// <summary>
+    /// Owner Client가 요청한 공격 판정을 서버에서 소유권 검증 후 실행합니다.
+    /// </summary>
+    [Rpc(SendTo.Server)]
+    private void SubmitAttackExecutionRpc(int actionTypeValue, int executionId, RpcParams rpcParams = default)
+    {
+        if (rpcParams.Receive.SenderClientId != OwnerClientId)
+        {
+            Debug.LogWarning($"[PlayerNetworkSync] Unauthorized attack execution sender. object={name}, sender={rpcParams.Receive.SenderClientId}, owner={OwnerClientId}", this);
+            return;
+        }
+
+        if (!System.Enum.IsDefined(typeof(E_ActionType), actionTypeValue))
+        {
+            Debug.LogWarning($"[PlayerNetworkSync] Invalid attack action value. object={name}, actionValue={actionTypeValue}", this);
+            return;
+        }
+
+        if (executionId < 0)
+        {
+            Debug.LogWarning($"[PlayerNetworkSync] Invalid attack execution id. object={name}, executionId={executionId}", this);
+            return;
+        }
+
+        if (!TryResolveAttackExecutor())
+        {
+            return;
+        }
+
+        E_ActionType actionType = (E_ActionType)actionTypeValue; // 서버 권한 판정으로 실행할 공격 액션 타입입니다.
+        _attackExecutor.TryExecuteNetworkAuthorityAttack(actionType, executionId);
     }
 
     /// <summary>
@@ -842,6 +909,25 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             }
         }
 
+        return false;
+    }
+
+    /// <summary>
+    /// 공격 판정 RPC를 서버에서 실행할 AttackExecutor 참조를 보정합니다.
+    /// </summary>
+    private bool TryResolveAttackExecutor()
+    {
+        if (_attackExecutor == null)
+        {
+            _attackExecutor = GetComponentInChildren<AttackExecutor>(true);
+        }
+
+        if (_attackExecutor != null)
+        {
+            return true;
+        }
+
+        Debug.LogWarning($"[PlayerNetworkSync] AttackExecutor not found. Server attack execution skipped. object={name}", this);
         return false;
     }
 

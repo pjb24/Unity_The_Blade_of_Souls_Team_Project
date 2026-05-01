@@ -237,12 +237,13 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         _replicatedState.OnValueChanged += HandleReplicatedStateChanged;
         _replicatedBattleActive.OnValueChanged += HandleReplicatedBattleActiveChanged;
 
-        ApplyReplicatedBossState(_replicatedState.Value, _replicatedBattleActive.Value);
-
         if (IsServer)
         {
             PublishBossStateSnapshot();
+            return;
         }
+
+        ApplyReplicatedBossState(_replicatedState.Value, _replicatedBattleActive.Value);
     }
 
     /// <summary>
@@ -337,17 +338,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        ResetHealthPhaseUsageCounters(); // HealthPhase 사용 횟수 초기화
-        ResetCommonCooldown(); // 공통 쿨타임 초기화
-        ResetIndividualCooldowns(); // 개별 패턴 쿨타임 초기화
-        ResetRuntimeWarningState(); // 런타임 경고 상태 초기화
-
-        _isBattleActive = true; // 전투 활성화
-        _isPatternSelectionEnabled = true; // 패턴 선택 활성화
-        _isInvincible = false; // 무적 상태 초기화
-        _isWeakPointPatternActive = false; // 약점 패턴 상태 초기화
-        _hasEnteredDeadCleanup = false; // 사망 정리 상태 초기화
-        EnterIdleState(); // Idle 상태 진입
+        ResetHealthPhaseUsageCounters(); // HealthPhase 사용 횟수를 초기화합니다.
+        ResetCommonCooldown(); // 공통 패턴 쿨타임을 초기화합니다.
+        ResetIndividualCooldowns(); // 개별 패턴 쿨타임을 초기화합니다.
+        ResetRuntimeWarningState(); // 런타임 경고 상태를 초기화합니다.
+        _isBattleActive = true; // 전투 활성 상태로 전환합니다.
+        _isPatternSelectionEnabled = true; // AI 패턴 선택을 활성화합니다.
+        _isInvincible = false; // 전투 시작 시 보스 무적 상태를 해제합니다.
+        _isWeakPointPatternActive = false; // 약점 패턴 활성 상태를 초기화합니다.
+        _hasEnteredDeadCleanup = false; // 사망 정리 중복 방지 상태를 초기화합니다.
+        EnterIdleState(); // Idle 상태로 진입해 AI 패턴 선택 조건을 만족시킵니다.
     }
 
     /// <summary>
@@ -1236,7 +1236,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
             return;
         }
 
-        SyncBossStateRpc((int)state);
+        SyncBossStateRpc((int)state, _isBattleActive);
     }
 
     /// <summary>
@@ -1259,6 +1259,11 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// </summary>
     private void HandleReplicatedStateChanged(int previousValue, int currentValue)
     {
+        if (IsServer)
+        {
+            return;
+        }
+
         ApplyReplicatedBossState(currentValue, _replicatedBattleActive.Value);
     }
 
@@ -1267,13 +1272,23 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// </summary>
     private void HandleReplicatedBattleActiveChanged(bool previousValue, bool currentValue)
     {
+        if (IsServer)
+        {
+            return;
+        }
+
         ApplyReplicatedBossState(_replicatedState.Value, currentValue);
     }
 
     [Rpc(SendTo.ClientsAndHost)]
-    private void SyncBossStateRpc(int stateValue)
+    private void SyncBossStateRpc(int stateValue, bool battleActive)
     {
-        ApplyReplicatedBossState(stateValue);
+        if (IsServer)
+        {
+            return;
+        }
+
+        ApplyReplicatedBossState(stateValue, battleActive);
     }
 
     /// <summary>
