@@ -145,7 +145,7 @@ MonoBehaviour:
     _weakPointDestroyVfxPrefab: {fileID: 0}
     _weakPointDestroyEffectId: 8
     _weakPointCount: 3
-    _weakPointPositionRetryCount: 1
+    _weakPointPositionRetryCount: 3
     _minDistanceBetweenWeakPoints: 2
     _activeSeconds: 20
     _weakPointTimeLimit: 20

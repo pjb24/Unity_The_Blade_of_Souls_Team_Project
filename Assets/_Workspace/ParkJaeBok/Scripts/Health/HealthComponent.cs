@@ -200,6 +200,33 @@ public class HealthComponent : MonoBehaviour
         _healthCore.SetAllowHealWhenDead(allowHealWhenDead);
     }
 
+    public void ResetHealthToInitialHealth()
+    {
+        if (_healthCore == null)
+        {
+            Debug.LogWarning($"[HealthComponent] ResetHealthToInitialHealth called before initialization on {name}.");
+            return;
+        }
+
+        float safeMaxHealth = _initialMaxHealth <= 0f ? 1f : _initialMaxHealth;
+
+        if (_initialMaxHealth <= 0f)
+        {
+            Debug.LogWarning($"[HealthComponent] Invalid initial max health({_initialMaxHealth}) on {name}. Fallback to 1.");
+        }
+
+        float safeCurrentHealth = Mathf.Clamp(_initialCurrentHealth, 0f, safeMaxHealth);
+
+        if (!Mathf.Approximately(safeCurrentHealth, _initialCurrentHealth))
+        {
+            Debug.LogWarning($"[HealthComponent] Initial current health({_initialCurrentHealth}) was clamped on {name}.");
+        }
+
+        _healthCore.Reset(safeMaxHealth, safeCurrentHealth);
+
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
+    }
+
     /// <summary>
     /// 현재 체력을 조회합니다.
     /// </summary>

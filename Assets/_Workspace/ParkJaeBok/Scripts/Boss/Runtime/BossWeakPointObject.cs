@@ -48,6 +48,7 @@ public sealed class BossWeakPointObject : MonoBehaviour, IHealthListener, IPoola
         _isDestroyedNotified = false;
 
         ResolveRuntimeComponents();
+        ResetHealth();
         RegisterHealthListener();
     }
 
@@ -162,6 +163,20 @@ public sealed class BossWeakPointObject : MonoBehaviour, IHealthListener, IPoola
             Debug.LogWarning($"[BossWeakPointObject] HitReceiver가 없어 런타임에 추가됨. object={name}", this);
             _hitReceiver = gameObject.AddComponent<HitReceiver>();
         }
+    }
+
+    /// <summary>
+    /// 약점 재사용 시 체력을 초기 상태로 되돌린다.
+    /// </summary>
+    private void ResetHealth()
+    {
+        if (_healthComponent == null)
+        {
+            Debug.LogWarning($"[BossWeakPointObject] Health 초기화 실패 - HealthComponent 없음. object={name}", this);
+            return;
+        }
+
+        _healthComponent.ResetHealthToInitialHealth();
     }
 
     /// <summary>

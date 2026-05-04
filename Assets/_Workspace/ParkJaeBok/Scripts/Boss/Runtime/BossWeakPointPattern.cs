@@ -21,6 +21,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
     private Vector3[] _weakPointPositionBuffer; // 선택된 약점 위치를 저장하는 재사용 버퍼
     private BoxCollider2D[] _weakPointAreaBuffer; // 유효한 약점 영역을 저장하는 재사용 버퍼
+    private bool[] _weakPointAreaUsedBuffer; // 영역 재사용 방지용
     private BossWeakPointObject[] _weakPointObjectBuffer; // 생성된 약점 오브젝트를 저장하는 재사용 버퍼
     private bool[] _weakPointDestroyedBuffer; // 약점 파괴 상태를 저장하는 재사용 버퍼
     private HealthComponent[] _timeLimitDamageTargetBuffer; // 시간 초과 시 데미지를 줄 Player HealthComponent 버퍼
@@ -359,6 +360,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         _weakPointPositionBuffer = new Vector3[requiredPositionCount];
         _weakPointAreaBuffer = new BoxCollider2D[requiredAreaCount];
+        _weakPointAreaUsedBuffer = new bool[requiredAreaCount];
         _weakPointObjectBuffer = new BossWeakPointObject[requiredPositionCount];
         _weakPointDestroyedBuffer = new bool[requiredPositionCount];
 
@@ -386,6 +388,14 @@ public sealed class BossWeakPointPattern : BossPatternBase
             }
         }
 
+        if (_weakPointAreaUsedBuffer != null)
+        {
+            for (int index = 0; index < _weakPointAreaUsedBuffer.Length; index++)
+            {
+                _weakPointAreaUsedBuffer[index] = false;
+            }
+        }
+
         _spawnedWeakPointCount = 0;
         _destroyedWeakPointCount = 0;
     }
@@ -408,6 +418,52 @@ public sealed class BossWeakPointPattern : BossPatternBase
             _weakPointAreaBuffer[_validWeakPointAreaCount] = area;
             _validWeakPointAreaCount++;
         }
+    }
+
+    /// <summary>
+    /// 이번 패턴 실행 중 아직 사용되지 않은 약점 영역을 랜덤으로 선택한다.
+    /// </summary>
+    private bool TryGetUnusedArea(out BoxCollider2D area, out int areaIndex)
+    {
+        area = null;
+        areaIndex = -1;
+
+        int availableCount = 0;
+
+        for (int index = 0; index < _validWeakPointAreaCount; index++)
+        {
+            if (!_weakPointAreaUsedBuffer[index])
+            {
+                availableCount++;
+            }
+        }
+
+        if (availableCount <= 0)
+        {
+            return false;
+        }
+
+        int targetIndex = Random.Range(0, availableCount);
+        int currentIndex = 0;
+
+        for (int index = 0; index < _validWeakPointAreaCount; index++)
+        {
+            if (_weakPointAreaUsedBuffer[index])
+            {
+                continue;
+            }
+
+            if (currentIndex == targetIndex)
+            {
+                area = _weakPointAreaBuffer[index];
+                areaIndex = index;
+                return true;
+            }
+
+            currentIndex++;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -442,8 +498,11 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         for (int retryIndex = 0; retryIndex < retryCount; retryIndex++)
         {
-            BoxCollider2D area =
-                _weakPointAreaBuffer[Random.Range(0, _validWeakPointAreaCount)]; // 랜덤 영역 선택
+            if (!TryGetUnusedArea(out BoxCollider2D area, out int areaIndex))
+            {
+                LogFailureOnce("NoAvailableWeakPointArea");
+                return false;
+            }
 
             Vector3 candidatePosition = GetRandomPointInAreaBounds(area);
 
@@ -456,6 +515,8 @@ public sealed class BossWeakPointPattern : BossPatternBase
             {
                 continue;
             }
+
+            _weakPointAreaUsedBuffer[areaIndex] = true;
 
             selectedPosition = candidatePosition;
             return true;

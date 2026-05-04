@@ -361,6 +361,46 @@ public class HealthCore
     }
 
     /// <summary>
+    /// 초기 상태로 체력을 완전히 재설정한다.
+    /// 이벤트 순서를 강제 제어한다.
+    /// </summary>
+    public void Reset(float maxHealth, float currentHealth)
+    {
+        if (maxHealth <= 0f)
+        {
+            Debug.LogWarning($"[HealthCore] Invalid maxHealth({maxHealth}) in Reset. Fallback to 1.");
+            maxHealth = 1f;
+        }
+
+        float clampedCurrent = Mathf.Clamp(currentHealth, 0f, maxHealth);
+
+        float previousHealth = _currentHealth;
+        float previousMax = _maxHealth;
+        bool wasDead = _isDead;
+
+        _maxHealth = maxHealth;
+        _currentHealth = clampedCurrent;
+        _isDead = _currentHealth <= 0f;
+
+        // 이벤트 순서 명확하게 보장
+        NotifyMaxHealthChanged(previousMax, _maxHealth);
+
+        if (!Mathf.Approximately(previousHealth, _currentHealth))
+        {
+            NotifyHealthChanged(previousHealth, _currentHealth);
+        }
+
+        if (wasDead && !_isDead)
+        {
+            NotifyRevived();
+        }
+        else if (!wasDead && _isDead)
+        {
+            NotifyDied();
+        }
+    }
+
+    /// <summary>
     /// 현재 체력을 반환합니다.
     /// </summary>
     public float GetCurrentHealth()
