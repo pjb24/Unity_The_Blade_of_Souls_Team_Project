@@ -21,7 +21,7 @@ MonoBehaviour:
   _targetLayerMask:
     serializedVersion: 2
     m_Bits: 256
-  _requireTargetTag: 0
+  _requireTargetTag: 1
   _targetTag: Enemy
   _maxTargets: 4
   _statusTag: Attack_Player_01

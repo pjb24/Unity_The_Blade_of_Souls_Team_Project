@@ -51,7 +51,7 @@ public class HitReceiver : MonoBehaviour
     {
         if (_healthComponent == null)
         {
-            _healthComponent = GetComponent<global::HealthComponent>();
+            _healthComponent = GetComponent<HealthComponent>();
             if (_healthComponent == null)
             {
                 Debug.LogWarning($"[HitReceiver] {name}에 HealthComponent가 없습니다. 피격을 거부합니다.");

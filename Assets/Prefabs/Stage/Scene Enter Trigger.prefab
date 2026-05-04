@@ -84,8 +84,8 @@ SpriteRenderer:
   m_SortingLayer: 8
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 0.96933115, g: 1, b: 0, a: 1}
+  m_Sprite: {fileID: -1116516773124893796, guid: 65e9e59e7331cf7488ecfc5ba7e3c6ba, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -140,6 +140,8 @@ MonoBehaviour:
   _blockDuplicateUse: 1
   _interactAction: {fileID: 0}
   _interactActionName: Interaction
+  _stageCatalog: {fileID: 0}
+  _gameFlowController: {fileID: 0}
 --- !u!61 &2718363593453480929
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -174,15 +176,15 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0, y: -0.4338169}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
+    oldSize: {x: 51.575, y: 28.356178}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 39.754333, y: 27.318241}
   m_EdgeRadius: 0

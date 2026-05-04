@@ -432,7 +432,7 @@ MonoBehaviour:
   _hitReceiver: {fileID: 6167536657841687185}
   _networkRelay: {fileID: 7825359416188931697}
   _hitVfxAnchor: {fileID: 1459479109767149152}
-  _hitVfxEffectId: 13
+  _hitVfxEffectId: 8
   _verboseFallbackLog: 1
 --- !u!1 &2510925836715309460
 GameObject:
@@ -559,7 +559,7 @@ Transform:
   m_GameObject: {fileID: 4832923009593702700}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.5, z: 0}
+  m_LocalPosition: {x: 0, y: -0.5, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -708,10 +708,10 @@ GameObject:
   - component: {fileID: 3663479465624931265}
   - component: {fileID: 6264113991705990338}
   - component: {fileID: 128880914658158548}
+  - component: {fileID: 5133699252646770491}
   - component: {fileID: 250517741761169262}
   - component: {fileID: 7825359416188931697}
   - component: {fileID: 1204190932249378199}
-  - component: {fileID: 5133699252646770491}
   m_Layer: 8
   m_Name: --- Enemy Blood Light ---
   m_TagString: Enemy
@@ -841,56 +841,6 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
---- !u!114 &250517741761169262
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8153201445621807567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0519258aed078c54f8c1aedcf9004189, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyAIDeathController
-  ShowTopMostFoldoutHeaderGroup: 1
-  _animationBridge: {fileID: 2203534509522398615}
-  _networkObject: {fileID: 128880914658158548}
-  _deathEffectId: 8
-  _deathVfxSpawnPoint: {fileID: 0}
-  _vfxReleaseDelay: 1.2
-  _useDeathAnimationEventAsPrimaryExit: 1
-  _fallbackHideDelay: 1.2
-  _destroyOnRemove: 0
-  _warnWhenDeathAnimationEventMissing: 1
---- !u!114 &7825359416188931697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8153201445621807567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f3068dfe7c498f84385b11b2912ae7bc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitVfxNetworkRelay
-  ShowTopMostFoldoutHeaderGroup: 1
-  _emitter: {fileID: 4980482905137620564}
-  _verboseFallbackLog: 1
---- !u!114 &1204190932249378199
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8153201445621807567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a8420e28e955e864686c8f4eeb959ffb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SfxNetworkRelay
-  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!114 &5133699252646770491
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -937,6 +887,56 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &250517741761169262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0519258aed078c54f8c1aedcf9004189, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAIDeathController
+  ShowTopMostFoldoutHeaderGroup: 1
+  _animationBridge: {fileID: 2203534509522398615}
+  _networkObject: {fileID: 128880914658158548}
+  _deathEffectId: 8
+  _deathVfxSpawnPoint: {fileID: 1459479109767149152}
+  _vfxReleaseDelay: 1.2
+  _useDeathAnimationEventAsPrimaryExit: 1
+  _fallbackHideDelay: 1.2
+  _destroyOnRemove: 0
+  _warnWhenDeathAnimationEventMissing: 1
+--- !u!114 &7825359416188931697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3068dfe7c498f84385b11b2912ae7bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyHitVfxNetworkRelay
+  ShowTopMostFoldoutHeaderGroup: 1
+  _emitter: {fileID: 4980482905137620564}
+  _verboseFallbackLog: 1
+--- !u!114 &1204190932249378199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8153201445621807567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8420e28e955e864686c8f4eeb959ffb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SfxNetworkRelay
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &8655521624143222774
 GameObject:
   m_ObjectHideFlags: 0

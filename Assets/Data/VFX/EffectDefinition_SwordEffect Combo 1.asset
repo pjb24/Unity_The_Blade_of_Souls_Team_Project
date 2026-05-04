@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 48c37d09f08f43b408b7ae3d890a226a, type: 3}
-  m_Name: EffectDefinition_SwordEffect
+  m_Name: EffectDefinition_SwordEffect Combo 1
   m_EditorClassIdentifier: Assembly-CSharp::EffectDefinition
-  _effectId: 14
-  _prefab: {fileID: 3174618093735530856, guid: 475a480f892d2594a8182263885dfea2, type: 3}
+  _effectId: 16
+  _prefab: {fileID: 5503505460791601945, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
   _defaultPoolSize: 4
   _maxPoolSize: 16
-  _defaultPlayMode: 4
+  _defaultPlayMode: 0
   _autoReturn: 1
-  _maxLifetime: 3
+  _maxLifetime: 2
   _defaultLocalOffset: {x: 0, y: 0, z: 0}
   _allowFollow: 1
   _allowAttach: 1

@@ -21,6 +21,9 @@ public enum E_EffectId
     HitEffect = 13,
     SwordEffect = 14,
     RecoveryEffect = 15,
+
+    AttackCombo1 = 16,
+    AttackCombo2 = 17,
 }
 
 /// <summary>
