@@ -103,6 +103,8 @@ public class PlayerMovement : MonoBehaviour
     private float _coyoteTimer;
 
     //wall slide vars
+    // 공격 동작 중 WallSlide 재진입을 막는 플래그이다.
+    private bool _isWallSlideSuppressedByAttack;
     // 벽 접촉 상태에서 하강 속도를 제한하는 벽 슬라이드 모드 활성 여부이다.
     private bool _isWallSliding;
     // 벽 슬라이드 종료 후 낙하 전환 상태인지 나타낸다.
@@ -315,6 +317,30 @@ public class PlayerMovement : MonoBehaviour
     {
         _movementLockReasons.Remove(reason);
         UpdateMovementLockDebugView();
+    }
+
+    /// <summary>
+    /// 공격 시작 시 현재 WallSlide를 중지하고 공격이 끝날 때까지 WallSlide 재진입을 막습니다.
+    /// </summary>
+    public void SuppressWallSlideForAttack()
+    {
+        _isWallSlideSuppressedByAttack = true;
+
+        if (_isWallSliding)
+        {
+            StopWallSlide();
+        }
+
+        _isWallSlideFalling = false;
+    }
+
+    /// <summary>
+    /// 공격 종료 시 WallSlide 차단을 해제하고 현재 벽 접촉 상태 기준으로 WallSlide 가능 여부를 다시 확인합니다.
+    /// </summary>
+    public void RestoreWallSlideAfterAttack()
+    {
+        _isWallSlideSuppressedByAttack = false;
+        WallSlideCheck();
     }
 
     /// <summary>
@@ -976,7 +1002,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (!IsDashing && isTouchingSideWall && isSideWallAngle && !Controller.IsGrounded())
+        if (!_isWallSlideSuppressedByAttack && !IsDashing && isTouchingSideWall && isSideWallAngle && !Controller.IsGrounded())
         {
             if (Velocity.y < 0f && !_isWallSliding)
             {

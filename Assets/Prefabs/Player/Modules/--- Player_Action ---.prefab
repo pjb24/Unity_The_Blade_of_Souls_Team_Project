@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 2246701947845240806}
   - component: {fileID: 8397185906079373947}
   - component: {fileID: 674375901998290034}
+  - component: {fileID: 7247542785090638180}
   m_Layer: 7
   m_Name: --- Player_Action ---
   m_TagString: Player
@@ -232,3 +233,16 @@ MonoBehaviour:
   _clearHorizontalVelocityOnLock: 1
   _warnWhenOwnershipUnavailable: 1
   _enableRuntimeLog: 0
+--- !u!114 &7247542785090638180
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8950158379528443017}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e73257b2d5214340ae2ef30c8777a14, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttackAnimationEventBridge
+  _attackExecutor: {fileID: 0}

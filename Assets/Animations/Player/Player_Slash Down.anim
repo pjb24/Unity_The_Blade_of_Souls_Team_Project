@@ -92,6 +92,13 @@ AnimationClip:
     floatParameter: 0
     intParameter: 0
     messageOptions: 0
+  - time: 0
+    functionName: BeginAttackWallSlideSuppression
+    data: 
+    objectReferenceParameter: {fileID: 0}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
   - time: 0.16666667
     functionName: ReceiveMarker
     data: 
@@ -103,6 +110,13 @@ AnimationClip:
     functionName: ReceiveMarker
     data: 
     objectReferenceParameter: {fileID: 11400000, guid: f2ce087178a7720488c03ae85f55da9c, type: 2}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0
+  - time: 0.41666666
+    functionName: EndAttackWallSlideSuppression
+    data: 
+    objectReferenceParameter: {fileID: 0}
     floatParameter: 0
     intParameter: 0
     messageOptions: 0

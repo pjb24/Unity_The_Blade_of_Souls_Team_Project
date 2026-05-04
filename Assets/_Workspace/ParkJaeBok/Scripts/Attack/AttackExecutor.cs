@@ -74,6 +74,8 @@ public class AttackExecutor : MonoBehaviour
     private bool _didWarnFacingSpriteFallback; // SpriteRenderer 방향 폴백 경고가 이미 출력되었는지 추적합니다.
     private bool _didWarnFacingDefaultFallback; // 기본 오른쪽 방향 폴백 경고가 이미 출력되었는지 추적합니다.
 
+    private bool _isWallSlideSuppressedByAttackAnimation;
+
     /// <summary>
     /// 의존성 보정과 액션-공격 매핑 초기화를 수행합니다.
     /// </summary>
@@ -108,12 +110,12 @@ public class AttackExecutor : MonoBehaviour
     /// </summary>
     private void OnDisable()
     {
-        if (_actionController == null)
+        if (_actionController != null)
         {
-            return;
+            _actionController.OnHitWindowChanged -= HandleHitWindowChanged;
         }
 
-        _actionController.OnHitWindowChanged -= HandleHitWindowChanged;
+        EndAttackWallSlideSuppression();
     }
 
     /// <summary>
@@ -185,6 +187,44 @@ public class AttackExecutor : MonoBehaviour
         }
 
         return TryExecuteActionAttackInternal(actionType, executionId, true);
+    }
+
+    /// <summary>
+    /// 공격 애니메이션 시작 이벤트에서 호출합니다.
+    /// WallSlide 중 공격을 시작하면 WallSlide를 중지하고 공격 종료 전까지 재진입을 막습니다.
+    /// </summary>
+    public void BeginAttackWallSlideSuppression()
+    {
+        if (!TryResolvePlayerMovement())
+        {
+            Debug.LogWarning($"[AttackExecutor] PlayerMovement가 없어 공격 시작 시 WallSlide를 중지할 수 없습니다. object={name}", this);
+            return;
+        }
+
+        _isWallSlideSuppressedByAttackAnimation = true;
+        _playerMovement.SuppressWallSlideForAttack();
+    }
+
+    /// <summary>
+    /// 공격 애니메이션 종료 이벤트에서 호출합니다.
+    /// 공격 중 막아둔 WallSlide를 해제하고 현재 벽 접촉 상태 기준으로 다시 검사합니다.
+    /// </summary>
+    public void EndAttackWallSlideSuppression()
+    {
+        if (!_isWallSlideSuppressedByAttackAnimation)
+        {
+            return;
+        }
+
+        _isWallSlideSuppressedByAttackAnimation = false;
+
+        if (!TryResolvePlayerMovement())
+        {
+            Debug.LogWarning($"[AttackExecutor] PlayerMovement가 없어 공격 종료 후 WallSlide를 복구할 수 없습니다. object={name}", this);
+            return;
+        }
+
+        _playerMovement.RestoreWallSlideAfterAttack();
     }
 
     /// <summary>
