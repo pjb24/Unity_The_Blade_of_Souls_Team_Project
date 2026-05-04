@@ -105,11 +105,11 @@ public class Checkpoint : MonoBehaviour
     [SerializeField] private Transform _respawnPointClient; // 멀티플레이 Client 리스폰 위치입니다.
 
     [Header("Interaction")]
+    [Tooltip("켜져 있으면 플레이어 입력 상호작용을 처리하지 않고 리스폰 포인트로만 사용합니다.")]
+    [SerializeField] private bool _useAsRespawnPointOnly;
+
     [Tooltip("InputActionReference가 비어 있을 때 InputManager.PlayerInput에서 찾을 액션 이름입니다.")]
     [SerializeField] private string _interactActionName = "Interact"; // 프리팹 입력 참조가 비어 있을 때 폴백으로 찾을 입력 액션 이름입니다.
-
-    [Tooltip("체크포인트 상호작용에 사용할 Input Action입니다.")]
-    [SerializeField] private InputActionReference _interactAction; // Trigger 범위 안에서 체크포인트 활성화를 요청할 입력 액션입니다.
 
     [Tooltip("상호작용 가능한 플레이어 LayerMask입니다.")]
     [SerializeField] private LayerMask _playerLayerMask = ~0; // Trigger에 진입한 플레이어 후보 필터입니다.
@@ -133,6 +133,7 @@ public class Checkpoint : MonoBehaviour
     public string StageId => _stageId;
     public string CheckpointId => _checkpointId;
     public bool IsStageStartCheckpoint => _isStageStartCheckpoint;
+    public bool UseAsRespawnPointOnly => _useAsRespawnPointOnly;
     public E_CheckpointState CurrentState => _currentState;
 
     /// <summary>
@@ -175,6 +176,11 @@ public class Checkpoint : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        if (_useAsRespawnPointOnly)
+        {
+            return;
+        }
+
         if (_currentInteractablePlayer == null || !WasInteractPressedThisFrame())
         {
             return;
@@ -194,6 +200,11 @@ public class Checkpoint : MonoBehaviour
     /// </summary>
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (_useAsRespawnPointOnly)
+        {
+            return;
+        }
+
         TrySetCurrentPlayer(other);
     }
 
@@ -202,6 +213,12 @@ public class Checkpoint : MonoBehaviour
     /// </summary>
     private void OnTriggerExit2D(Collider2D other)
     {
+        if (_useAsRespawnPointOnly)
+        {
+            _currentInteractablePlayer = null;
+            return;
+        }
+
         TryClearCurrentPlayer(other);
     }
 
@@ -392,18 +409,10 @@ public class Checkpoint : MonoBehaviour
     }
 
     /// <summary>
-    /// 필요한 참조를 자동으로 보정합니다.
-    /// </summary>
-    /// <summary>
-    /// 프리팹 로컬 참조, Stage 공용 참조, InputManager 액션 이름 순서로 상호작용 입력을 해석합니다.
+    /// Stage 공용 참조, InputManager 액션 이름 순서로 상호작용 입력을 해석합니다.
     /// </summary>
     private InputAction ResolveInteractAction()
     {
-        if (_interactAction != null && _interactAction.action != null)
-        {
-            return _interactAction.action;
-        }
-
         if (_cachedResolvedInteractAction != null)
         {
             return _cachedResolvedInteractAction;
@@ -427,6 +436,9 @@ public class Checkpoint : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// 필요한 컴포넌트 참조를 자동으로 보정합니다.
+    /// </summary>
     private void ResolveReferences()
     {
         if (_stageController == null)
