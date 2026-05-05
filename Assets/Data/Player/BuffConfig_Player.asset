@@ -15,8 +15,8 @@ MonoBehaviour:
   _useBuffGauge: 1
   _endBuffWhenGaugeEmpty: 1
   _maxBuffGauge: 100
-  _minBuffStartGauge: 25
-  _gaugeDrainPerSecond: 10
+  _minBuffStartGauge: 0
+  _gaugeDrainPerSecond: 0
   _gaugeGainOnSuccessfulHit: 5
   _initialBuffGauge: 100
   _attackDamageAdditive: 0

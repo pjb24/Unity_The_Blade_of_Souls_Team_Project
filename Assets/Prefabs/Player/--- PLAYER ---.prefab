@@ -1073,6 +1073,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 642850820691853347}
     - target: {fileID: 3964318724285138244, guid: e8724c814373fff4097368dee9de6678, type: 3}
+      propertyPath: _buffController
+      value: 
+      objectReference: {fileID: 881706988583029653}
+    - target: {fileID: 3964318724285138244, guid: e8724c814373fff4097368dee9de6678, type: 3}
       propertyPath: _playerMovement
       value: 
       objectReference: {fileID: 1249389477860502122}
@@ -1084,6 +1088,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: --- Player_VFX_Emitter ---
       objectReference: {fileID: 0}
+    - target: {fileID: 4765641594813737548, guid: e8724c814373fff4097368dee9de6678, type: 3}
+      propertyPath: _playerMovement
+      value: 
+      objectReference: {fileID: 1249389477860502122}
     - target: {fileID: 6974003468345572428, guid: e8724c814373fff4097368dee9de6678, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

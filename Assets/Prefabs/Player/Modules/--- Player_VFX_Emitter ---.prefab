@@ -43,7 +43,7 @@ GameObject:
   m_Layer: 7
   m_Name: EyeEffectPoint
   m_TagString: Untagged
-  m_Icon: {fileID: -964228994112308473, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 419385456094870383, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -56,7 +56,7 @@ Transform:
   m_GameObject: {fileID: 2321560638507107353}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.38, y: 3.53, z: 0}
+  m_LocalPosition: {x: 0.38, y: 3.391, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -95,6 +95,7 @@ Transform:
   - {fileID: 6113555449250914293}
   - {fileID: 6107614148191375868}
   - {fileID: 1778229044106542082}
+  - {fileID: 8459347955085978877}
   m_Father: {fileID: 6974003468345572428}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2731337780342048173
@@ -128,8 +129,8 @@ Transform:
   m_Children:
   - {fileID: 2658279465556983413}
   - {fileID: 8740214783454027421}
-  - {fileID: 6152857070831409153}
-  - {fileID: 5101294014237117693}
+  - {fileID: 4856626153303069902}
+  - {fileID: 8375470906006558851}
   m_Father: {fileID: 6974003468345572428}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2999774470924436946
@@ -213,10 +214,27 @@ MonoBehaviour:
   _eyeVfxPoint: {fileID: 8663168944321013790}
   _footVfxPoint: {fileID: 6113555449250914293}
   _hitVfxPoint: {fileID: 6107614148191375868}
-  _swordTipVfxPoint: {fileID: 1778229044106542082}
+  _swordTipVfxPoint: {fileID: 0}
+  _playerMovement: {fileID: 0}
+  _facingVisualTarget: {fileID: 0}
+  _facingSpriteRenderer: {fileID: 0}
   _eyeEffectObject: {fileID: 4388853744164254560}
   _walkDustObject: {fileID: 8886389687828101034}
-  _swordEffectObject: {fileID: 0}
+  _attackActionParticleMaps:
+  - Name: AttackCombo1
+    ActionType: 22
+    ParticleSystem: {fileID: 3826797121725446159}
+    AutoResolveParticleName: AttackCombo1
+    FallbackEffectId: 16
+    AnchorOverride: {fileID: 1778229044106542082}
+    LocalOffset: {x: 0, y: 0, z: 0}
+  - Name: AttackCombo2
+    ActionType: 23
+    ParticleSystem: {fileID: 163842747207070786}
+    AutoResolveParticleName: AttackCombo2
+    FallbackEffectId: 17
+    AnchorOverride: {fileID: 8459347955085978877}
+    LocalOffset: {x: 0, y: 0, z: 0}
   _jumpDustEffectId: 12
   _hitEffectId: 13
   _jumpDustPoolPrefab: {fileID: 0}
@@ -224,7 +242,6 @@ MonoBehaviour:
   _allowPersistentEffectServiceFallback: 1
   _eyeFallbackEffectId: 10
   _walkFallbackEffectId: 11
-  _swordFallbackEffectId: 14
 --- !u!114 &3964318724285138244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -242,11 +259,43 @@ MonoBehaviour:
   _hitReceiver: {fileID: 0}
   _vfxController: {fileID: 4765641594813737548}
   _networkSync: {fileID: 0}
+  _buffController: {fileID: 0}
   _useHitPointForHitEffect: 1
   _syncWalkDustByGroundState: 1
   _useMovementJumpEvent: 1
-  _swordEffectActionTypes: 1600000017000000
+  _attackEffectActionTypes: 1600000017000000
   _jumpStartActionTypes: 0300000008000000
+--- !u!1 &6076475829291987693
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8459347955085978877}
+  m_Layer: 7
+  m_Name: AttackCombo2 EffectPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 419385456094870383, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8459347955085978877
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6076475829291987693}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.258, y: 2.015, z: -1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8781609121638816109}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6738447657164005399
 GameObject:
   m_ObjectHideFlags: 0
@@ -257,7 +306,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1778229044106542082}
   m_Layer: 7
-  m_Name: SwordEffectPoint
+  m_Name: AttackCombo1 EffectPoint
   m_TagString: Untagged
   m_Icon: {fileID: 419385456094870383, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -272,7 +321,7 @@ Transform:
   m_GameObject: {fileID: 6738447657164005399}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2.39, y: 2.04, z: 0}
+  m_LocalPosition: {x: 0.986, y: 2.268, z: -1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -349,7 +398,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2420706814925343710, guid: 7cfc74fcca5640c48a64f78b92219a3f, type: 3}
   m_PrefabInstance: {fileID: 2121269366530226366}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &4984187390449608359
+--- !u!1001 &5993729457256573544
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -359,23 +408,23 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.7
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.08
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0
+      value: -0.000000043651482
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0.0000000022876747
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
       propertyPath: m_LocalRotation.y
@@ -406,12 +455,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
---- !u!4 &6152857070831409153 stripped
+--- !u!198 &3826797121725446159 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 7364936370289906279, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
+  m_PrefabInstance: {fileID: 5993729457256573544}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4856626153303069902 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1173243701402730150, guid: f025485b2bfbdf146bf553b803f83621, type: 3}
-  m_PrefabInstance: {fileID: 4984187390449608359}
+  m_PrefabInstance: {fileID: 5993729457256573544}
   m_PrefabAsset: {fileID: 0}
---- !u!1001 &6233928627755217499
+--- !u!1001 &7238292337316668965
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -421,11 +475,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.42
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalPosition.z
@@ -433,19 +487,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.69840115
+      value: 0.6984012
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.54952526
+      value: 0.5495252
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.11061575
+      value: 0.11061576
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.4449967
+      value: 0.44499665
       objectReference: {fileID: 0}
     - target: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -468,10 +522,15 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: defbeff929091464cb5ae58bef323191, type: 3}
---- !u!4 &5101294014237117693 stripped
+--- !u!198 &163842747207070786 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 7364936370289906279, guid: defbeff929091464cb5ae58bef323191, type: 3}
+  m_PrefabInstance: {fileID: 7238292337316668965}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8375470906006558851 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1173243701402730150, guid: defbeff929091464cb5ae58bef323191, type: 3}
-  m_PrefabInstance: {fileID: 6233928627755217499}
+  m_PrefabInstance: {fileID: 7238292337316668965}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7481218483663341089
 PrefabInstance:
