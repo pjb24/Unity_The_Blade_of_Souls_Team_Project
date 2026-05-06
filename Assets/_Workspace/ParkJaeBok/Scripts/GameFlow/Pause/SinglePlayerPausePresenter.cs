@@ -388,7 +388,10 @@ public class SinglePlayerPausePresenter : MonoBehaviour
     {
         if (_pauseToggleAction != null && _pauseToggleAction.action != null)
         {
-            return _pauseToggleAction.action.WasPerformedThisFrame();
+            if (_pauseToggleAction.action.WasPerformedThisFrame())
+            {
+                return true;
+            }
         }
 
         if (_useEscapeFallback)

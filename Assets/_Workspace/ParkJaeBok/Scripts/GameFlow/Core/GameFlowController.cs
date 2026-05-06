@@ -132,42 +132,9 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     public bool IsPlayerSpawnAllowedScene(string sceneName)
     {
-        if (string.IsNullOrWhiteSpace(sceneName))
+        if (TryResolveSceneFlowState(sceneName, out GameFlowState flowState))
         {
-            return false;
-        }
-
-        if (MatchesSceneName(sceneName, _titleSceneName))
-        {
-            return false;
-        }
-
-        if (MatchesSceneName(sceneName, _defaultNewGameSceneName)
-            || MatchesSceneName(sceneName, _singlePlayerStartSceneName)
-            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName))
-            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName)))
-        {
-            return true;
-        }
-
-        if (_stageCatalog == null || _stageCatalog.Stages == null)
-        {
-            return false;
-        }
-
-        IReadOnlyList<StageDefinition> stages = _stageCatalog.Stages; // 인게임 스테이지 씬 이름 매칭에 사용할 StageCatalog 목록입니다.
-        for (int index = 0; index < stages.Count; index++)
-        {
-            StageDefinition stageDefinition = stages[index]; // 현재 인게임 씬 이름을 비교할 스테이지 정의입니다.
-            if (stageDefinition == null)
-            {
-                continue;
-            }
-
-            if (MatchesSceneName(sceneName, stageDefinition.SceneName))
-            {
-                return true;
-            }
+            return flowState == GameFlowState.Town || flowState == GameFlowState.StagePlaying;
         }
 
         return false;
@@ -833,6 +800,18 @@ public class GameFlowController : MonoBehaviour
     /// </summary>
     private void HandleBeforeSceneLoad(string sceneName)
     {
+        if (_activeSceneLoadEpochId <= 0 || string.IsNullOrWhiteSpace(_activeSceneLoadSceneName))
+        {
+            if (!TryResolveSceneFlowState(sceneName, out GameFlowState resolvedLoadedState))
+            {
+                LogWarning($"외부 씬 전환 목표 상태를 해석하지 못해 GameFlow 전환을 건너뜁니다. scene={sceneName}");
+                return;
+            }
+
+            _pendingLoadedState = resolvedLoadedState;
+            BeginFlowEpoch(sceneName, "SceneTransitionService.ExternalBeforeSceneLoad");
+        }
+
         _stateMachine?.DispatchEvent(new GameFlowEvent(GameFlowEventType.SceneLoadStarted, "SceneTransitionService.OnBeforeSceneLoad", sceneName));
 
         bool moved = _stateMachine != null && _stateMachine.TryTransitionTo(GameFlowState.StageLoading, "SceneLoadStarted");
@@ -1222,6 +1201,59 @@ public class GameFlowController : MonoBehaviour
         {
             GameFlowLogger.Info($"FlowEpoch advanced. epoch={_flowEpochId}, scene={sceneName}, reason={reason}", this);
         }
+    }
+
+    /// <summary>
+    /// 직접 요청이 아닌 NGO 수신 씬 전환에서도 씬 이름 기준으로 로드 완료 후 목표 상태를 해석합니다.
+    /// </summary>
+    private bool TryResolveSceneFlowState(string sceneName, out GameFlowState flowState)
+    {
+        flowState = GameFlowState.Boot;
+
+        if (MatchesSceneName(sceneName, _titleSceneName))
+        {
+            flowState = GameFlowState.Title;
+            return true;
+        }
+
+        if (_stageCatalog != null && _stageCatalog.TryGetTownStage(out StageDefinition townStage) && townStage != null)
+        {
+            if (MatchesSceneName(sceneName, townStage.SceneName))
+            {
+                flowState = GameFlowState.Town;
+                return true;
+            }
+        }
+
+        if (MatchesSceneName(sceneName, _defaultNewGameSceneName)
+            || MatchesSceneName(sceneName, _singlePlayerStartSceneName)
+            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerHostStartSceneName))
+            || MatchesSceneName(sceneName, ResolveMultiplayerStartSceneName(_multiplayerClientStartSceneName)))
+        {
+            flowState = GameFlowState.Town;
+            return true;
+        }
+
+        if (_stageCatalog != null && _stageCatalog.Stages != null)
+        {
+            IReadOnlyList<StageDefinition> stages = _stageCatalog.Stages; // 씬 이름과 매칭할 StageCatalog 목록입니다.
+            for (int index = 0; index < stages.Count; index++)
+            {
+                StageDefinition stageDefinition = stages[index]; // 현재 비교 대상 스테이지 정의입니다.
+                if (stageDefinition == null)
+                {
+                    continue;
+                }
+
+                if (MatchesSceneName(sceneName, stageDefinition.SceneName))
+                {
+                    flowState = GameFlowState.StagePlaying;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -1,5 +1,5 @@
 using System.Threading.Tasks;
-using UnityEngine;
+using Unity.Netcode;
 
 /// <summary>
 /// Pause 버튼 입력으로 시작되는 게임 흐름 제어를 모드별로 위임하는 Coordinator입니다.
@@ -9,8 +9,9 @@ public sealed class PauseFlowCoordinator
     private readonly GameFlowController _gameFlowController; // 현재 플레이 모드와 공통 흐름 API를 조회할 GameFlowController 참조입니다.
     private readonly SinglePlayerPauseService _singlePlayerPauseService; // 싱글플레이 Pause 상태 제어를 위임할 서비스 참조입니다.
     private readonly MultiplayerSessionOrchestrator _multiplayerSessionOrchestrator; // 멀티플레이 세션 종료/이탈 흐름을 위임할 오케스트레이터 참조입니다.
+    private readonly object _multiplayerPauseGameplayInputBlocker = new object(); // 멀티플레이 로컬 Pause 중 Gameplay 입력만 차단하기 위한 고유 토큰입니다.
     private bool _isMultiplayerPauseOpened; // 멀티플레이 로컬 Pause 패널 열림 상태를 추적하는 런타임 플래그입니다.
-    private bool _wasLocalPlayerInputEnabledBeforeMultiplayerPause = true; // 멀티 Pause 진입 전 로컬 PlayerInput 활성 상태를 복원하기 위해 저장하는 런타임 값입니다.
+    private bool _isMultiplayerGameplayInputBlocked; // 멀티플레이 Pause 입력 차단 토큰 등록 여부를 추적하는 런타임 플래그입니다.
 
     /// <summary>
     /// Pause 흐름 제어에 필요한 서비스 의존성을 주입합니다.
@@ -30,25 +31,17 @@ public sealed class PauseFlowCoordinator
     /// </summary>
     public bool CanOpenPausePanel()
     {
-        if (_gameFlowController == null)
-        {
-            return false;
-        }
+        E_GamePlayMode playMode = ResolveEffectivePlayMode(); // GameFlow와 NGO 런타임 상태를 합쳐 판정한 실제 플레이 모드입니다.
 
-        if (_gameFlowController.CurrentState != GameFlowState.Town
-            && _gameFlowController.CurrentState != GameFlowState.StagePlaying)
-        {
-            return false;
-        }
-
-        if (_gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer)
+        if (playMode == E_GamePlayMode.SinglePlayer)
         {
             return _singlePlayerPauseService != null && _singlePlayerPauseService.CanPauseNow();
         }
 
-        if (IsMultiplayerMode(_gameFlowController.CurrentPlayMode))
+        if (IsMultiplayerMode(playMode))
         {
-            return true;
+            return _gameFlowController != null
+                && (_gameFlowController.CurrentState == GameFlowState.Town || _gameFlowController.CurrentState == GameFlowState.StagePlaying);
         }
 
         return false;
@@ -59,17 +52,14 @@ public sealed class PauseFlowCoordinator
     /// </summary>
     public bool IsPaused()
     {
-        if (_gameFlowController == null)
-        {
-            return false;
-        }
+        E_GamePlayMode playMode = ResolveEffectivePlayMode(); // GameFlow와 NGO 런타임 상태를 합쳐 판정한 실제 플레이 모드입니다.
 
-        if (_gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer)
+        if (playMode == E_GamePlayMode.SinglePlayer)
         {
             return _singlePlayerPauseService != null && _singlePlayerPauseService.IsPaused;
         }
 
-        if (IsMultiplayerMode(_gameFlowController.CurrentPlayMode))
+        if (IsMultiplayerMode(playMode))
         {
             return _isMultiplayerPauseOpened;
         }
@@ -82,24 +72,21 @@ public sealed class PauseFlowCoordinator
     /// </summary>
     public bool TryOpenPause(string reason)
     {
-        if (_gameFlowController == null)
-        {
-            return false;
-        }
+        E_GamePlayMode playMode = ResolveEffectivePlayMode(); // GameFlow와 NGO 런타임 상태를 합쳐 판정한 실제 플레이 모드입니다.
 
-        if (_gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer)
+        if (playMode == E_GamePlayMode.SinglePlayer)
         {
             return _singlePlayerPauseService != null && _singlePlayerPauseService.TryEnterPause(reason);
         }
 
-        if (IsMultiplayerMode(_gameFlowController.CurrentPlayMode))
+        if (IsMultiplayerMode(playMode))
         {
             if (_isMultiplayerPauseOpened)
             {
                 return true;
             }
 
-            SetLocalPlayerInputPaused(true);
+            SetMultiplayerGameplayInputBlocked(true);
             _isMultiplayerPauseOpened = true;
             return true;
         }
@@ -112,19 +99,16 @@ public sealed class PauseFlowCoordinator
     /// </summary>
     public bool TryResume(string reason)
     {
-        if (_gameFlowController == null)
-        {
-            return false;
-        }
+        E_GamePlayMode playMode = ResolveEffectivePlayMode(); // GameFlow와 NGO 런타임 상태를 합쳐 판정한 실제 플레이 모드입니다.
 
-        if (_gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer)
+        if (playMode == E_GamePlayMode.SinglePlayer)
         {
             return _singlePlayerPauseService != null && _singlePlayerPauseService.TryResume(reason);
         }
 
-        if (IsMultiplayerMode(_gameFlowController.CurrentPlayMode))
+        if (IsMultiplayerMode(playMode))
         {
-            SetLocalPlayerInputPaused(false);
+            SetMultiplayerGameplayInputBlocked(false);
             _isMultiplayerPauseOpened = false;
             return true;
         }
@@ -137,13 +121,15 @@ public sealed class PauseFlowCoordinator
     /// </summary>
     public async Task<bool> ReturnToMainMenuAsync()
     {
-        if (_gameFlowController == null)
-        {
-            return false;
-        }
+        E_GamePlayMode playMode = ResolveEffectivePlayMode(); // GameFlow와 NGO 런타임 상태를 합쳐 판정한 실제 플레이 모드입니다.
 
-        if (_gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer)
+        if (playMode == E_GamePlayMode.SinglePlayer)
         {
+            if (_gameFlowController == null)
+            {
+                return false;
+            }
+
             if (_singlePlayerPauseService != null)
             {
                 _singlePlayerPauseService.ForceResume("Pause.ReturnToMainMenu");
@@ -152,9 +138,10 @@ public sealed class PauseFlowCoordinator
             return _gameFlowController.RequestExit(true);
         }
 
-        if (IsMultiplayerMode(_gameFlowController.CurrentPlayMode))
+        if (IsMultiplayerMode(playMode))
         {
             _isMultiplayerPauseOpened = false;
+            SetMultiplayerGameplayInputBlocked(false);
             if (_multiplayerSessionOrchestrator == null)
             {
                 return false;
@@ -171,29 +158,62 @@ public sealed class PauseFlowCoordinator
     /// </summary>
     public void ForceClearPauseState(string reason)
     {
-        SetLocalPlayerInputPaused(false);
+        SetMultiplayerGameplayInputBlocked(false);
         _isMultiplayerPauseOpened = false;
         _singlePlayerPauseService?.ForceResume(reason);
     }
 
     /// <summary>
-    /// 멀티플레이 Pause 열림/해제 상태에 맞춰 로컬 PlayerInput 활성 여부를 제어합니다.
+    /// PlayerInput 컴포넌트 상태는 건드리지 않고 멀티플레이 로컬 Gameplay 입력 값만 차단합니다.
     /// </summary>
-    private void SetLocalPlayerInputPaused(bool isPaused)
+    private void SetMultiplayerGameplayInputBlocked(bool isBlocked)
     {
-        if (InputManager.PlayerInput == null)
+        if (isBlocked)
+        {
+            if (_isMultiplayerGameplayInputBlocked)
+            {
+                return;
+            }
+
+            InputManager.AddGameplayInputBlocker(_multiplayerPauseGameplayInputBlocker);
+            _isMultiplayerGameplayInputBlocked = true;
+            return;
+        }
+
+        if (!_isMultiplayerGameplayInputBlocked)
         {
             return;
         }
 
-        if (isPaused)
+        InputManager.RemoveGameplayInputBlocker(_multiplayerPauseGameplayInputBlocker);
+        _isMultiplayerGameplayInputBlocked = false;
+    }
+
+    /// <summary>
+    /// GameFlow 상태가 늦게 동기화된 Client에서도 NGO 런타임 상태로 실제 플레이 모드를 보정합니다.
+    /// </summary>
+    private E_GamePlayMode ResolveEffectivePlayMode()
+    {
+        if (_gameFlowController != null && IsMultiplayerMode(_gameFlowController.CurrentPlayMode))
         {
-            _wasLocalPlayerInputEnabledBeforeMultiplayerPause = InputManager.PlayerInput.enabled;
-            InputManager.PlayerInput.enabled = false;
-            return;
+            return _gameFlowController.CurrentPlayMode;
         }
 
-        InputManager.PlayerInput.enabled = _wasLocalPlayerInputEnabledBeforeMultiplayerPause;
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 로컬 피어의 NGO 연결 상태를 확인할 NetworkManager 참조입니다.
+        if (networkManager != null && networkManager.IsListening)
+        {
+            if (networkManager.IsServer)
+            {
+                return E_GamePlayMode.MultiplayerHost;
+            }
+
+            if (networkManager.IsClient)
+            {
+                return E_GamePlayMode.MultiplayerClient;
+            }
+        }
+
+        return _gameFlowController != null ? _gameFlowController.CurrentPlayMode : E_GamePlayMode.SinglePlayer;
     }
 
     /// <summary>
