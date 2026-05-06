@@ -150,6 +150,7 @@ MonoBehaviour:
     _activeSeconds: 20
     _weakPointTimeLimit: 20
     _weakPointTimeLimitDamage: 200
+    _weakPointTimeLimitDamageStatusTag: 
     _entryAnimationFallbackSeconds: 0
     _groggyDurationSeconds: 10
     _incomingDamageMultiplier: 0
