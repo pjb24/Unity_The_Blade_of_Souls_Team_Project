@@ -50,6 +50,15 @@ public class AudioManager : MonoBehaviour
     [SerializeField]
     private AnimationCurve _sfxCustomRolloffCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f); // Custom Rolloff 모드에서 사용할 감쇠 커브
 
+    [Header("SFX World Position")]
+    [SerializeField]
+    [Tooltip("SFX를 AudioListener가 붙은 카메라와 같은 z 값 선상에서 재생할지 여부입니다.")]
+    private bool _alignSfxPositionZToAudioListenerCamera = true; // SFX 재생 위치의 z 값을 AudioListener 카메라 z 값으로 보정할지 여부입니다.
+
+    [SerializeField]
+    [Tooltip("SFX z 위치 기준으로 사용할 AudioListener 카메라입니다. 비워두면 활성 AudioListener를 자동 탐색합니다.")]
+    private Camera _audioListenerCameraOverride; // SFX z 위치 기준으로 우선 사용할 AudioListener 카메라 참조입니다.
+
     [Header("Volume")]
     [SerializeField]
     [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 마스터 볼륨입니다.")]
@@ -70,6 +79,8 @@ public class AudioManager : MonoBehaviour
     private readonly Dictionary<AudioSource, float> _sfxBaseVolumeBySource = new Dictionary<AudioSource, float>(); // 각 SFX Source의 원본 볼륨 캐시
     private readonly Dictionary<AudioSource, ActiveSfxPlayback> _activeSfxBySource = new Dictionary<AudioSource, ActiveSfxPlayback>(); // 각 AudioSource에서 현재 재생 중인 SFX 메타데이터 캐시
     private readonly Dictionary<SfxCooldownKey, float> _sfxCooldownUntil = new Dictionary<SfxCooldownKey, float>(); // SoundId + 발신자 단위 다음 재생 가능 시간
+
+    private Transform _sfxSourceRoot; // SFX AudioSource 풀 오브젝트를 월드 스페이스에 유지하기 위한 루트 Transform입니다.
 
     private readonly AudioSource[] _bgmSources = new AudioSource[2]; // 크로스페이드를 위한 BGM 2채널
     private readonly float[] _bgmMixWeights = new float[2] { 1f, 0f }; // 각 BGM 소스의 페이드 가중치
@@ -98,7 +109,6 @@ public class AudioManager : MonoBehaviour
         public readonly E_SoundId SoundId; // 현재 AudioSource에 할당된 사운드 ID
         public readonly int EmitterKey; // 현재 AudioSource에 할당된 발신자 식별 키
         public readonly bool IsLoop; // 현재 AudioSource가 루프 재생 중인지 여부
-
         public ActiveSfxPlayback(E_SoundId soundId, int emitterKey, bool isLoop)
         {
             SoundId = soundId;
@@ -221,6 +231,12 @@ public class AudioManager : MonoBehaviour
     private void OnDestroy()
     {
         UnsubscribeOptionManagerChanges();
+
+        if (_sfxSourceRoot != null)
+        {
+            Destroy(_sfxSourceRoot.gameObject);
+            _sfxSourceRoot = null;
+        }
     }
 
     /// <summary>
@@ -338,11 +354,40 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// SFX AudioSource 풀을 담을 월드 스페이스 루트를 반환하고 없으면 생성합니다.
+    /// </summary>
+    private Transform ResolveSfxSourceRoot()
+    {
+        if (_sfxSourceRoot != null)
+        {
+            return _sfxSourceRoot;
+        }
+
+        GameObject rootObject = new GameObject($"{name}_SfxWorldSources");
+        rootObject.transform.position = Vector3.zero;
+        rootObject.transform.rotation = Quaternion.identity;
+        rootObject.transform.localScale = Vector3.one;
+
+        if (_dontDestroyOnLoad)
+        {
+            DontDestroyOnLoad(rootObject);
+        }
+
+        _sfxSourceRoot = rootObject.transform;
+        return _sfxSourceRoot;
+    }
+
+    /// <summary>
     /// SFX 재생용 AudioSource 하나를 생성하여 풀에 추가한다.
     /// </summary>
     private AudioSource CreateSfxSource()
     {
-        AudioSource source = gameObject.AddComponent<AudioSource>();
+        Transform sourceRoot = ResolveSfxSourceRoot(); // SFX 소스를 월드 스페이스 오브젝트로 묶어 관리하는 루트입니다.
+        GameObject sourceObject = new GameObject($"SfxSource_{_sfxSources.Count:00}");
+        sourceObject.transform.SetParent(sourceRoot, false);
+        sourceObject.transform.position = ResolveSfxPlaybackPosition(false, Vector3.zero);
+
+        AudioSource source = sourceObject.AddComponent<AudioSource>();
         source.playOnAwake = false;
         source.loop = false;
         source.dopplerLevel = 0f;
@@ -373,10 +418,65 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 요청된 SFX 위치를 월드 좌표로 확정하고 AudioListener 카메라 z 선상에 맞춥니다.
+    /// </summary>
+    private Vector3 ResolveSfxPlaybackPosition(bool useWorldPosition, Vector3 worldPosition)
+    {
+        Vector3 resolvedPosition = useWorldPosition ? worldPosition : transform.position; // SFX가 실제로 재생될 월드 좌표입니다.
+
+        if (_alignSfxPositionZToAudioListenerCamera == false)
+        {
+            return resolvedPosition;
+        }
+
+        Transform audioListenerTransform = ResolveAudioListenerTransform();
+        if (audioListenerTransform != null)
+        {
+            resolvedPosition.z = audioListenerTransform.position.z;
+        }
+
+        return resolvedPosition;
+    }
+
+    /// <summary>
+    /// SFX z 위치 기준으로 사용할 AudioListener Transform을 반환합니다.
+    /// </summary>
+    private Transform ResolveAudioListenerTransform()
+    {
+        if (_audioListenerCameraOverride != null && _audioListenerCameraOverride.GetComponent<AudioListener>() != null)
+        {
+            return _audioListenerCameraOverride.transform;
+        }
+
+        AudioListener audioListener = FindAnyObjectByType<AudioListener>(); // 현재 씬에서 활성화된 AudioListener를 자동 탐색한 결과입니다.
+        return audioListener != null ? audioListener.transform : null;
+    }
+
+    /// <summary>
+    /// SFX AudioSource를 재생 대상 Transform의 자식으로 붙이고 최종 월드 위치를 적용합니다.
+    /// </summary>
+    private void AttachSfxSourceToPlaybackParent(AudioSource source, Transform emitterTransform, Vector3 playbackPosition)
+    {
+        Transform playbackParent = emitterTransform != null ? emitterTransform : ResolveSfxSourceRoot(); // SFX 오브젝트를 따라가게 할 부모 Transform입니다.
+        source.transform.SetParent(playbackParent, true);
+        source.transform.position = playbackPosition;
+    }
+
+    /// <summary>
     /// 사용 가능한 SFX 소스를 조회하고 없으면 풀을 확장하거나 임시 소스를 생성한다.
     /// </summary>
     private AudioSource GetAvailableSfxSource()
     {
+        for (int i = _sfxSources.Count - 1; i >= 0; i--)
+        {
+            if (_sfxSources[i] != null)
+            {
+                continue;
+            }
+
+            _sfxSources.RemoveAt(i);
+        }
+
         for (int i = 0; i < _sfxSources.Count; i++)
         {
             if (_sfxSources[i].isPlaying == false)
@@ -401,7 +501,8 @@ public class AudioManager : MonoBehaviour
     private AudioSource CreateTemporarySfxSource()
     {
         GameObject temporaryObject = new GameObject("TempSfxSource");
-        temporaryObject.transform.SetParent(transform, false);
+        temporaryObject.transform.SetParent(ResolveSfxSourceRoot(), false);
+        temporaryObject.transform.position = ResolveSfxPlaybackPosition(false, Vector3.zero);
 
         AudioSource source = temporaryObject.AddComponent<AudioSource>();
         source.playOnAwake = false;
@@ -426,6 +527,7 @@ public class AudioManager : MonoBehaviour
         source.Stop();
         source.clip = null;
         source.loop = false;
+        AttachSfxSourceToPlaybackParent(source, null, ResolveSfxPlaybackPosition(false, Vector3.zero));
         _activeSfxBySource.Remove(source);
         Debug.LogWarning($"[AudioManager] SFX pool max reached. Reusing pooled source instead of creating temporary GameObject. max={_maxSfxPoolSize}", this);
         return source;
@@ -436,7 +538,7 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void PlaySfx(E_SoundId soundId)
     {
-        PlaySfxInternal(soundId, false, Vector3.zero, 0);
+        PlaySfxInternal(soundId, false, Vector3.zero, null, 0);
     }
 
     /// <summary>
@@ -444,7 +546,7 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void PlaySfx(E_SoundId soundId, Vector3 worldPosition)
     {
-        PlaySfxInternal(soundId, true, worldPosition, 0);
+        PlaySfxInternal(soundId, true, worldPosition, null, 0);
     }
 
     /// <summary>
@@ -459,7 +561,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        PlaySfxInternal(soundId, true, emitterTransform.position, emitterTransform.GetInstanceID());
+        PlaySfxInternal(soundId, true, emitterTransform.position, emitterTransform, emitterTransform.GetInstanceID());
     }
 
     /// <summary>
@@ -475,7 +577,7 @@ public class AudioManager : MonoBehaviour
     /// <summary>
     /// SFX 재생 준비(쿨다운/피치/볼륨/위치 적용)를 수행하고 재생한다.
     /// </summary>
-    private void PlaySfxInternal(E_SoundId soundId, bool useWorldPosition, Vector3 worldPosition, int emitterKey)
+    private void PlaySfxInternal(E_SoundId soundId, bool useWorldPosition, Vector3 worldPosition, Transform emitterTransform, int emitterKey)
     {
         if (TryGetEntry(soundId, out SoundEntry entry) == false)
         {
@@ -497,14 +599,7 @@ public class AudioManager : MonoBehaviour
         ConfigureSfxSourceSpatialSettings(source);
         _activeSfxBySource.Remove(source);
 
-        if (useWorldPosition)
-        {
-            source.transform.position = worldPosition;
-        }
-        else
-        {
-            source.transform.position = transform.position;
-        }
+        AttachSfxSourceToPlaybackParent(source, emitterTransform, ResolveSfxPlaybackPosition(useWorldPosition, worldPosition));
 
         source.Stop();
         source.clip = entry.Clip;
@@ -563,6 +658,7 @@ public class AudioManager : MonoBehaviour
             AudioSource source = sourcesToStop[i];
             source.Stop();
             _activeSfxBySource.Remove(source);
+            AttachSfxSourceToPlaybackParent(source, null, ResolveSfxPlaybackPosition(false, Vector3.zero));
 
             if (_sfxSources.Contains(source) == false)
             {
