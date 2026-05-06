@@ -10,4 +10,5 @@ public enum E_MovementLockReason
     Stun = 4,
     Cutscene = 5,
     UI = 6,
+    Ending = 7,
 }

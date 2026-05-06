@@ -1020,6 +1020,7 @@ GameObject:
   - component: {fileID: 163308252279486875}
   - component: {fileID: 4748036699083423920}
   - component: {fileID: 1300781294778279737}
+  - component: {fileID: 140233643245463046}
   m_Layer: 8
   m_Name: Boss Root
   m_TagString: Enemy
@@ -1428,6 +1429,27 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 3.0490742, y: 3.4632483}
   m_EdgeRadius: 0
+--- !u!114 &140233643245463046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a45940f8a8c50f84cb212ac4379f6fe3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossEndingSequenceController
+  ShowTopMostFoldoutHeaderGroup: 1
+  _bossHealthComponent: {fileID: 7499435228633890958}
+  _endingPanelView: {fileID: 0}
+  _endingUiDelaySeconds: 3
+  _useUnscaledDelayTime: 1
+  _blockGameplayInput: 1
+  _lockLocalPlayerMovement: 1
+  _clearHorizontalVelocityOnLock: 1
+  _warnMissingReferences: 1
 --- !u!1 &8075390241886384120
 GameObject:
   m_ObjectHideFlags: 0
