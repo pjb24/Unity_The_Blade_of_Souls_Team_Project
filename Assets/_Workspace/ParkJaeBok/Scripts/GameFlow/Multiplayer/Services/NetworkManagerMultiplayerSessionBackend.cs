@@ -282,6 +282,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
         {
             TrySpawnMissingPlayerObject(networkManager, connectedClientIds[index]);
             TryApplySpawnToExistingPlayerObject(networkManager, connectedClientIds[index]);
+            StartCoroutine(AlignClientSpawnWhenReadyRoutine(connectedClientIds[index]));
         }
     }
 
@@ -309,7 +310,7 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
             return;
         }
 
-        if (clientId == NetworkManager.ServerClientId && TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator))
+        if (TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator))
         {
             spawnCoordinator.TrySpawnPlayerObject(networkManager, _playerPrefab, clientId);
             return;
@@ -509,23 +510,21 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
     /// <summary>
     /// 이미 존재하는 PlayerObject를 슬롯 규칙 위치로 서버 권한에서 정렬합니다.
     /// </summary>
-    private void TryApplySpawnToExistingPlayerObject(NetworkManager networkManager, ulong clientId)
+    private bool TryApplySpawnToExistingPlayerObject(NetworkManager networkManager, ulong clientId)
     {
-        if (networkManager != null && clientId != NetworkManager.ServerClientId)
-        {
-            return;
-        }
-
         if (!TryResolveSpawnCoordinator(out PlayerSpawnCoordinator spawnCoordinator))
         {
             Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] PlayerSpawnCoordinator 누락으로 위치 정렬을 건너뜁니다. clientId={clientId}", this);
-            return;
+            return false;
         }
 
         if (!spawnCoordinator.TryApplySpawnToExistingPlayerObject(networkManager, clientId))
         {
             Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] 서버 권한 위치 정렬 실패. clientId={clientId}", this);
+            return false;
         }
+
+        return true;
     }
 
     /// <summary>
@@ -555,8 +554,12 @@ public class NetworkManagerMultiplayerSessionBackend : MonoBehaviour, IMultiplay
                 continue;
             }
 
-            TryApplySpawnToExistingPlayerObject(networkManager, clientId);
-            yield break;
+            if (TryApplySpawnToExistingPlayerObject(networkManager, clientId))
+            {
+                yield break;
+            }
+
+            yield return new WaitForSecondsRealtime(safeRetryInterval);
         }
 
         Debug.LogWarning($"[NetworkManagerMultiplayerSessionBackend] 재시도 내에 Client 스폰 정렬을 완료하지 못했습니다. clientId={clientId}", this);

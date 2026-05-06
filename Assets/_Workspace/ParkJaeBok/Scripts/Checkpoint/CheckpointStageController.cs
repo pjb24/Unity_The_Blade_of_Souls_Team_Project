@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -873,7 +874,44 @@ public class CheckpointStageController : NetworkBehaviour
         NetworkObject playerNetworkObject = playerObject.GetComponent<NetworkObject>();
         ulong clientId = playerNetworkObject != null ? playerNetworkObject.OwnerClientId : NetworkManager.ServerClientId;
         Transform respawnPoint = checkpoint.ResolveRespawnPoint(NetworkManager.Singleton, clientId);
-        playerObject.transform.SetPositionAndRotation(respawnPoint.position, respawnPoint.rotation);
+        ApplyNetworkAwareTeleport(playerObject, playerNetworkObject, respawnPoint.position, respawnPoint.rotation);
+    }
+
+    /// <summary>
+    /// 네트워크 플레이어는 NetworkTransform 텔레포트로, 싱글플레이 플레이어는 Transform 직접 변경으로 리스폰 위치를 적용합니다.
+    /// </summary>
+    private void ApplyNetworkAwareTeleport(GameObject playerObject, NetworkObject playerNetworkObject, Vector3 position, Quaternion rotation)
+    {
+        Transform playerTransform = playerObject.transform; // 위치를 확정할 플레이어 Transform입니다.
+        if (playerObject.TryGetComponent(out PlayerNetworkRoot playerNetworkRoot)
+            && playerNetworkRoot.TryApplySpawnPoseByAuthority(position, rotation, "CheckpointStageController"))
+        {
+            return;
+        }
+
+        if (playerNetworkObject != null
+            && playerNetworkObject.IsSpawned
+            && playerObject.TryGetComponent(out NetworkTransform networkTransform)
+            && CanTeleportNetworkTransform(playerNetworkObject, networkTransform))
+        {
+            networkTransform.Teleport(position, rotation, playerTransform.localScale);
+            return;
+        }
+
+        playerTransform.SetPositionAndRotation(position, rotation);
+    }
+
+    /// <summary>
+    /// PlayerNetworkRoot가 없는 예외적인 플레이어에서도 NetworkTransform 권한자만 텔레포트하도록 판정합니다.
+    /// </summary>
+    private bool CanTeleportNetworkTransform(NetworkObject playerNetworkObject, NetworkTransform networkTransform)
+    {
+        if (networkTransform.IsServerAuthoritative())
+        {
+            return NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+        }
+
+        return playerNetworkObject.IsOwner;
     }
 
     /// <summary>

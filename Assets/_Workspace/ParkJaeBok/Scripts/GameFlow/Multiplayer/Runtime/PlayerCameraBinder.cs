@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Reflection;
 using Unity.Netcode;
 using UnityEngine;
@@ -27,6 +28,20 @@ public class PlayerCameraBinder : NetworkBehaviour
     [Tooltip("비어 있지 않으면 컴포넌트 타입 이름에 이 문자열이 포함된 Cinemachine 컴포넌트만 바인딩 대상으로 사용합니다.")]
     [SerializeField] private string _componentTypeNameFilter; // 카메라 컴포넌트 탐색 시 타입 이름 필터링에 사용할 문자열입니다.
 
+    [Tooltip("씬 로드 직후 카메라 오브젝트 생성 순서 차이를 흡수하기 위한 재바인딩 재시도 횟수입니다.")]
+    [Min(1)]
+    [SerializeField] private int _sceneRebindRetryCount = 30; // 씬 전환 직후 Cinemachine 카메라 준비 지연을 흡수할 재바인딩 재시도 횟수입니다.
+
+    [Tooltip("씬 로드 직후 카메라 재바인딩 재시도 간격(초)입니다.")]
+    [Min(0.01f)]
+    [SerializeField] private float _sceneRebindRetryInterval = 0.1f; // 카메라 재바인딩 재시도 사이에 대기할 시간입니다.
+
+    [Tooltip("켜져 있으면 현재 활성 씬에 있는 Cinemachine 컴포넌트만 바인딩합니다.")]
+    [SerializeField] private bool _bindOnlyActiveSceneCameras = true; // 이전 씬 또는 DontDestroyOnLoad 카메라가 새 씬 바인딩을 가로채지 않도록 제한하는 설정입니다.
+
+    [Tooltip("타겟을 바인딩한 뒤 Cinemachine의 이전 카메라 상태를 무효화해 체크포인트 이동 직후에도 즉시 새 타겟을 보게 합니다.")]
+    [SerializeField] private bool _invalidateCinemachinePreviousStateOnBind = true; // 원거리 체크포인트 진입 시 이전 카메라 상태가 추적을 지연시키지 않도록 하는 설정입니다.
+
     [Header("Debug")]
     [Tooltip("카메라 바인딩 상세 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseLogging; // 카메라 바인딩 성공/실패 상세 로그 출력 여부를 제어하는 플래그입니다.
@@ -36,6 +51,8 @@ public class PlayerCameraBinder : NetworkBehaviour
 
     private bool _isSceneLoadedHookRegistered; // sceneLoaded 콜백 등록 상태를 추적하는 런타임 플래그입니다.
     private GameFlowController _cachedGameFlowController; // 싱글플레이 모드 판별에 사용할 GameFlowController 캐시 참조입니다.
+
+    private Coroutine _sceneRebindRoutine; // 씬 로드 직후 진행 중인 카메라 재바인딩 코루틴입니다.
 
     /// <summary>
     /// 가장 최근 바인딩 시도에서 카메라 타깃 바인딩 성공 여부를 조회합니다.
@@ -52,7 +69,7 @@ public class PlayerCameraBinder : NetworkBehaviour
             return;
         }
 
-        BindCameraToOwnerTarget();
+        StartCameraRebindRoutine();
 
         if (_rebindOnSceneLoaded)
         {
@@ -70,7 +87,7 @@ public class PlayerCameraBinder : NetworkBehaviour
             return;
         }
 
-        BindCameraToOwnerTarget();
+        StartCameraRebindRoutine();
 
         if (_rebindOnSceneLoaded)
         {
@@ -83,6 +100,16 @@ public class PlayerCameraBinder : NetworkBehaviour
     /// </summary>
     public override void OnNetworkDespawn()
     {
+        StopCameraRebindRoutine();
+        UnregisterSceneLoadedHook();
+    }
+
+    /// <summary>
+    /// 鍮꾪솢?깊솕 ??吏꾪뻾 以묒씤 移대찓???щ컮?몃뵫怨????濡쒕뱶 肄쒕갚???뺣━?⑸땲??
+    /// </summary>
+    private void OnDisable()
+    {
+        StopCameraRebindRoutine();
         UnregisterSceneLoadedHook();
     }
 
@@ -103,15 +130,77 @@ public class PlayerCameraBinder : NetworkBehaviour
             return;
         }
 
-        BindCameraToOwnerTarget();
+        StartCameraRebindRoutine();
+    }
+
+    /// <summary>
+    /// ???移대찓??以鍮???대컢???≪닔?섍린 ?꾪빐 移대찓???щ컮?몃뵫 猷⑦떞???쒖옉?⑸땲??
+    /// </summary>
+    private void StartCameraRebindRoutine()
+    {
+        StopCameraRebindRoutine();
+        _sceneRebindRoutine = StartCoroutine(CameraRebindRoutine());
+    }
+
+    /// <summary>
+    /// 吏꾪뻾 以묒씤 移대찓???щ컮?몃뵫 猷⑦떞??以묐떒?⑸땲??
+    /// </summary>
+    private void StopCameraRebindRoutine()
+    {
+        if (_sceneRebindRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(_sceneRebindRoutine);
+        _sceneRebindRoutine = null;
+    }
+
+    /// <summary>
+    /// Cinemachine 移대찓?쇨? ???꾪솚 吏곹썑 ?먮뒦寃??앹꽦?섎뒗 寃쎌슦源뚯? 濡쒖뺄 ?뚮젅?댁뼱 ?寃잛쓣 諛붿씤?⑺빀?덈떎.
+    /// </summary>
+    private IEnumerator CameraRebindRoutine()
+    {
+        int safeRetryCount = Mathf.Max(1, _sceneRebindRetryCount); // 移대찓???щ컮?몃뵫 ?ъ떆???잛닔???섑븳媛믪엯?덈떎.
+        float safeRetryInterval = Mathf.Max(0.01f, _sceneRebindRetryInterval); // 移대찓???щ컮?몃뵫 ?ъ떆??媛꾧꺽???섑븳媛믪엯?덈떎.
+
+        for (int retryIndex = 0; retryIndex < safeRetryCount; retryIndex++)
+        {
+            if (IsSpawned && !IsOwner)
+            {
+                _sceneRebindRoutine = null;
+                yield break;
+            }
+
+            if (!IsSpawned && !ShouldUseSinglePlayerFallbackBinding())
+            {
+                _sceneRebindRoutine = null;
+                yield break;
+            }
+
+            if (BindCameraToOwnerTarget())
+            {
+                _sceneRebindRoutine = null;
+                yield break;
+            }
+
+            yield return new WaitForSecondsRealtime(safeRetryInterval);
+        }
+
+        if (_verboseLogging)
+        {
+            Debug.LogWarning($"[PlayerCameraBinder] Camera rebind retry failed. owner={OwnerClientId}, target={ResolveCameraTarget().name}", this);
+        }
+
+        _sceneRebindRoutine = null;
     }
 
     /// <summary>
     /// 현재 씬의 Cinemachine 관련 컴포넌트를 탐색해 로컬 플레이어 타깃으로 바인딩합니다.
     /// </summary>
-    private void BindCameraToOwnerTarget()
+    private bool BindCameraToOwnerTarget()
     {
-        Transform target = _cameraTarget != null ? _cameraTarget : transform; // 카메라 추적 대상으로 사용할 최종 Transform 참조입니다.
+        Transform target = ResolveCameraTarget(); // 카메라 추적 대상으로 사용할 최종 Transform 참조입니다.
         MonoBehaviour[] behaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None); // 씬에서 탐색한 MonoBehaviour 후보 목록입니다.
 
         int boundComponentCount = 0; // 이번 호출에서 실제 타깃 바인딩이 적용된 컴포넌트 수입니다.
@@ -119,6 +208,11 @@ public class PlayerCameraBinder : NetworkBehaviour
         {
             MonoBehaviour behaviour = behaviours[index]; // 현재 검사 중인 MonoBehaviour 후보입니다.
             if (behaviour == null)
+            {
+                continue;
+            }
+
+            if (!CanBindCameraComponentInCurrentScene(behaviour))
             {
                 continue;
             }
@@ -147,6 +241,7 @@ public class PlayerCameraBinder : NetworkBehaviour
 
             if (changed)
             {
+                InvalidateCinemachinePreviousState(behaviour);
                 boundComponentCount++;
             }
         }
@@ -157,6 +252,54 @@ public class PlayerCameraBinder : NetworkBehaviour
         }
 
         _hasBoundCameraTarget = boundComponentCount > 0;
+        return _hasBoundCameraTarget;
+    }
+
+    /// <summary>
+    /// Inspector에 지정된 타겟이 있으면 우선 사용하고, 없으면 플레이어 루트 Transform을 반환합니다.
+    /// </summary>
+    private Transform ResolveCameraTarget()
+    {
+        return _cameraTarget != null ? _cameraTarget : transform;
+    }
+
+    /// <summary>
+    /// 현재 활성 씬의 Cinemachine 컴포넌트만 바인딩 대상으로 사용할지 판정합니다.
+    /// </summary>
+    private bool CanBindCameraComponentInCurrentScene(MonoBehaviour behaviour)
+    {
+        if (!_bindOnlyActiveSceneCameras || behaviour == null)
+        {
+            return true;
+        }
+
+        return behaviour.gameObject.scene == SceneManager.GetActiveScene();
+    }
+
+    /// <summary>
+    /// Cinemachine의 이전 상태 캐시를 무효화해 체크포인트 진입 직후 새 타겟을 즉시 기준으로 사용하게 합니다.
+    /// </summary>
+    private void InvalidateCinemachinePreviousState(MonoBehaviour cinemachineComponent)
+    {
+        if (!_invalidateCinemachinePreviousStateOnBind || cinemachineComponent == null)
+        {
+            return;
+        }
+
+        Type componentType = cinemachineComponent.GetType(); // 이전 상태 플래그를 찾기 위한 Cinemachine 컴포넌트 타입입니다.
+        BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        PropertyInfo propertyInfo = componentType.GetProperty("PreviousStateIsValid", flags);
+        if (propertyInfo != null && propertyInfo.CanWrite && propertyInfo.PropertyType == typeof(bool))
+        {
+            propertyInfo.SetValue(cinemachineComponent, false);
+            return;
+        }
+
+        FieldInfo fieldInfo = componentType.GetField("PreviousStateIsValid", flags);
+        if (fieldInfo != null && fieldInfo.FieldType == typeof(bool))
+        {
+            fieldInfo.SetValue(cinemachineComponent, false);
+        }
     }
 
     /// <summary>

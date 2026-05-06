@@ -1,4 +1,5 @@
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -114,7 +115,11 @@ public class PlayerNetworkRoot : NetworkBehaviour
                 continue;
             }
 
-            transform.SetPositionAndRotation(resolvedPosition, resolvedRotation);
+            if (!TryApplySpawnPoseByAuthority(resolvedPosition, resolvedRotation, "PlayerNetworkRoot.AlignOwnerClientToClientSlotRoutine"))
+            {
+                yield return new WaitForSecondsRealtime(safeRetryInterval);
+                continue;
+            }
 
             if (_verboseLogging)
             {
@@ -130,6 +135,32 @@ public class PlayerNetworkRoot : NetworkBehaviour
     /// <summary>
     /// 씬 로딩 완료 시 Owner 플레이어를 현재 역할 슬롯 위치로 재정렬합니다.
     /// </summary>
+    /// <summary>
+    /// 호출한 피어의 권한에 맞는 방식으로 플레이어 위치를 적용하고, 원격 Owner 권한이면 Owner Client에 적용을 위임합니다.
+    /// </summary>
+    public bool TryApplySpawnPoseByAuthority(Vector3 position, Quaternion rotation, string reason)
+    {
+        if (!IsSpawned)
+        {
+            transform.SetPositionAndRotation(position, rotation);
+            return true;
+        }
+
+        if (CanApplyTransformLocally())
+        {
+            ApplyLocalSpawnPose(position, rotation);
+            return true;
+        }
+
+        if (ShouldDelegateSpawnPoseToOwner())
+        {
+            ApplyOwnerSpawnPoseRpc(position, rotation, reason);
+            return true;
+        }
+
+        return false;
+    }
+
     private void HandleSceneLoaded(Scene loadedScene, LoadSceneMode loadSceneMode)
     {
         if (!IsSpawned || !IsOwner)
@@ -139,6 +170,7 @@ public class PlayerNetworkRoot : NetworkBehaviour
 
         if (IsClient && !IsServer)
         {
+            RequestOwnerSceneSpawnAlignmentRpc(loadedScene.name);
             StartCoroutine(AlignOwnerClientToClientSlotRoutine());
             return;
         }
@@ -157,7 +189,7 @@ public class PlayerNetworkRoot : NetworkBehaviour
                 return;
             }
 
-            transform.SetPositionAndRotation(resolvedPosition, resolvedRotation);
+            TryApplySpawnPoseByAuthority(resolvedPosition, resolvedRotation, "PlayerNetworkRoot.HandleSceneLoaded.Host");
             return;
         }
 
@@ -168,5 +200,126 @@ public class PlayerNetworkRoot : NetworkBehaviour
         }
 
         transform.SetPositionAndRotation(singlePosition, singleRotation);
+    }
+
+    /// <summary>
+    /// Owner Client가 씬 로드 완료 후 서버에 체크포인트 기준 PlayerObject 정렬을 요청합니다.
+    /// </summary>
+    [Rpc(SendTo.Server)]
+    private void RequestOwnerSceneSpawnAlignmentRpc(string loadedSceneName, RpcParams rpcParams = default)
+    {
+        if (rpcParams.Receive.SenderClientId != OwnerClientId)
+        {
+            Debug.LogWarning($"[PlayerNetworkRoot] SceneLoaded 정렬 요청 송신자가 Owner가 아닙니다. sender={rpcParams.Receive.SenderClientId}, owner={OwnerClientId}", this);
+            return;
+        }
+
+        StartCoroutine(ApplyOwnerSceneSpawnAlignmentRoutine(rpcParams.Receive.SenderClientId, loadedSceneName));
+    }
+
+    /// <summary>
+    /// 서버가 Owner 권한 NetworkTransform을 가진 원격 Client에게 위치 적용을 위임합니다.
+    /// </summary>
+    [Rpc(SendTo.Owner)]
+    private void ApplyOwnerSpawnPoseRpc(Vector3 position, Quaternion rotation, string reason)
+    {
+        ApplyLocalSpawnPose(position, rotation);
+
+        if (_verboseLogging)
+        {
+            Debug.Log($"[PlayerNetworkRoot] Owner 권한 위치 적용 완료. ownerClientId={OwnerClientId}, pos={position}, reason={reason}", this);
+        }
+    }
+
+    /// <summary>
+    /// 현재 피어가 이 PlayerObject의 Transform을 직접 변경할 수 있는지 판정합니다.
+    /// </summary>
+    private bool CanApplyTransformLocally()
+    {
+        if (!IsSpawned)
+        {
+            return true;
+        }
+
+        if (!TryGetComponent(out NetworkTransform networkTransform))
+        {
+            return IsServer || IsOwner;
+        }
+
+        if (networkTransform.IsServerAuthoritative())
+        {
+            return IsServer;
+        }
+
+        return IsOwner;
+    }
+
+    /// <summary>
+    /// 서버가 원격 Owner 권한 NetworkTransform의 위치 적용을 Owner Client에 위임해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldDelegateSpawnPoseToOwner()
+    {
+        if (!IsSpawned || !IsServer || IsOwner)
+        {
+            return false;
+        }
+
+        if (!TryGetComponent(out NetworkTransform networkTransform))
+        {
+            return false;
+        }
+
+        return !networkTransform.IsServerAuthoritative();
+    }
+
+    /// <summary>
+    /// 로컬 권한이 있는 피어에서 NetworkTransform 또는 Transform에 위치를 실제 적용합니다.
+    /// </summary>
+    private void ApplyLocalSpawnPose(Vector3 position, Quaternion rotation)
+    {
+        if (TryGetComponent(out NetworkTransform networkTransform))
+        {
+            networkTransform.Teleport(position, rotation, transform.localScale);
+            return;
+        }
+
+        transform.SetPositionAndRotation(position, rotation);
+    }
+
+    /// <summary>
+    /// 서버에서 CheckpointStageController와 PlayerObject 준비 타이밍을 흡수하며 Owner Client를 체크포인트 위치로 정렬합니다.
+    /// </summary>
+    private System.Collections.IEnumerator ApplyOwnerSceneSpawnAlignmentRoutine(ulong clientId, string loadedSceneName)
+    {
+        int safeRetryCount = Mathf.Max(1, _clientAlignRetryCount); // Client 로드 완료 보고 직후 서버 정렬 재시도 횟수입니다.
+        float safeRetryInterval = Mathf.Max(0.01f, _clientAlignRetryInterval); // 서버 정렬 재시도 사이의 대기 시간입니다.
+
+        for (int retryIndex = 0; retryIndex < safeRetryCount; retryIndex++)
+        {
+            if (!IsSpawned || !IsServer)
+            {
+                yield break;
+            }
+
+            if (!PlayerSpawnCoordinator.TryFindForActiveScene(out PlayerSpawnCoordinator spawnCoordinator))
+            {
+                yield return new WaitForSecondsRealtime(safeRetryInterval);
+                continue;
+            }
+
+            if (spawnCoordinator.TryApplySpawnToExistingPlayerObject(NetworkManager, clientId))
+            {
+                if (_verboseLogging)
+                {
+                    Debug.Log($"[PlayerNetworkRoot] Owner client SceneLoaded 서버 정렬 완료. ownerClientId={clientId}, scene={loadedSceneName}", this);
+                }
+
+                yield break;
+            }
+
+            yield return new WaitForSecondsRealtime(safeRetryInterval);
+        }
+
+        Debug.LogWarning($"[PlayerNetworkRoot] Owner client SceneLoaded 서버 정렬 재시도 실패. ownerClientId={clientId}, scene={loadedSceneName}", this);
     }
 }

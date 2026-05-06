@@ -1,4 +1,5 @@
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -97,8 +98,7 @@ public class PlayerSpawnCoordinator : MonoBehaviour
             return false;
         }
 
-        Transform playerTransform = client.PlayerObject.transform; // 위치를 확정할 대상 플레이어 Transform입니다.
-        playerTransform.SetPositionAndRotation(position, rotation);
+        ApplyNetworkAwareTeleport(client.PlayerObject, position, rotation);
 
         if (_verboseLogging)
         {
@@ -106,6 +106,42 @@ public class PlayerSpawnCoordinator : MonoBehaviour
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// NetworkTransform이 있는 플레이어는 NGO 텔레포트 스냅샷으로, 없는 플레이어는 Transform 직접 변경으로 위치를 적용합니다.
+    /// </summary>
+    private void ApplyNetworkAwareTeleport(NetworkObject playerObject, Vector3 position, Quaternion rotation)
+    {
+        Transform playerTransform = playerObject.transform; // 위치를 확정할 대상 플레이어 Transform입니다.
+        if (playerObject.TryGetComponent(out PlayerNetworkRoot playerNetworkRoot)
+            && playerNetworkRoot.TryApplySpawnPoseByAuthority(position, rotation, "PlayerSpawnCoordinator"))
+        {
+            return;
+        }
+
+        if (playerObject.IsSpawned
+            && playerObject.TryGetComponent(out NetworkTransform networkTransform)
+            && CanTeleportNetworkTransform(playerObject, networkTransform))
+        {
+            networkTransform.Teleport(position, rotation, playerTransform.localScale);
+            return;
+        }
+
+        playerTransform.SetPositionAndRotation(position, rotation);
+    }
+
+    /// <summary>
+    /// PlayerNetworkRoot가 없는 예외적인 플레이어에서도 NetworkTransform 권한자만 텔레포트하도록 판정합니다.
+    /// </summary>
+    private bool CanTeleportNetworkTransform(NetworkObject playerObject, NetworkTransform networkTransform)
+    {
+        if (networkTransform.IsServerAuthoritative())
+        {
+            return NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+        }
+
+        return playerObject.IsOwner;
     }
 
     /// <summary>
