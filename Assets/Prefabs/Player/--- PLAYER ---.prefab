@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 2122165157
+  GlobalObjectIdHash: 1632356955
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -789,6 +789,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8c209ed4c20b46a4585a5770e888aeca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ActionController
+--- !u!4 &1531884812068998840 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5621759485336084992, guid: d9ad53464808618478ec05f249f95a73, type: 3}
+  m_PrefabInstance: {fileID: 6577183353971387576}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2201137399338360800 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5029073434713289560, guid: d9ad53464808618478ec05f249f95a73, type: 3}
@@ -987,10 +992,6 @@ PrefabInstance:
       propertyPath: _healthComponent
       value: 
       objectReference: {fileID: 420058020910919654}
-    - target: {fileID: 1103223790922391718, guid: 465aa0e9abeccc24a91ab133a6ecc79d, type: 3}
-      propertyPath: _postHitInvincibilitySeconds
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 1720630311412823130, guid: 465aa0e9abeccc24a91ab133a6ecc79d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1088,6 +1089,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: --- Player_VFX_Emitter ---
       objectReference: {fileID: 0}
+    - target: {fileID: 4765641594813737548, guid: e8724c814373fff4097368dee9de6678, type: 3}
+      propertyPath: _eyeVfxPoint
+      value: 
+      objectReference: {fileID: 1531884812068998840}
     - target: {fileID: 4765641594813737548, guid: e8724c814373fff4097368dee9de6678, type: 3}
       propertyPath: _playerMovement
       value: 

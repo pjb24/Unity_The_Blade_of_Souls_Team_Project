@@ -47,7 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HitReceiver
   _healthComponent: {fileID: 0}
   _isInvincible: 0
-  _postHitInvincibilitySeconds: 0
+  _postHitInvincibilitySeconds: 2
   _incomingDamageMultiplier: 1
 --- !u!114 &601994665328804564
 MonoBehaviour:
