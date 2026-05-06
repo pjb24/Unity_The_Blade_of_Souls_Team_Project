@@ -67,14 +67,14 @@ MonoBehaviour:
     _recoverySeconds: 0
   _healthPhaseSettings:
   - _phaseIndex: 0
-    _minHealthRatio: 0.7
+    _minHealthRatio: 0.71
     _maxHealthRatio: 1
     _availablePatternIds:
     - FanProjectile
     - GroundSpike
   - _phaseIndex: 1
-    _minHealthRatio: 0.3
-    _maxHealthRatio: 0.7
+    _minHealthRatio: 0.31
+    _maxHealthRatio: 0.71
     _availablePatternIds:
     - WeakPoint
     - FanProjectile
@@ -82,7 +82,7 @@ MonoBehaviour:
     - SummonMonster
   - _phaseIndex: 2
     _minHealthRatio: 0
-    _maxHealthRatio: 0.3
+    _maxHealthRatio: 0.31
     _availablePatternIds:
     - WeakPoint
     - FanProjectile
@@ -142,9 +142,14 @@ MonoBehaviour:
   - _enabled: 1
     _patternId: WeakPoint
     _weakPointPrefab: {fileID: 3319988911712295143, guid: 6a98607952811f94b87b9ba25501a79f, type: 3}
+    _weakPointPrefabs:
+    - {fileID: 3319988911712295143, guid: 6a98607952811f94b87b9ba25501a79f, type: 3}
+    - {fileID: 3319988911712295143, guid: da8f15d7c58a4f043bf744f5c14eeca6, type: 3}
+    - {fileID: 3319988911712295143, guid: f301b6348b2ae134ca0dff1a2ca3511c, type: 3}
     _weakPointDestroyVfxPrefab: {fileID: 0}
     _weakPointDestroyEffectId: 8
     _weakPointCount: 3
+    _useRandomWeakPointAreaSelection: 0
     _weakPointPositionRetryCount: 3
     _minDistanceBetweenWeakPoints: 2
     _activeSeconds: 20

@@ -729,6 +729,9 @@ public struct WeakPointPatternSettings
     [Tooltip("패턴 4 위치에 생성할 약점 프리팹입니다. 이 프리팹은 HealthComponent와 HitReceiver를 사용해야 합니다.")]
     [SerializeField] private GameObject _weakPointPrefab; // 선택된 위치에 생성할 약점 프리팹 애셋
 
+    [Tooltip("WeakPoint에 사용할 3종 오브젝트 프리팹입니다. 배열 순서대로 생성하며, WeakPoint 수가 더 많으면 다시 처음부터 순환합니다.")]
+    [SerializeField] private GameObject[] _weakPointPrefabs; // 약점 외형/스프라이트 변형을 위해 순서대로 사용하는 WeakPoint 프리팹 목록
+
     [Tooltip("약점이 파괴될 때 재생할 선택 파괴 VFX 프리팹")]
     [SerializeField] private GameObject _weakPointDestroyVfxPrefab; // 약점 파괴 시 사용할 선택 폴백 VFX 프리팹
 
@@ -738,6 +741,9 @@ public struct WeakPointPatternSettings
     [Tooltip("BossPatternAnchorSet에서 활성화할 약점 영역 개수")]
     [Min(0)]
     [SerializeField] private int _weakPointCount; // 실행 시 활성화할 씬 약점 영역 개수
+
+    [Tooltip("켜면 WeakPoint 생성 영역을 매번 랜덤으로 선택합니다. 끄면 BossPatternAnchorSet 배열의 앞에서부터 순서대로 선택합니다.")]
+    [SerializeField] private bool _useRandomWeakPointAreaSelection; // WeakPointArea 선택을 랜덤으로 할지, 배열 순서대로 할지 결정하는 디자이너 옵션
 
     [Tooltip("이후 약점 위치 선택에서 사용할 재시도 횟수")]
     [Min(1)]
@@ -791,6 +797,55 @@ public struct WeakPointPatternSettings
     /// 약점 프리팹 애셋 참조를 반환한다.
     /// </summary>
     public GameObject WeakPointPrefab => _weakPointPrefab;
+
+    /// <summary>
+    /// WeakPoint에 사용할 3종 오브젝트 프리팹 배열을 반환한다.
+    /// </summary>
+    public GameObject[] WeakPointPrefabs => _weakPointPrefabs;
+
+    /// <summary>
+    /// 유효한 WeakPoint 프리팹이 하나 이상 설정되어 있는지 반환한다.
+    /// </summary>
+    public bool HasAnyWeakPointPrefab => CountValidWeakPointPrefabs() > 0 || _weakPointPrefab != null;
+
+    /// <summary>
+    /// WeakPoint 생성 영역을 랜덤으로 선택할지 반환한다.
+    /// </summary>
+    public bool UseRandomWeakPointAreaSelection => _useRandomWeakPointAreaSelection;
+
+    /// <summary>
+    /// WeakPoint index에 맞는 프리팹을 반환한다.
+    /// </summary>
+    public GameObject GetWeakPointPrefab(int weakPointIndex)
+    {
+        int validPrefabCount = CountValidWeakPointPrefabs(); // 순환 선택에 사용할 유효 프리팹 개수
+
+        if (validPrefabCount <= 0)
+        {
+            return _weakPointPrefab;
+        }
+
+        int targetPrefabIndex = Mathf.Abs(weakPointIndex) % validPrefabCount;
+        int currentPrefabIndex = 0;
+
+        for (int index = 0; index < _weakPointPrefabs.Length; index++)
+        {
+            GameObject weakPointPrefab = _weakPointPrefabs[index]; // Inspector 배열에 설정된 WeakPoint 변형 프리팹
+            if (weakPointPrefab == null)
+            {
+                continue;
+            }
+
+            if (currentPrefabIndex == targetPrefabIndex)
+            {
+                return weakPointPrefab;
+            }
+
+            currentPrefabIndex++;
+        }
+
+        return _weakPointPrefab;
+    }
 
     /// <summary>
     /// 선택 약점 파괴 VFX 프리팹을 반환한다.
@@ -873,9 +928,16 @@ public struct WeakPointPatternSettings
             _weakPointCount = 0;
         }
 
-        if (_enabled && _weakPointPrefab == null)
+        int validWeakPointPrefabCount = CountValidWeakPointPrefabs();
+
+        if (_enabled && validWeakPointPrefabCount <= 0 && _weakPointPrefab == null)
         {
-            Debug.LogWarning($"[BossPatternData] WeakPoint 패턴이 활성화되어 있지만 WeakPointPrefab이 비어있다. patternId={_patternId}", logContext);
+            Debug.LogWarning($"[BossPatternData] WeakPoint 패턴이 활성화되어 있지만 WeakPointPrefab 배열과 호환용 WeakPointPrefab이 모두 비어있다. patternId={_patternId}", logContext);
+        }
+
+        if (_enabled && validWeakPointPrefabCount > 0 && validWeakPointPrefabCount < 3)
+        {
+            Debug.LogWarning($"[BossPatternData] WeakPointPrefabs는 3종 사용을 권장한다. patternId={_patternId}, validCount={validWeakPointPrefabCount}", logContext);
         }
 
         if (_weakPointPositionRetryCount < 1)
@@ -919,5 +981,28 @@ public struct WeakPointPatternSettings
             Debug.LogWarning($"[BossPatternData] Groggy 지속 시간이 0보다 작아서 보정됨. patternId={_patternId}, value={_groggyDurationSeconds}", logContext);
             _groggyDurationSeconds = 0f;
         }
+    }
+
+    /// <summary>
+    /// WeakPoint 프리팹 배열에서 null이 아닌 항목 수를 계산한다.
+    /// </summary>
+    private int CountValidWeakPointPrefabs()
+    {
+        if (_weakPointPrefabs == null)
+        {
+            return 0;
+        }
+
+        int validCount = 0;
+
+        for (int index = 0; index < _weakPointPrefabs.Length; index++)
+        {
+            if (_weakPointPrefabs[index] != null)
+            {
+                validCount++;
+            }
+        }
+
+        return validCount;
     }
 }

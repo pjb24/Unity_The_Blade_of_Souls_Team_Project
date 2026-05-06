@@ -84,7 +84,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return;
         }
 
-        if (settings.WeakPointPrefab == null)
+        if (!settings.HasAnyWeakPointPrefab)
         {
             FailEntry("WeakPointPrefabMissing");
             return;
@@ -421,9 +421,9 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// 이번 패턴 실행 중 아직 사용되지 않은 약점 영역을 랜덤으로 선택한다.
+    /// 이번 패턴 실행 중 아직 사용되지 않은 약점 영역을 설정 방식에 맞춰 선택한다.
     /// </summary>
-    private bool TryGetUnusedArea(out BoxCollider2D area, out int areaIndex)
+    private bool TryGetUnusedArea(bool useRandomAreaSelection, out BoxCollider2D area, out int areaIndex)
     {
         area = null;
         areaIndex = -1;
@@ -441,6 +441,11 @@ public sealed class BossWeakPointPattern : BossPatternBase
         if (availableCount <= 0)
         {
             return false;
+        }
+
+        if (!useRandomAreaSelection)
+        {
+            return TryGetFirstUnusedArea(out area, out areaIndex);
         }
 
         int targetIndex = Random.Range(0, availableCount);
@@ -467,6 +472,29 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
+    /// BossPatternAnchorSet 배열의 앞쪽부터 아직 사용하지 않은 WeakPoint 영역을 찾는다.
+    /// </summary>
+    private bool TryGetFirstUnusedArea(out BoxCollider2D area, out int areaIndex)
+    {
+        area = null;
+        areaIndex = -1;
+
+        for (int index = 0; index < _validWeakPointAreaCount; index++)
+        {
+            if (_weakPointAreaUsedBuffer[index])
+            {
+                continue;
+            }
+
+            area = _weakPointAreaBuffer[index];
+            areaIndex = index;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// 최소 거리 조건을 만족하는 약점 위치를 선택한다.
     /// </summary>
     private void SelectWeakPointPositions(WeakPointPatternSettings settings, int targetWeakPointCount)
@@ -478,7 +506,11 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         for (int index = 0; index < targetWeakPointCount; index++)
         {
-            if (!TrySelectOneWeakPointPosition(retryCount, minDistanceSqr, out Vector3 selectedPosition))
+            if (!TrySelectOneWeakPointPosition(
+                    retryCount,
+                    minDistanceSqr,
+                    settings.UseRandomWeakPointAreaSelection,
+                    out Vector3 selectedPosition))
             {
                 LogFailureOnce("WeakPointPositionRetryExceeded");
                 continue;
@@ -492,13 +524,22 @@ public sealed class BossWeakPointPattern : BossPatternBase
     /// <summary>
     /// 하나의 약점 위치를 재시도 제한 내에서 선택한다.
     /// </summary>
-    private bool TrySelectOneWeakPointPosition(int retryCount, float minDistanceSqr, out Vector3 selectedPosition)
+    private bool TrySelectOneWeakPointPosition(
+        int retryCount,
+        float minDistanceSqr,
+        bool useRandomAreaSelection,
+        out Vector3 selectedPosition)
     {
         selectedPosition = Vector3.zero;
 
+        if (!useRandomAreaSelection)
+        {
+            return TrySelectSequentialWeakPointPosition(retryCount, minDistanceSqr, out selectedPosition);
+        }
+
         for (int retryIndex = 0; retryIndex < retryCount; retryIndex++)
         {
-            if (!TryGetUnusedArea(out BoxCollider2D area, out int areaIndex))
+            if (!TryGetUnusedArea(true, out BoxCollider2D area, out int areaIndex))
             {
                 LogFailureOnce("NoAvailableWeakPointArea");
                 return false;
@@ -522,6 +563,46 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return true;
         }
 
+        return false;
+    }
+
+    /// <summary>
+    /// 배열 순서대로 선택한 하나의 WeakPoint 영역 안에서 유효한 생성 위치를 찾는다.
+    /// </summary>
+    private bool TrySelectSequentialWeakPointPosition(
+        int retryCount,
+        float minDistanceSqr,
+        out Vector3 selectedPosition)
+    {
+        selectedPosition = Vector3.zero;
+
+        if (!TryGetUnusedArea(false, out BoxCollider2D area, out int areaIndex))
+        {
+            LogFailureOnce("NoAvailableWeakPointArea");
+            return false;
+        }
+
+        for (int retryIndex = 0; retryIndex < retryCount; retryIndex++)
+        {
+            Vector3 candidatePosition = GetRandomPointInAreaBounds(area);
+
+            if (!area.OverlapPoint(candidatePosition))
+            {
+                continue;
+            }
+
+            if (!IsFarEnoughFromSelectedWeakPoints(candidatePosition, minDistanceSqr))
+            {
+                continue;
+            }
+
+            _weakPointAreaUsedBuffer[areaIndex] = true;
+
+            selectedPosition = candidatePosition;
+            return true;
+        }
+
+        _weakPointAreaUsedBuffer[areaIndex] = true;
         return false;
     }
 
@@ -935,7 +1016,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     /// </summary>
     private bool SpawnWeakPoints(WeakPointPatternSettings settings)
     {
-        if (settings.WeakPointPrefab == null)
+        if (!settings.HasAnyWeakPointPrefab)
         {
             LogFailureOnce("WeakPointPrefabMissing");
             return false;
@@ -946,8 +1027,15 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         for (int index = 0; index < _selectedWeakPointPositionCount; index++)
         {
+            GameObject weakPointPrefab = settings.GetWeakPointPrefab(index); // 생성 순서에 맞춰 선택한 WeakPoint 변형 프리팹
+            if (weakPointPrefab == null)
+            {
+                LogFailureOnce("WeakPointPrefabMissingForIndex");
+                continue;
+            }
+
             if (!TrySpawnWeakPoint(
-                    settings.WeakPointPrefab,
+                    weakPointPrefab,
                     _weakPointPositionBuffer[index],
                     index,
                     out BossWeakPointObject weakPointObject))

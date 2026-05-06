@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 8740456503093516130}
   - component: {fileID: 877112039011346851}
   m_Layer: 8
-  m_Name: WeakPoint
+  m_Name: WeakPoint 2
   m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -86,7 +86,7 @@ SpriteRenderer:
   m_SortingLayer: 7
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 4571315615997093228, guid: 44a344296608d214eb19fbdbdbc67ab4, type: 3}
+  m_Sprite: {fileID: -2528878531227144098, guid: 44a344296608d214eb19fbdbdbc67ab4, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -108,7 +108,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 4246950608
+  GlobalObjectIdHash: 1019978882
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
