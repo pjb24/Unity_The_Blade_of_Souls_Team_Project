@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 1949728695239915533}
   - component: {fileID: 1197943900809351441}
   - component: {fileID: 6152396801037239380}
+  - component: {fileID: 7286261163653503164}
   m_Layer: 0
   m_Name: Bootstrap Systems Root
   m_TagString: Untagged
@@ -221,3 +222,28 @@ MonoBehaviour:
   _showSavePathDebug: 0
   _lastOperationSucceeded: 0
   _lastOperationMessage: 
+--- !u!114 &7286261163653503164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 517370791919577952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6e94fe15e32a9a40a83bf9806116275, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthScenePersistenceService
+  _dontDestroyOnLoad: 1
+  _carryRules:
+  - _fromSceneName: 1 Chapter
+    _toSceneName: BossMap_Hallway
+  - _fromSceneName: BossMap_Hallway
+    _toSceneName: BossMap_Main
+  _applyRetryCount: 30
+  _applyRetryIntervalSeconds: 0.1
+  _clearSnapshotAfterSuccessfulApply: 1
+  _verboseLogging: 0
+  _lastSnapshotSourceSceneName: 
+  _pendingSnapshotTargetSceneName: 
+  _snapshotCount: 0
