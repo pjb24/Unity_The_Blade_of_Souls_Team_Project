@@ -429,6 +429,12 @@ public class GameFlowController : MonoBehaviour
             return false;
         }
 
+        if (!saveDataStore.EnsureRuntimeGlobalOptionsLoadedOrCreated("ContinueStart"))
+        {
+            LogWarning("Continue 시작 전 글로벌 옵션 로드와 반영에 실패했습니다.");
+            return false;
+        }
+
         if (!saveDataStore.TryLoadLastUsedSlotData(out SlotPlaySaveData loadedSlotData))
         {
             LogWarning($"Continue failed because last used slot data was missing or invalid. slot={(int)saveDataStore.GetCurrentSlot()}");
@@ -541,6 +547,12 @@ public class GameFlowController : MonoBehaviour
         SaveDataStore saveDataStore = ResolveSaveDataStore();
         if (saveDataStore == null)
         {
+            return false;
+        }
+
+        if (!saveDataStore.EnsureRuntimeGlobalOptionsLoadedOrCreated(triggerContext))
+        {
+            LogWarning($"타이틀 시작 전 글로벌 옵션 로드와 반영에 실패했습니다. context={triggerContext}");
             return false;
         }
 

@@ -47,8 +47,15 @@ public class TitlePlayModePresenter : MonoBehaviour
     [Tooltip("Save query service component used to decide Continue, Load Game, and slot button availability.")]
     [SerializeField] private MonoBehaviour _saveQueryComponent; // ITitleSaveQueryService component used for title save state queries.
 
+    [Tooltip("타이틀 진입 시 글로벌 옵션 로드를 수행할 SaveDataStore입니다. 비어 있으면 SaveDataStore.Instance를 사용합니다.")]
+    [SerializeField] private SaveDataStore _saveDataStore; // 타이틀 진입 직후 글로벌 옵션 저장 데이터를 로드하고 런타임에 반영할 저장소 참조입니다.
+
     [Tooltip("멀티 관련 UI 액션 시 오케스트레이터 참조가 비어 있으면 DDOL 영역까지 자동 재탐색할지 여부입니다.")]
     [SerializeField] private bool _autoResolveMultiplayerSessionOrchestratorOnUse = true; // 멀티 버튼 클릭 시 오케스트레이터 자동 재탐색 활성화 여부를 제어하는 플래그입니다.
+
+    [Header("Title Entry Options")]
+    [Tooltip("타이틀 메뉴가 활성화될 때 글로벌 옵션 저장 데이터를 즉시 로드하고 적용할지 여부입니다.")]
+    [SerializeField] private bool _loadGlobalOptionsOnEnable = true; // 타이틀 진입 시 저장된 옵션을 UI와 런타임 시스템에 즉시 반영할지 제어합니다.
 
     [Header("Slot Policy")]
     [Tooltip("Play 관련 버튼 클릭 시 공통으로 적용할 기본 슬롯 번호입니다.")]
@@ -168,6 +175,7 @@ public class TitlePlayModePresenter : MonoBehaviour
     private void OnEnable()
     {
         BindSaveQueryEvents(true);
+        LoadGlobalOptionsForTitleEntry();
         OpenTopMenu();
     }
 
@@ -177,6 +185,29 @@ public class TitlePlayModePresenter : MonoBehaviour
     private void OnDisable()
     {
         BindSaveQueryEvents(false);
+    }
+
+    /// <summary>
+    /// 타이틀 메뉴 진입 직후 글로벌 옵션 저장 데이터를 로드하여 런타임 시스템에 반영합니다.
+    /// </summary>
+    private void LoadGlobalOptionsForTitleEntry()
+    {
+        if (!_loadGlobalOptionsOnEnable)
+        {
+            return;
+        }
+
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // 타이틀 진입 옵션 로드에 사용할 단일 저장소입니다.
+        if (saveDataStore == null)
+        {
+            Debug.LogWarning("[TitlePlayModePresenter] SaveDataStore가 없어 타이틀 진입 옵션 로드를 수행하지 못했습니다.", this);
+            return;
+        }
+
+        if (!saveDataStore.EnsureRuntimeGlobalOptionsLoadedOrCreated("TitleMenu.Entry"))
+        {
+            Debug.LogWarning("[TitlePlayModePresenter] 타이틀 진입 옵션 로드와 반영에 실패했습니다.", this);
+        }
     }
 
     /// <summary>
@@ -759,10 +790,26 @@ public class TitlePlayModePresenter : MonoBehaviour
         bridge?.HandleAfterOpen();
     }
 
+    /// <summary>
+    /// 타이틀 메뉴에서 사용할 SaveDataStore 참조를 해석합니다.
+    /// </summary>
+    private SaveDataStore ResolveSaveDataStore()
+    {
+        if (_saveDataStore == null)
+        {
+            _saveDataStore = SaveDataStore.Instance;
+        }
+
+        return _saveDataStore;
+    }
+
+    /// <summary>
+    /// 플레이 시작 전 선택한 슬롯을 저장소의 현재 슬롯으로 반영합니다.
+    /// </summary>
     private void ApplySlotBeforePlay(int slotIndex)
     {
         _lastAppliedSlotIndex = Mathf.Max(1, slotIndex);
-        SaveDataStore saveDataStore = SaveDataStore.Instance; // Title에서 선택한 슬롯을 GameFlow 시작 전 Runtime 저장소에 반영하기 위한 단일 저장 접근점입니다.
+        SaveDataStore saveDataStore = ResolveSaveDataStore(); // Title에서 선택한 슬롯을 GameFlow 시작 전 Runtime 저장소에 반영하기 위한 단일 저장 접근점입니다.
         if (saveDataStore == null)
         {
             Debug.LogWarning($"[TitlePlayModePresenter] SaveDataStore가 없어 선택 슬롯을 Runtime에 반영하지 못했습니다. slot={_lastAppliedSlotIndex}", this);

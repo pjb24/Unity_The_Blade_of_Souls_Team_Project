@@ -553,6 +553,32 @@ public class SaveDataStore : MonoBehaviour
     }
 
     /// <summary>
+    /// 게임 시작 직전에 로컬 글로벌 옵션을 런타임 시스템에 반드시 반영합니다.
+    /// </summary>
+    public bool EnsureRuntimeGlobalOptionsLoadedOrCreated(string triggerContext)
+    {
+        LoadGlobalOptions($"EnsureRuntimeGlobalOptionsLoadedOrCreated.{triggerContext}");
+        ResolveRuntimeReferences();
+
+        if (_runtimeData.Options == null)
+        {
+            Debug.LogWarning($"[SaveDataStore] Runtime global options were not prepared. context={triggerContext}", this);
+            SetLastResult(false, "Runtime global options missing");
+            return false;
+        }
+
+        if (_optionManager == null)
+        {
+            Debug.LogWarning($"[SaveDataStore] OptionManager was not found after loading global options. context={triggerContext}", this);
+            SetLastResult(false, "OptionManager missing");
+            return false;
+        }
+
+        SetLastResult(true, $"Runtime global options prepared. context={triggerContext}");
+        return true;
+    }
+
+    /// <summary>
     /// 유효한 슬롯의 Host 권한 플레이 데이터를 로드합니다.
     /// </summary>
     public bool LoadSlot(E_SaveSlot slot, string triggerContext)
