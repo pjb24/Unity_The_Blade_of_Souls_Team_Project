@@ -69,5 +69,8 @@ TagManager:
   - name: Pillar
     uniqueID: 618617319
     locked: 0
+  - name: Connetor
+    uniqueID: 3919378677
+    locked: 0
   m_RenderingLayers:
   - Default

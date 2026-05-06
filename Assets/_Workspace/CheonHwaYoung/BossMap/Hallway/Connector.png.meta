@@ -1,16 +1,10 @@
 fileFormatVersion: 2
-guid: edfaeb31308721a46a299f4d61289f95
+guid: 1536e78fe69a393498f80a93621c4a31
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4172227535230612320
-    second: "\uBCF5\uB3C4_\uAE30\uB465_0"
-  - first:
-      213: -1650406191994556370
-    second: "\uBCF5\uB3C4_\uAE30\uB465_1"
-  - first:
-      213: 3258082891686378340
-    second: "\uBCF5\uB3C4_\uAE30\uB465_2"
+      213: 6261838875085568562
+    second: Layer 3_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -102,30 +96,17 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: WebGL
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uBCF5\uB3C4_\uAE30\uB465_0"
+      name: Layer 3_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 244
-        height: 545
+        width: 168
+        height: 127
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -134,52 +115,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0acc97089254916c0800000000000000
-      internalID: -4172227535230612320
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\uBCF5\uB3C4_\uAE30\uB465_1"
-      rect:
-        serializedVersion: 2
-        x: 844
-        y: 1
-        width: 248
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: fdd906a5242ce914391bb7b7324461e8
-      internalID: 422855125
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\uBCF5\uB3C4_\uAE30\uB465_2"
-      rect:
-        serializedVersion: 2
-        x: 1685
-        y: 1
-        width: 246
-        height: 543
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 1536d93d5d8a60d44a94e0c86d3b17bb
-      internalID: -244072630
+      spriteID: 23af43eb74586e650800000000000000
+      internalID: 6261838875085568562
       vertices: []
       indices: 
       edges: []
@@ -188,7 +125,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 947a269e7ae86fa4f872e2c952f6c310
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -198,9 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      "\uBCF5\uB3C4_\uAE30\uB465_0": -4172227535230612320
-      "\uBCF5\uB3C4_\uAE30\uB465_1": 422855125
-      "\uBCF5\uB3C4_\uAE30\uB465_2": -244072630
+      Layer 3_0: 6261838875085568562
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
