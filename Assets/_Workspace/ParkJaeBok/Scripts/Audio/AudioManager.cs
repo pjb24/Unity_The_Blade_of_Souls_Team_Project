@@ -50,16 +50,28 @@ public class AudioManager : MonoBehaviour
     [SerializeField]
     private AnimationCurve _sfxCustomRolloffCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f); // Custom Rolloff 모드에서 사용할 감쇠 커브
 
+    [Header("SFX World Position")]
+    [SerializeField]
+    [Tooltip("SFX를 AudioListener가 붙은 카메라와 같은 z 값 선상에서 재생할지 여부입니다.")]
+    private bool _alignSfxPositionZToAudioListenerCamera = true; // SFX 재생 위치의 z 값을 AudioListener 카메라 z 값으로 보정할지 여부입니다.
+
+    [SerializeField]
+    [Tooltip("SFX z 위치 기준으로 사용할 AudioListener 카메라입니다. 비워두면 활성 AudioListener를 자동 탐색합니다.")]
+    private Camera _audioListenerCameraOverride; // SFX z 위치 기준으로 우선 사용할 AudioListener 카메라 참조입니다.
+
     [Header("Volume")]
     [SerializeField]
+    [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 마스터 볼륨입니다.")]
     [Range(0f, 1f)]
     private float _masterVolume = 1f; // 전체 사운드에 공통 적용되는 마스터 볼륨
 
     [SerializeField]
+    [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 BGM 볼륨입니다.")]
     [Range(0f, 1f)]
     private float _bgmVolume = 1f; // BGM 계열에만 적용되는 볼륨 배율
 
     [SerializeField]
+    [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 SFX 볼륨입니다.")]
     [Range(0f, 1f)]
     private float _sfxVolume = 1f; // SFX 계열에만 적용되는 볼륨 배율
 
@@ -67,6 +79,8 @@ public class AudioManager : MonoBehaviour
     private readonly Dictionary<AudioSource, float> _sfxBaseVolumeBySource = new Dictionary<AudioSource, float>(); // 각 SFX Source의 원본 볼륨 캐시
     private readonly Dictionary<AudioSource, ActiveSfxPlayback> _activeSfxBySource = new Dictionary<AudioSource, ActiveSfxPlayback>(); // 각 AudioSource에서 현재 재생 중인 SFX 메타데이터 캐시
     private readonly Dictionary<SfxCooldownKey, float> _sfxCooldownUntil = new Dictionary<SfxCooldownKey, float>(); // SoundId + 발신자 단위 다음 재생 가능 시간
+
+    private Transform _sfxSourceRoot; // SFX AudioSource 풀 오브젝트를 월드 스페이스에 유지하기 위한 루트 Transform입니다.
 
     private readonly AudioSource[] _bgmSources = new AudioSource[2]; // 크로스페이드를 위한 BGM 2채널
     private readonly float[] _bgmMixWeights = new float[2] { 1f, 0f }; // 각 BGM 소스의 페이드 가중치
@@ -76,6 +90,7 @@ public class AudioManager : MonoBehaviour
     private Coroutine _bgmFadeCoroutine; // 진행 중인 BGM 페이드 코루틴 핸들
 
     private Action<float, float, float> _onVolumeChanged; // 볼륨 변경 알림 리스너 컬렉션
+    private OptionManager _subscribedOptionManager; // 플레이어 옵션 볼륨 변경을 동기화하기 위해 구독 중인 OptionManager
 
     private readonly struct SfxCooldownKey
     {
@@ -94,7 +109,6 @@ public class AudioManager : MonoBehaviour
         public readonly E_SoundId SoundId; // 현재 AudioSource에 할당된 사운드 ID
         public readonly int EmitterKey; // 현재 AudioSource에 할당된 발신자 식별 키
         public readonly bool IsLoop; // 현재 AudioSource가 루프 재생 중인지 여부
-
         public ActiveSfxPlayback(E_SoundId soundId, int emitterKey, bool isLoop)
         {
             SoundId = soundId;
@@ -181,7 +195,48 @@ public class AudioManager : MonoBehaviour
         LoadVolumes();
         InitializeBgmSources();
         InitializeSfxPool();
+        SubscribeOptionManagerChanges();
         ApplyAllVolumes();
+    }
+
+    /// <summary>
+    /// AudioManager가 활성화될 때 OptionManager의 플레이어 볼륨 변경을 구독한다.
+    /// </summary>
+    private void OnEnable()
+    {
+        SubscribeOptionManagerChanges();
+    }
+
+    /// <summary>
+    /// 다른 런타임 매니저의 Awake가 끝난 뒤 OptionManager 구독을 한 번 더 보정한다.
+    /// </summary>
+    private void Start()
+    {
+        SubscribeOptionManagerChanges();
+        LoadVolumes();
+        ApplyAllVolumes();
+    }
+
+    /// <summary>
+    /// AudioManager가 비활성화될 때 OptionManager 구독을 해제한다.
+    /// </summary>
+    private void OnDisable()
+    {
+        UnsubscribeOptionManagerChanges();
+    }
+
+    /// <summary>
+    /// AudioManager가 파괴될 때 남아 있는 OptionManager 구독을 정리한다.
+    /// </summary>
+    private void OnDestroy()
+    {
+        UnsubscribeOptionManagerChanges();
+
+        if (_sfxSourceRoot != null)
+        {
+            Destroy(_sfxSourceRoot.gameObject);
+            _sfxSourceRoot = null;
+        }
     }
 
     /// <summary>
@@ -201,6 +256,8 @@ public class AudioManager : MonoBehaviour
 
             ConfigureSfxSourceSpatialSettings(_sfxSources[i]);
         }
+
+        ApplyAllVolumes();
     }
 
     /// <summary>
@@ -297,11 +354,40 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// SFX AudioSource 풀을 담을 월드 스페이스 루트를 반환하고 없으면 생성합니다.
+    /// </summary>
+    private Transform ResolveSfxSourceRoot()
+    {
+        if (_sfxSourceRoot != null)
+        {
+            return _sfxSourceRoot;
+        }
+
+        GameObject rootObject = new GameObject($"{name}_SfxWorldSources");
+        rootObject.transform.position = Vector3.zero;
+        rootObject.transform.rotation = Quaternion.identity;
+        rootObject.transform.localScale = Vector3.one;
+
+        if (_dontDestroyOnLoad)
+        {
+            DontDestroyOnLoad(rootObject);
+        }
+
+        _sfxSourceRoot = rootObject.transform;
+        return _sfxSourceRoot;
+    }
+
+    /// <summary>
     /// SFX 재생용 AudioSource 하나를 생성하여 풀에 추가한다.
     /// </summary>
     private AudioSource CreateSfxSource()
     {
-        AudioSource source = gameObject.AddComponent<AudioSource>();
+        Transform sourceRoot = ResolveSfxSourceRoot(); // SFX 소스를 월드 스페이스 오브젝트로 묶어 관리하는 루트입니다.
+        GameObject sourceObject = new GameObject($"SfxSource_{_sfxSources.Count:00}");
+        sourceObject.transform.SetParent(sourceRoot, false);
+        sourceObject.transform.position = ResolveSfxPlaybackPosition(false, Vector3.zero);
+
+        AudioSource source = sourceObject.AddComponent<AudioSource>();
         source.playOnAwake = false;
         source.loop = false;
         source.dopplerLevel = 0f;
@@ -332,10 +418,65 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// 요청된 SFX 위치를 월드 좌표로 확정하고 AudioListener 카메라 z 선상에 맞춥니다.
+    /// </summary>
+    private Vector3 ResolveSfxPlaybackPosition(bool useWorldPosition, Vector3 worldPosition)
+    {
+        Vector3 resolvedPosition = useWorldPosition ? worldPosition : transform.position; // SFX가 실제로 재생될 월드 좌표입니다.
+
+        if (_alignSfxPositionZToAudioListenerCamera == false)
+        {
+            return resolvedPosition;
+        }
+
+        Transform audioListenerTransform = ResolveAudioListenerTransform();
+        if (audioListenerTransform != null)
+        {
+            resolvedPosition.z = audioListenerTransform.position.z;
+        }
+
+        return resolvedPosition;
+    }
+
+    /// <summary>
+    /// SFX z 위치 기준으로 사용할 AudioListener Transform을 반환합니다.
+    /// </summary>
+    private Transform ResolveAudioListenerTransform()
+    {
+        if (_audioListenerCameraOverride != null && _audioListenerCameraOverride.GetComponent<AudioListener>() != null)
+        {
+            return _audioListenerCameraOverride.transform;
+        }
+
+        AudioListener audioListener = FindAnyObjectByType<AudioListener>(); // 현재 씬에서 활성화된 AudioListener를 자동 탐색한 결과입니다.
+        return audioListener != null ? audioListener.transform : null;
+    }
+
+    /// <summary>
+    /// SFX AudioSource를 재생 대상 Transform의 자식으로 붙이고 최종 월드 위치를 적용합니다.
+    /// </summary>
+    private void AttachSfxSourceToPlaybackParent(AudioSource source, Transform emitterTransform, Vector3 playbackPosition)
+    {
+        Transform playbackParent = emitterTransform != null ? emitterTransform : ResolveSfxSourceRoot(); // SFX 오브젝트를 따라가게 할 부모 Transform입니다.
+        source.transform.SetParent(playbackParent, true);
+        source.transform.position = playbackPosition;
+    }
+
+    /// <summary>
     /// 사용 가능한 SFX 소스를 조회하고 없으면 풀을 확장하거나 임시 소스를 생성한다.
     /// </summary>
     private AudioSource GetAvailableSfxSource()
     {
+        for (int i = _sfxSources.Count - 1; i >= 0; i--)
+        {
+            if (_sfxSources[i] != null)
+            {
+                continue;
+            }
+
+            _sfxSources.RemoveAt(i);
+        }
+
         for (int i = 0; i < _sfxSources.Count; i++)
         {
             if (_sfxSources[i].isPlaying == false)
@@ -360,7 +501,8 @@ public class AudioManager : MonoBehaviour
     private AudioSource CreateTemporarySfxSource()
     {
         GameObject temporaryObject = new GameObject("TempSfxSource");
-        temporaryObject.transform.SetParent(transform, false);
+        temporaryObject.transform.SetParent(ResolveSfxSourceRoot(), false);
+        temporaryObject.transform.position = ResolveSfxPlaybackPosition(false, Vector3.zero);
 
         AudioSource source = temporaryObject.AddComponent<AudioSource>();
         source.playOnAwake = false;
@@ -385,6 +527,7 @@ public class AudioManager : MonoBehaviour
         source.Stop();
         source.clip = null;
         source.loop = false;
+        AttachSfxSourceToPlaybackParent(source, null, ResolveSfxPlaybackPosition(false, Vector3.zero));
         _activeSfxBySource.Remove(source);
         Debug.LogWarning($"[AudioManager] SFX pool max reached. Reusing pooled source instead of creating temporary GameObject. max={_maxSfxPoolSize}", this);
         return source;
@@ -395,7 +538,7 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void PlaySfx(E_SoundId soundId)
     {
-        PlaySfxInternal(soundId, false, Vector3.zero, 0);
+        PlaySfxInternal(soundId, false, Vector3.zero, null, 0);
     }
 
     /// <summary>
@@ -403,7 +546,7 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void PlaySfx(E_SoundId soundId, Vector3 worldPosition)
     {
-        PlaySfxInternal(soundId, true, worldPosition, 0);
+        PlaySfxInternal(soundId, true, worldPosition, null, 0);
     }
 
     /// <summary>
@@ -418,7 +561,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        PlaySfxInternal(soundId, true, emitterTransform.position, emitterTransform.GetInstanceID());
+        PlaySfxInternal(soundId, true, emitterTransform.position, emitterTransform, emitterTransform.GetInstanceID());
     }
 
     /// <summary>
@@ -434,7 +577,7 @@ public class AudioManager : MonoBehaviour
     /// <summary>
     /// SFX 재생 준비(쿨다운/피치/볼륨/위치 적용)를 수행하고 재생한다.
     /// </summary>
-    private void PlaySfxInternal(E_SoundId soundId, bool useWorldPosition, Vector3 worldPosition, int emitterKey)
+    private void PlaySfxInternal(E_SoundId soundId, bool useWorldPosition, Vector3 worldPosition, Transform emitterTransform, int emitterKey)
     {
         if (TryGetEntry(soundId, out SoundEntry entry) == false)
         {
@@ -456,14 +599,7 @@ public class AudioManager : MonoBehaviour
         ConfigureSfxSourceSpatialSettings(source);
         _activeSfxBySource.Remove(source);
 
-        if (useWorldPosition)
-        {
-            source.transform.position = worldPosition;
-        }
-        else
-        {
-            source.transform.position = transform.position;
-        }
+        AttachSfxSourceToPlaybackParent(source, emitterTransform, ResolveSfxPlaybackPosition(useWorldPosition, worldPosition));
 
         source.Stop();
         source.clip = entry.Clip;
@@ -522,6 +658,7 @@ public class AudioManager : MonoBehaviour
             AudioSource source = sourcesToStop[i];
             source.Stop();
             _activeSfxBySource.Remove(source);
+            AttachSfxSourceToPlaybackParent(source, null, ResolveSfxPlaybackPosition(false, Vector3.zero));
 
             if (_sfxSources.Contains(source) == false)
             {
@@ -756,6 +893,57 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// OptionManager의 변경 알림을 구독해 옵션 UI에서 바뀐 플레이어 볼륨을 즉시 반영한다.
+    /// </summary>
+    private void SubscribeOptionManagerChanges()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 플레이어 옵션 저장 데이터를 보유한 런타임 매니저입니다.
+        if (optionManager == null || _subscribedOptionManager == optionManager)
+        {
+            return;
+        }
+
+        UnsubscribeOptionManagerChanges();
+        optionManager.RemoveListener(HandleOptionSnapshotChanged);
+        optionManager.AddListener(HandleOptionSnapshotChanged);
+        _subscribedOptionManager = optionManager;
+    }
+
+    /// <summary>
+    /// OptionManager 변경 알림 구독을 해제한다.
+    /// </summary>
+    private void UnsubscribeOptionManagerChanges()
+    {
+        if (_subscribedOptionManager == null)
+        {
+            return;
+        }
+
+        _subscribedOptionManager.RemoveListener(HandleOptionSnapshotChanged);
+        _subscribedOptionManager = null;
+    }
+
+    /// <summary>
+    /// 옵션 스냅샷의 플레이어 볼륨 값을 AudioManager 런타임 상태에 반영한다.
+    /// </summary>
+    private void HandleOptionSnapshotChanged(OptionSaveData optionData)
+    {
+        if (optionData == null)
+        {
+            return;
+        }
+
+        bool changed = ApplyPlayerVolumeOptions(optionData.Audio);
+        if (changed == false)
+        {
+            return;
+        }
+
+        ApplyRuntimeVolumeToPlayingSources();
+        NotifyVolumeChanged();
+    }
+
+    /// <summary>
     /// 저장 시스템에서 볼륨을 불러오고 범위를 검증한다.
     /// </summary>
     private void LoadVolumes()
@@ -764,9 +952,7 @@ public class AudioManager : MonoBehaviour
         if (optionManager != null)
         {
             OptionSaveData optionData = optionManager.GetCurrentOptions();
-            _masterVolume = optionData.Audio.MasterVolume;
-            _bgmVolume = optionData.Audio.BgmVolume;
-            _sfxVolume = optionData.Audio.SfxVolume;
+            ApplyPlayerVolumeOptions(optionData.Audio);
         }
         else
         {
@@ -776,6 +962,105 @@ public class AudioManager : MonoBehaviour
         _masterVolume = ClampVolume(_masterVolume, nameof(_masterVolume));
         _bgmVolume = ClampVolume(_bgmVolume, nameof(_bgmVolume));
         _sfxVolume = ClampVolume(_sfxVolume, nameof(_sfxVolume));
+    }
+
+    /// <summary>
+    /// 플레이어가 옵션에서 조절한 볼륨 데이터만 런타임 볼륨 상태에 적용한다.
+    /// </summary>
+    private bool ApplyPlayerVolumeOptions(AudioOptionsData audioOptions)
+    {
+        float nextMasterVolume = NormalizeOptionVolume(audioOptions.MasterVolume, ResolveMasterVolumeMetadata(), nameof(audioOptions.MasterVolume)); // 옵션 저장 데이터의 플레이어 마스터 볼륨 비율
+        float nextBgmVolume = NormalizeOptionVolume(audioOptions.BgmVolume, ResolveBgmVolumeMetadata(), nameof(audioOptions.BgmVolume)); // 옵션 저장 데이터의 플레이어 BGM 볼륨 비율
+        float nextSfxVolume = NormalizeOptionVolume(audioOptions.SfxVolume, ResolveSfxVolumeMetadata(), nameof(audioOptions.SfxVolume)); // 옵션 저장 데이터의 플레이어 SFX 볼륨 비율
+
+        bool changed =
+            Mathf.Approximately(_masterVolume, nextMasterVolume) == false ||
+            Mathf.Approximately(_bgmVolume, nextBgmVolume) == false ||
+            Mathf.Approximately(_sfxVolume, nextSfxVolume) == false;
+
+        _masterVolume = nextMasterVolume;
+        _bgmVolume = nextBgmVolume;
+        _sfxVolume = nextSfxVolume;
+        return changed;
+    }
+
+    /// <summary>
+    /// 옵션 저장값을 프로필 메타데이터 기준의 0~1 런타임 볼륨 비율로 변환한다.
+    /// </summary>
+    private float NormalizeOptionVolume(float optionValue, OptionNumericSetting metadata, string label)
+    {
+        float minValue = Mathf.Min(metadata.MinValue, metadata.MaxValue); // 옵션 UI/저장 데이터에서 허용하는 최소값
+        float maxValue = Mathf.Max(metadata.MinValue, metadata.MaxValue); // 옵션 UI/저장 데이터에서 허용하는 최대값
+        if (Mathf.Approximately(minValue, maxValue))
+        {
+            Debug.LogWarning($"[AudioManager] 볼륨 메타데이터 범위가 비정상이라 0~1 보정을 사용합니다. label={label}", this);
+            return ClampVolume(optionValue, label);
+        }
+
+        float clampedOptionValue = Mathf.Clamp(optionValue, minValue, maxValue);
+        if (Mathf.Approximately(optionValue, clampedOptionValue) == false)
+        {
+            Debug.LogWarning($"[AudioManager] 옵션 볼륨 값이 범위를 벗어나 보정했습니다. label={label}, input={optionValue}, clamped={clampedOptionValue}", this);
+        }
+
+        return Mathf.Clamp01(Mathf.InverseLerp(minValue, maxValue, clampedOptionValue));
+    }
+
+    /// <summary>
+    /// 0~1 런타임 볼륨 비율을 옵션 저장값 스케일로 변환한다.
+    /// </summary>
+    private float DenormalizeOptionVolume(float normalizedVolume, OptionNumericSetting metadata)
+    {
+        float safeVolume = Mathf.Clamp01(normalizedVolume); // AudioManager 내부에서 사용하는 0~1 볼륨 비율
+        float minValue = Mathf.Min(metadata.MinValue, metadata.MaxValue);
+        float maxValue = Mathf.Max(metadata.MinValue, metadata.MaxValue);
+        if (Mathf.Approximately(minValue, maxValue))
+        {
+            return safeVolume;
+        }
+
+        return Mathf.Lerp(minValue, maxValue, safeVolume);
+    }
+
+    /// <summary>
+    /// 마스터 볼륨 옵션 메타데이터를 조회하고 없으면 0~1 기본 범위를 반환한다.
+    /// </summary>
+    private OptionNumericSetting ResolveMasterVolumeMetadata()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 오디오 옵션 메타데이터를 제공하는 옵션 매니저입니다.
+        return optionManager != null ? optionManager.GetMasterVolumeMetadata() : CreateNormalizedVolumeMetadata();
+    }
+
+    /// <summary>
+    /// BGM 볼륨 옵션 메타데이터를 조회하고 없으면 0~1 기본 범위를 반환한다.
+    /// </summary>
+    private OptionNumericSetting ResolveBgmVolumeMetadata()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 오디오 옵션 메타데이터를 제공하는 옵션 매니저입니다.
+        return optionManager != null ? optionManager.GetBgmVolumeMetadata() : CreateNormalizedVolumeMetadata();
+    }
+
+    /// <summary>
+    /// SFX 볼륨 옵션 메타데이터를 조회하고 없으면 0~1 기본 범위를 반환한다.
+    /// </summary>
+    private OptionNumericSetting ResolveSfxVolumeMetadata()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 오디오 옵션 메타데이터를 제공하는 옵션 매니저입니다.
+        return optionManager != null ? optionManager.GetSfxVolumeMetadata() : CreateNormalizedVolumeMetadata();
+    }
+
+    /// <summary>
+    /// OptionManager가 없을 때 사용할 0~1 볼륨 메타데이터를 생성한다.
+    /// </summary>
+    private OptionNumericSetting CreateNormalizedVolumeMetadata()
+    {
+        return new OptionNumericSetting
+        {
+            DefaultValue = 1f,
+            MinValue = 0f,
+            MaxValue = 1f,
+            Step = 0.01f
+        };
     }
 
     /// <summary>
@@ -793,9 +1078,9 @@ public class AudioManager : MonoBehaviour
         OptionSaveData optionData = optionManager.GetCurrentOptions(); // 현재 옵션 스냅샷입니다.
         optionData.Audio = new AudioOptionsData
         {
-            MasterVolume = _masterVolume,
-            BgmVolume = _bgmVolume,
-            SfxVolume = _sfxVolume
+            MasterVolume = DenormalizeOptionVolume(_masterVolume, ResolveMasterVolumeMetadata()),
+            BgmVolume = DenormalizeOptionVolume(_bgmVolume, ResolveBgmVolumeMetadata()),
+            SfxVolume = DenormalizeOptionVolume(_sfxVolume, ResolveSfxVolumeMetadata())
         };
 
         optionManager.SetAllOptions(optionData);
@@ -821,6 +1106,14 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     private void ApplyAllVolumes()
     {
+        ApplyRuntimeVolumeToPlayingSources();
+    }
+
+    /// <summary>
+    /// 옵션에서 변경된 플레이어 볼륨 값을 이미 재생 중인 BGM/SFX AudioSource에 즉시 반영한다.
+    /// </summary>
+    private void ApplyRuntimeVolumeToPlayingSources()
+    {
         ApplyBgmVolumes();
         ApplySfxVolumes();
     }
@@ -832,6 +1125,11 @@ public class AudioManager : MonoBehaviour
     {
         for (int i = 0; i < _bgmSources.Length; i++)
         {
+            if (_bgmSources[i] == null)
+            {
+                continue;
+            }
+
             float entryVolume = 1f;
             if (_bgmSources[i].clip != null && _soundDatabase != null)
             {
@@ -841,7 +1139,7 @@ public class AudioManager : MonoBehaviour
                 }
             }
 
-            _bgmSources[i].volume = entryVolume * _masterVolume * _bgmVolume * _bgmMixWeights[i];
+            _bgmSources[i].volume = CalculateBgmVolume(entryVolume, _bgmMixWeights[i]);
         }
     }
 
@@ -853,6 +1151,11 @@ public class AudioManager : MonoBehaviour
         for (int i = 0; i < _sfxSources.Count; i++)
         {
             AudioSource source = _sfxSources[i];
+            if (source == null)
+            {
+                continue;
+            }
+
             if (_sfxBaseVolumeBySource.TryGetValue(source, out float baseVolume) == false)
             {
                 baseVolume = 1f;
@@ -868,11 +1171,24 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     private void ApplyBgmVolume(int sourceIndex, float entryVolume)
     {
-        _bgmSources[sourceIndex].volume = entryVolume * _masterVolume * _bgmVolume * _bgmMixWeights[sourceIndex];
+        if (sourceIndex < 0 || sourceIndex >= _bgmSources.Length || _bgmSources[sourceIndex] == null)
+        {
+            return;
+        }
+
+        _bgmSources[sourceIndex].volume = CalculateBgmVolume(entryVolume, _bgmMixWeights[sourceIndex]);
     }
 
     /// <summary>
-    /// SFX용 최종 볼륨을 계산한다.
+    /// BGM 최종 볼륨을 사운드별 디자이너 최대값, 플레이어 옵션값, 페이드 가중치로 계산한다.
+    /// </summary>
+    private float CalculateBgmVolume(float entryVolume, float mixWeight)
+    {
+        return entryVolume * _masterVolume * _bgmVolume * mixWeight;
+    }
+
+    /// <summary>
+    /// SFX 최종 볼륨을 사운드별 디자이너 최대값과 플레이어 옵션값으로 계산한다.
     /// </summary>
     private float CalculateSfxVolume(float entryVolume)
     {

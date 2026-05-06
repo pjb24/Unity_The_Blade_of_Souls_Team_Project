@@ -11,8 +11,9 @@ public class SoundEntry
     private AudioClip _clip; // 실제로 재생될 오디오 클립
 
     [SerializeField]
+    [Tooltip("디자이너가 이 사운드에 대해 의도한 최대 출력 배율입니다. 플레이어 옵션 볼륨은 이 값을 넘지 않고 추가로 곱해집니다.")]
     [Range(0f, 1f)]
-    private float _volume = 1f; // 이 사운드의 기본 볼륨 배율
+    private float _volume = 1f; // 사운드별 디자이너 의도 최대 출력 배율
 
     [SerializeField]
     [Range(0.1f, 3f)]

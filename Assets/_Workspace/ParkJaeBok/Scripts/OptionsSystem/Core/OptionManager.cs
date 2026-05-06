@@ -184,9 +184,20 @@ public class OptionManager : MonoBehaviour
     }
 
     public OptionNumericSetting GetGammaBrightnessMetadata() => _defaultProfile.GammaBrightnessSetting;
-    public OptionNumericSetting GetMasterVolumeMetadata() => _defaultProfile.MasterVolumeSetting;
-    public OptionNumericSetting GetBgmVolumeMetadata() => _defaultProfile.BgmVolumeSetting;
-    public OptionNumericSetting GetSfxVolumeMetadata() => _defaultProfile.SfxVolumeSetting;
+    /// <summary>
+    /// 마스터 볼륨 옵션 메타데이터를 반환하고 프로필이 없으면 0~100 기본 범위를 사용한다.
+    /// </summary>
+    public OptionNumericSetting GetMasterVolumeMetadata() => _defaultProfile != null ? _defaultProfile.MasterVolumeSetting : CreatePercentVolumeMetadata();
+
+    /// <summary>
+    /// BGM 볼륨 옵션 메타데이터를 반환하고 프로필이 없으면 0~100 기본 범위를 사용한다.
+    /// </summary>
+    public OptionNumericSetting GetBgmVolumeMetadata() => _defaultProfile != null ? _defaultProfile.BgmVolumeSetting : CreatePercentVolumeMetadata();
+
+    /// <summary>
+    /// SFX 볼륨 옵션 메타데이터를 반환하고 프로필이 없으면 0~100 기본 범위를 사용한다.
+    /// </summary>
+    public OptionNumericSetting GetSfxVolumeMetadata() => _defaultProfile != null ? _defaultProfile.SfxVolumeSetting : CreatePercentVolumeMetadata();
     public OptionNumericSetting GetSubtitleSpeedMetadata() => _defaultProfile.SubtitleSpeedSetting;
     public OptionNumericSetting GetUiScaleMetadata() => _defaultProfile.UiScaleSetting;
     public OptionNumericSetting GetCameraShakeMetadata() => _defaultProfile.CameraShakeSetting;
@@ -213,6 +224,20 @@ public class OptionManager : MonoBehaviour
         }
 
         NotifyChanged();
+    }
+
+    /// <summary>
+    /// 기본 프로필이 없을 때 오디오 볼륨 옵션에 사용할 0~100 퍼센트 메타데이터를 생성한다.
+    /// </summary>
+    private OptionNumericSetting CreatePercentVolumeMetadata()
+    {
+        return new OptionNumericSetting
+        {
+            DefaultValue = 100f,
+            MinValue = 0f,
+            MaxValue = 100f,
+            Step = 1f
+        };
     }
 
     /// <summary>
