@@ -52,14 +52,17 @@ public class AudioManager : MonoBehaviour
 
     [Header("Volume")]
     [SerializeField]
+    [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 마스터 볼륨입니다.")]
     [Range(0f, 1f)]
     private float _masterVolume = 1f; // 전체 사운드에 공통 적용되는 마스터 볼륨
 
     [SerializeField]
+    [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 BGM 볼륨입니다.")]
     [Range(0f, 1f)]
     private float _bgmVolume = 1f; // BGM 계열에만 적용되는 볼륨 배율
 
     [SerializeField]
+    [Tooltip("옵션 저장 데이터에서 불러오는 플레이어 조절용 SFX 볼륨입니다.")]
     [Range(0f, 1f)]
     private float _sfxVolume = 1f; // SFX 계열에만 적용되는 볼륨 배율
 
@@ -76,6 +79,7 @@ public class AudioManager : MonoBehaviour
     private Coroutine _bgmFadeCoroutine; // 진행 중인 BGM 페이드 코루틴 핸들
 
     private Action<float, float, float> _onVolumeChanged; // 볼륨 변경 알림 리스너 컬렉션
+    private OptionManager _subscribedOptionManager; // 플레이어 옵션 볼륨 변경을 동기화하기 위해 구독 중인 OptionManager
 
     private readonly struct SfxCooldownKey
     {
@@ -181,7 +185,42 @@ public class AudioManager : MonoBehaviour
         LoadVolumes();
         InitializeBgmSources();
         InitializeSfxPool();
+        SubscribeOptionManagerChanges();
         ApplyAllVolumes();
+    }
+
+    /// <summary>
+    /// AudioManager가 활성화될 때 OptionManager의 플레이어 볼륨 변경을 구독한다.
+    /// </summary>
+    private void OnEnable()
+    {
+        SubscribeOptionManagerChanges();
+    }
+
+    /// <summary>
+    /// 다른 런타임 매니저의 Awake가 끝난 뒤 OptionManager 구독을 한 번 더 보정한다.
+    /// </summary>
+    private void Start()
+    {
+        SubscribeOptionManagerChanges();
+        LoadVolumes();
+        ApplyAllVolumes();
+    }
+
+    /// <summary>
+    /// AudioManager가 비활성화될 때 OptionManager 구독을 해제한다.
+    /// </summary>
+    private void OnDisable()
+    {
+        UnsubscribeOptionManagerChanges();
+    }
+
+    /// <summary>
+    /// AudioManager가 파괴될 때 남아 있는 OptionManager 구독을 정리한다.
+    /// </summary>
+    private void OnDestroy()
+    {
+        UnsubscribeOptionManagerChanges();
     }
 
     /// <summary>
@@ -201,6 +240,8 @@ public class AudioManager : MonoBehaviour
 
             ConfigureSfxSourceSpatialSettings(_sfxSources[i]);
         }
+
+        ApplyAllVolumes();
     }
 
     /// <summary>
@@ -756,6 +797,57 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
+    /// OptionManager의 변경 알림을 구독해 옵션 UI에서 바뀐 플레이어 볼륨을 즉시 반영한다.
+    /// </summary>
+    private void SubscribeOptionManagerChanges()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 플레이어 옵션 저장 데이터를 보유한 런타임 매니저입니다.
+        if (optionManager == null || _subscribedOptionManager == optionManager)
+        {
+            return;
+        }
+
+        UnsubscribeOptionManagerChanges();
+        optionManager.RemoveListener(HandleOptionSnapshotChanged);
+        optionManager.AddListener(HandleOptionSnapshotChanged);
+        _subscribedOptionManager = optionManager;
+    }
+
+    /// <summary>
+    /// OptionManager 변경 알림 구독을 해제한다.
+    /// </summary>
+    private void UnsubscribeOptionManagerChanges()
+    {
+        if (_subscribedOptionManager == null)
+        {
+            return;
+        }
+
+        _subscribedOptionManager.RemoveListener(HandleOptionSnapshotChanged);
+        _subscribedOptionManager = null;
+    }
+
+    /// <summary>
+    /// 옵션 스냅샷의 플레이어 볼륨 값을 AudioManager 런타임 상태에 반영한다.
+    /// </summary>
+    private void HandleOptionSnapshotChanged(OptionSaveData optionData)
+    {
+        if (optionData == null)
+        {
+            return;
+        }
+
+        bool changed = ApplyPlayerVolumeOptions(optionData.Audio);
+        if (changed == false)
+        {
+            return;
+        }
+
+        ApplyRuntimeVolumeToPlayingSources();
+        NotifyVolumeChanged();
+    }
+
+    /// <summary>
     /// 저장 시스템에서 볼륨을 불러오고 범위를 검증한다.
     /// </summary>
     private void LoadVolumes()
@@ -764,9 +856,7 @@ public class AudioManager : MonoBehaviour
         if (optionManager != null)
         {
             OptionSaveData optionData = optionManager.GetCurrentOptions();
-            _masterVolume = optionData.Audio.MasterVolume;
-            _bgmVolume = optionData.Audio.BgmVolume;
-            _sfxVolume = optionData.Audio.SfxVolume;
+            ApplyPlayerVolumeOptions(optionData.Audio);
         }
         else
         {
@@ -776,6 +866,105 @@ public class AudioManager : MonoBehaviour
         _masterVolume = ClampVolume(_masterVolume, nameof(_masterVolume));
         _bgmVolume = ClampVolume(_bgmVolume, nameof(_bgmVolume));
         _sfxVolume = ClampVolume(_sfxVolume, nameof(_sfxVolume));
+    }
+
+    /// <summary>
+    /// 플레이어가 옵션에서 조절한 볼륨 데이터만 런타임 볼륨 상태에 적용한다.
+    /// </summary>
+    private bool ApplyPlayerVolumeOptions(AudioOptionsData audioOptions)
+    {
+        float nextMasterVolume = NormalizeOptionVolume(audioOptions.MasterVolume, ResolveMasterVolumeMetadata(), nameof(audioOptions.MasterVolume)); // 옵션 저장 데이터의 플레이어 마스터 볼륨 비율
+        float nextBgmVolume = NormalizeOptionVolume(audioOptions.BgmVolume, ResolveBgmVolumeMetadata(), nameof(audioOptions.BgmVolume)); // 옵션 저장 데이터의 플레이어 BGM 볼륨 비율
+        float nextSfxVolume = NormalizeOptionVolume(audioOptions.SfxVolume, ResolveSfxVolumeMetadata(), nameof(audioOptions.SfxVolume)); // 옵션 저장 데이터의 플레이어 SFX 볼륨 비율
+
+        bool changed =
+            Mathf.Approximately(_masterVolume, nextMasterVolume) == false ||
+            Mathf.Approximately(_bgmVolume, nextBgmVolume) == false ||
+            Mathf.Approximately(_sfxVolume, nextSfxVolume) == false;
+
+        _masterVolume = nextMasterVolume;
+        _bgmVolume = nextBgmVolume;
+        _sfxVolume = nextSfxVolume;
+        return changed;
+    }
+
+    /// <summary>
+    /// 옵션 저장값을 프로필 메타데이터 기준의 0~1 런타임 볼륨 비율로 변환한다.
+    /// </summary>
+    private float NormalizeOptionVolume(float optionValue, OptionNumericSetting metadata, string label)
+    {
+        float minValue = Mathf.Min(metadata.MinValue, metadata.MaxValue); // 옵션 UI/저장 데이터에서 허용하는 최소값
+        float maxValue = Mathf.Max(metadata.MinValue, metadata.MaxValue); // 옵션 UI/저장 데이터에서 허용하는 최대값
+        if (Mathf.Approximately(minValue, maxValue))
+        {
+            Debug.LogWarning($"[AudioManager] 볼륨 메타데이터 범위가 비정상이라 0~1 보정을 사용합니다. label={label}", this);
+            return ClampVolume(optionValue, label);
+        }
+
+        float clampedOptionValue = Mathf.Clamp(optionValue, minValue, maxValue);
+        if (Mathf.Approximately(optionValue, clampedOptionValue) == false)
+        {
+            Debug.LogWarning($"[AudioManager] 옵션 볼륨 값이 범위를 벗어나 보정했습니다. label={label}, input={optionValue}, clamped={clampedOptionValue}", this);
+        }
+
+        return Mathf.Clamp01(Mathf.InverseLerp(minValue, maxValue, clampedOptionValue));
+    }
+
+    /// <summary>
+    /// 0~1 런타임 볼륨 비율을 옵션 저장값 스케일로 변환한다.
+    /// </summary>
+    private float DenormalizeOptionVolume(float normalizedVolume, OptionNumericSetting metadata)
+    {
+        float safeVolume = Mathf.Clamp01(normalizedVolume); // AudioManager 내부에서 사용하는 0~1 볼륨 비율
+        float minValue = Mathf.Min(metadata.MinValue, metadata.MaxValue);
+        float maxValue = Mathf.Max(metadata.MinValue, metadata.MaxValue);
+        if (Mathf.Approximately(minValue, maxValue))
+        {
+            return safeVolume;
+        }
+
+        return Mathf.Lerp(minValue, maxValue, safeVolume);
+    }
+
+    /// <summary>
+    /// 마스터 볼륨 옵션 메타데이터를 조회하고 없으면 0~1 기본 범위를 반환한다.
+    /// </summary>
+    private OptionNumericSetting ResolveMasterVolumeMetadata()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 오디오 옵션 메타데이터를 제공하는 옵션 매니저입니다.
+        return optionManager != null ? optionManager.GetMasterVolumeMetadata() : CreateNormalizedVolumeMetadata();
+    }
+
+    /// <summary>
+    /// BGM 볼륨 옵션 메타데이터를 조회하고 없으면 0~1 기본 범위를 반환한다.
+    /// </summary>
+    private OptionNumericSetting ResolveBgmVolumeMetadata()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 오디오 옵션 메타데이터를 제공하는 옵션 매니저입니다.
+        return optionManager != null ? optionManager.GetBgmVolumeMetadata() : CreateNormalizedVolumeMetadata();
+    }
+
+    /// <summary>
+    /// SFX 볼륨 옵션 메타데이터를 조회하고 없으면 0~1 기본 범위를 반환한다.
+    /// </summary>
+    private OptionNumericSetting ResolveSfxVolumeMetadata()
+    {
+        OptionManager optionManager = OptionManager.Instance; // 오디오 옵션 메타데이터를 제공하는 옵션 매니저입니다.
+        return optionManager != null ? optionManager.GetSfxVolumeMetadata() : CreateNormalizedVolumeMetadata();
+    }
+
+    /// <summary>
+    /// OptionManager가 없을 때 사용할 0~1 볼륨 메타데이터를 생성한다.
+    /// </summary>
+    private OptionNumericSetting CreateNormalizedVolumeMetadata()
+    {
+        return new OptionNumericSetting
+        {
+            DefaultValue = 1f,
+            MinValue = 0f,
+            MaxValue = 1f,
+            Step = 0.01f
+        };
     }
 
     /// <summary>
@@ -793,9 +982,9 @@ public class AudioManager : MonoBehaviour
         OptionSaveData optionData = optionManager.GetCurrentOptions(); // 현재 옵션 스냅샷입니다.
         optionData.Audio = new AudioOptionsData
         {
-            MasterVolume = _masterVolume,
-            BgmVolume = _bgmVolume,
-            SfxVolume = _sfxVolume
+            MasterVolume = DenormalizeOptionVolume(_masterVolume, ResolveMasterVolumeMetadata()),
+            BgmVolume = DenormalizeOptionVolume(_bgmVolume, ResolveBgmVolumeMetadata()),
+            SfxVolume = DenormalizeOptionVolume(_sfxVolume, ResolveSfxVolumeMetadata())
         };
 
         optionManager.SetAllOptions(optionData);
@@ -821,6 +1010,14 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     private void ApplyAllVolumes()
     {
+        ApplyRuntimeVolumeToPlayingSources();
+    }
+
+    /// <summary>
+    /// 옵션에서 변경된 플레이어 볼륨 값을 이미 재생 중인 BGM/SFX AudioSource에 즉시 반영한다.
+    /// </summary>
+    private void ApplyRuntimeVolumeToPlayingSources()
+    {
         ApplyBgmVolumes();
         ApplySfxVolumes();
     }
@@ -832,6 +1029,11 @@ public class AudioManager : MonoBehaviour
     {
         for (int i = 0; i < _bgmSources.Length; i++)
         {
+            if (_bgmSources[i] == null)
+            {
+                continue;
+            }
+
             float entryVolume = 1f;
             if (_bgmSources[i].clip != null && _soundDatabase != null)
             {
@@ -841,7 +1043,7 @@ public class AudioManager : MonoBehaviour
                 }
             }
 
-            _bgmSources[i].volume = entryVolume * _masterVolume * _bgmVolume * _bgmMixWeights[i];
+            _bgmSources[i].volume = CalculateBgmVolume(entryVolume, _bgmMixWeights[i]);
         }
     }
 
@@ -853,6 +1055,11 @@ public class AudioManager : MonoBehaviour
         for (int i = 0; i < _sfxSources.Count; i++)
         {
             AudioSource source = _sfxSources[i];
+            if (source == null)
+            {
+                continue;
+            }
+
             if (_sfxBaseVolumeBySource.TryGetValue(source, out float baseVolume) == false)
             {
                 baseVolume = 1f;
@@ -868,11 +1075,24 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     private void ApplyBgmVolume(int sourceIndex, float entryVolume)
     {
-        _bgmSources[sourceIndex].volume = entryVolume * _masterVolume * _bgmVolume * _bgmMixWeights[sourceIndex];
+        if (sourceIndex < 0 || sourceIndex >= _bgmSources.Length || _bgmSources[sourceIndex] == null)
+        {
+            return;
+        }
+
+        _bgmSources[sourceIndex].volume = CalculateBgmVolume(entryVolume, _bgmMixWeights[sourceIndex]);
     }
 
     /// <summary>
-    /// SFX용 최종 볼륨을 계산한다.
+    /// BGM 최종 볼륨을 사운드별 디자이너 최대값, 플레이어 옵션값, 페이드 가중치로 계산한다.
+    /// </summary>
+    private float CalculateBgmVolume(float entryVolume, float mixWeight)
+    {
+        return entryVolume * _masterVolume * _bgmVolume * mixWeight;
+    }
+
+    /// <summary>
+    /// SFX 최종 볼륨을 사운드별 디자이너 최대값과 플레이어 옵션값으로 계산한다.
     /// </summary>
     private float CalculateSfxVolume(float entryVolume)
     {

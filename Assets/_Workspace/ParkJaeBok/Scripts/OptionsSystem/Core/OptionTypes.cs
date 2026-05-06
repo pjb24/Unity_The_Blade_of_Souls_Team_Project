@@ -166,9 +166,9 @@ public struct DisplayOptionsData
 [Serializable]
 public struct AudioOptionsData
 {
-    public float MasterVolume; // 마스터 볼륨 저장값입니다.
-    public float BgmVolume; // BGM 볼륨 저장값입니다.
-    public float SfxVolume; // SFX 볼륨 저장값입니다.
+    public float MasterVolume; // 마스터 볼륨 옵션 저장값입니다. 기본 프로필 메타데이터 기준으로 0~100 퍼센트 스케일을 사용합니다.
+    public float BgmVolume; // BGM 볼륨 옵션 저장값입니다. 기본 프로필 메타데이터 기준으로 0~100 퍼센트 스케일을 사용합니다.
+    public float SfxVolume; // SFX 볼륨 옵션 저장값입니다. 기본 프로필 메타데이터 기준으로 0~100 퍼센트 스케일을 사용합니다.
 }
 
 /// <summary>
