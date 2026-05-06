@@ -717,7 +717,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
-    /// 살아있는 모든 플레이어에게 타임아웃 데미지를 적용한다.
+    /// 살아있는 모든 플레이어에게 타임아웃 데미지를 HitReceiver 경로로 적용한다.
     /// </summary>
     private void ApplyTimeLimitDamageToLivingPlayers(WeakPointPatternSettings settings)
     {
@@ -749,16 +749,16 @@ public sealed class BossWeakPointPattern : BossPatternBase
                 continue;
             }
 
-            DamageContext damageContext = new DamageContext(
-                settings.WeakPointTimeLimitDamage,
-                gameObject,
-                "BossPattern4TimeLimit",
-                false,
-                true,
-                E_DamageType.True
-            );
+            HitReceiver targetHitReceiver = ResolveDamageTargetHitReceiver(targetHealth);
 
-            targetHealth.ApplyDamage(damageContext);
+            if (targetHitReceiver == null)
+            {
+                LogFailureOnce("WeakPointTimeoutTargetHitReceiverMissing");
+                continue;
+            }
+
+            HitRequest hitRequest = BuildTimeLimitHitRequest(settings, targetHitReceiver, index);
+            targetHitReceiver.ReceiveHit(hitRequest);
         }
     }
 
@@ -794,6 +794,119 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         return targetObject.activeInHierarchy &&
                targetHealth.GetCurrentHealth() > 0f;
+    }
+
+    /// <summary>
+    /// HealthComponent 기준 타겟에서 실제 피격 처리를 담당할 HitReceiver를 찾는다.
+    /// </summary>
+    private HitReceiver ResolveDamageTargetHitReceiver(HealthComponent targetHealth)
+    {
+        if (targetHealth == null)
+        {
+            return null;
+        }
+
+        HitReceiver receiver = targetHealth.GetComponent<HitReceiver>(); // Health와 같은 오브젝트에 있는 기본 피격 수신자
+        if (receiver != null)
+        {
+            return receiver;
+        }
+
+        receiver = targetHealth.GetComponentInParent<HitReceiver>(); // Player 루트가 피격 수신자를 소유하는 구조 지원
+        if (receiver != null)
+        {
+            return receiver;
+        }
+
+        receiver = ResolveSiblingHitReceiver(targetHealth); // Health와 HitReceiver가 같은 부모 아래 형제로 분리된 프리팹 구조 지원
+        if (receiver != null)
+        {
+            return receiver;
+        }
+
+        return targetHealth.GetComponentInChildren<HitReceiver>(true); // Health 하위에 피격 수신자가 분리된 프리팹 구조 지원
+    }
+
+    /// <summary>
+    /// HealthComponent와 같은 부모를 공유하는 형제 GameObject들에서 HitReceiver를 찾는다.
+    /// </summary>
+    private HitReceiver ResolveSiblingHitReceiver(HealthComponent targetHealth)
+    {
+        Transform parent = targetHealth != null ? targetHealth.transform.parent : null; // 형제 탐색 범위를 결정하는 HealthComponent의 부모 Transform
+        if (parent == null)
+        {
+            return null;
+        }
+
+        for (int siblingIndex = 0; siblingIndex < parent.childCount; siblingIndex++)
+        {
+            Transform sibling = parent.GetChild(siblingIndex); // 현재 검사 중인 형제 Transform
+            if (sibling == null || sibling == targetHealth.transform)
+            {
+                continue;
+            }
+
+            HitReceiver receiver = sibling.GetComponent<HitReceiver>(); // 형제 GameObject에 직접 배치된 피격 수신자
+            if (receiver != null)
+            {
+                return receiver;
+            }
+
+            receiver = sibling.GetComponentInChildren<HitReceiver>(true); // 형제 하위에 분리된 피격 수신자
+            if (receiver != null)
+            {
+                return receiver;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 약점 타임아웃 피해를 기존 Hit/Action 시스템이 처리할 수 있는 HitRequest로 변환한다.
+    /// </summary>
+    private HitRequest BuildTimeLimitHitRequest(WeakPointPatternSettings settings, HitReceiver targetHitReceiver, int targetIndex)
+    {
+        Vector3 targetPosition = targetHitReceiver.transform.position; // 피격 위치와 방향 계산 기준으로 사용하는 Player 위치
+        Vector3 hitDirection = (targetPosition - transform.position).normalized; // 보스에서 Player를 향하는 피격 방향
+
+        if (hitDirection.sqrMagnitude < 0.0001f)
+        {
+            hitDirection = Vector3.right;
+        }
+
+        string hitId = BuildTimeLimitHitId(targetHitReceiver, targetIndex);
+
+        return new HitRequest(
+            hitId,
+            settings.WeakPointTimeLimitDamage,
+            gameObject,
+            targetPosition,
+            hitDirection,
+            ResolveTimeLimitDamageStatusTag(settings),
+            Time.time);
+    }
+
+    /// <summary>
+    /// 같은 타임아웃 처리 안에서 Player별 중복 피격을 막을 고유 HitId를 생성한다.
+    /// </summary>
+    private string BuildTimeLimitHitId(HitReceiver targetHitReceiver, int targetIndex)
+    {
+        int targetId = targetHitReceiver != null ? targetHitReceiver.gameObject.GetInstanceID() : targetIndex; // 대상 식별용 안전 ID
+        return $"{name}_WeakPointTimeLimit_{_activePatternId}_{Time.frameCount}_{targetId}_{targetIndex}";
+    }
+
+    /// <summary>
+    /// 디자이너 설정 상태 태그가 비어있을 때 사용할 기본 타임아웃 피격 태그를 반환한다.
+    /// </summary>
+    private string ResolveTimeLimitDamageStatusTag(WeakPointPatternSettings settings)
+    {
+        if (!string.IsNullOrWhiteSpace(settings.WeakPointTimeLimitDamageStatusTag))
+        {
+            return settings.WeakPointTimeLimitDamageStatusTag;
+        }
+
+        return "BossPattern4TimeLimit";
     }
 
     /// <summary>

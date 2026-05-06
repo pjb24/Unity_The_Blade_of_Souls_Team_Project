@@ -759,6 +759,9 @@ public struct WeakPointPatternSettings
     [Min(0f)]
     [SerializeField] private float _weakPointTimeLimitDamage; // 패턴 4 시간 초과 시 권한 측에서 모든 유효 Player에게 적용하는 피해량
 
+    [Tooltip("패턴 4 약점 제한 시간 만료 피해가 Player HitReceiver로 전달될 때 사용할 상태 태그입니다. 비워두면 기본 타임아웃 태그를 사용합니다.")]
+    [SerializeField] private string _weakPointTimeLimitDamageStatusTag; // Player ActionHitBridge가 Hit/Die 반응을 선택할 때 사용할 타임아웃 피해 상태 태그
+
     [Tooltip("패턴 4 진입 애니메이션 이벤트를 받지 못했을 때 사용할 폴백 시간")]
     [Min(0f)]
     [SerializeField] private float _entryAnimationFallbackSeconds; // 패턴 4 진입 완료용 Animation Event 폴백 시간
@@ -833,6 +836,11 @@ public struct WeakPointPatternSettings
     /// 패턴 4 시간 초과 시 살아있는 Player에게 적용할 피해량을 반환한다.
     /// </summary>
     public float WeakPointTimeLimitDamage => _weakPointTimeLimitDamage;
+
+    /// <summary>
+    /// 패턴 4 시간 초과 피해가 HitReceiver로 전달될 때 사용할 상태 태그를 반환한다.
+    /// </summary>
+    public string WeakPointTimeLimitDamageStatusTag => _weakPointTimeLimitDamageStatusTag;
 
     /// <summary>
     /// 패턴 4 진입 애니메이션 폴백 시간을 반환한다.
