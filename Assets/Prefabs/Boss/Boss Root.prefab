@@ -1020,6 +1020,7 @@ GameObject:
   - component: {fileID: 4748036699083423920}
   - component: {fileID: 1300781294778279737}
   - component: {fileID: 140233643245463046}
+  - component: {fileID: 99583219418911075}
   m_Layer: 8
   m_Name: Boss Root
   m_TagString: Enemy
@@ -1058,7 +1059,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3935098436
+  GlobalObjectIdHash: 3740713336
   InScenePlacedSourceGlobalObjectIdHash: 0
   DeferredDespawnTick: 0
   Ownership: 1
@@ -1448,6 +1449,27 @@ MonoBehaviour:
   _lockLocalPlayerMovement: 1
   _clearHorizontalVelocityOnLock: 1
   _warnMissingReferences: 1
+--- !u!114 &99583219418911075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6292150401021066319}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f592438265929cd4d9b38a4a1fff34ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossHealthNetworkSync
+  ShowTopMostFoldoutHeaderGroup: 1
+  _bossHealthComponent: {fileID: 7499435228633890958}
+  _bossController: {fileID: 2001514356791471925}
+  _enableHealthStateSync: 1
+  _applyReplicatedHealthOnClient: 1
+  _warnMissingHealthComponent: 1
+  _debugReplicatedCurrentHealth: 0
+  _debugReplicatedMaxHealth: 1
+  _debugReplicatedIsDead: 0
 --- !u!1 &8075390241886384120
 GameObject:
   m_ObjectHideFlags: 0
