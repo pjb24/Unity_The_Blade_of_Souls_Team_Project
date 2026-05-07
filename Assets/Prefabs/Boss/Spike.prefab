@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4627151001737308233}
   - component: {fileID: 9097061133446955481}
   - component: {fileID: 7011670713103989534}
+  - component: {fileID: -7839409823514377594}
   m_Layer: 8
   m_Name: Spike
   m_TagString: Untagged
@@ -83,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 3
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -9012478329268760218, guid: 8161b1118c92e72418477ea92f170783, type: 3}
+  m_Sprite: {fileID: 2060538863363107476, guid: b379d07f3a9d56b4488730a91bcbf483, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -127,17 +128,17 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0.005049944}
+  m_Offset: {x: 0.005041063, y: 1.2451236}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 3.8, y: 4}
+    pivot: {x: 0.5292482, y: 0.25235784}
+    oldSize: {x: 1.53, y: 5.12}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 3.9391675}
+  m_Size: {x: 1.2318836, y: 2.588193}
   m_EdgeRadius: 0
 --- !u!114 &7011670713103989534
 MonoBehaviour:
@@ -164,3 +165,25 @@ MonoBehaviour:
   AutoObjectParentSync: 1
   SyncOwnerTransformWhenParented: 1
   AllowOwnerToParent: 0
+--- !u!95 &-7839409823514377594
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 525794478471237259}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: cfde8f37069ca09468b69d157887afcf, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
