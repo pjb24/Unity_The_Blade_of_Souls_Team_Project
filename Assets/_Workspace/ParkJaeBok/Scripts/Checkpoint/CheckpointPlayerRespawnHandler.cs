@@ -10,6 +10,8 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
 {
+    public delegate bool AutomaticRespawnSuppressionHandler(CheckpointPlayerRespawnHandler handler);
+
     [Header("Dependencies")]
     [Tooltip("리스폰을 처리할 Stage 체크포인트 컨트롤러입니다. 비어 있으면 활성 씬에서 자동 탐색합니다.")]
     [SerializeField] private CheckpointStageController _stageController; // 사망 복귀를 위임할 체크포인트 Stage Controller입니다.
@@ -26,9 +28,26 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     [Min(0f)]
     [SerializeField] private float _singlePlayerRespawnDelaySeconds = 0f; // 싱글플레이 사망 후 부활 대기 시간입니다.
 
+    [Tooltip("이 컴포넌트가 사망 후 자동 체크포인트 리스폰을 수행할지 여부입니다. 보스룸 같은 특수 규칙은 런타임 억제 이벤트로도 제어할 수 있습니다.")]
+    [SerializeField] private bool _allowAutomaticRespawn = true; // 기본 체크포인트 자동 리스폰 정책 사용 여부입니다.
+
     private static readonly Dictionary<ulong, bool> DeadStateByClientId = new Dictionary<ulong, bool>(); // Host 권한에서 관리하는 clientId별 사망 상태입니다.
+    private static readonly List<CheckpointPlayerRespawnHandler> ActiveHandlers = new List<CheckpointPlayerRespawnHandler>(); // 현재 씬/세션에서 살아 있는 리스폰 핸들러 목록입니다.
     private bool _isHealthListenerRegistered; // HealthComponent 리스너 등록 여부입니다.
     private Coroutine _respawnRoutine; // 현재 예약된 리스폰 코루틴입니다.
+
+    public static event System.Action<CheckpointPlayerRespawnHandler, bool> DeathStateChanged; // Host/싱글 권한에서 플레이어 사망 상태가 바뀔 때 발생하는 이벤트입니다.
+    public static event AutomaticRespawnSuppressionHandler AutomaticRespawnSuppressionRequested; // 특수 룰이 자동 리스폰을 일시 억제할지 질의하는 이벤트입니다.
+
+    /// <summary>
+    /// 이 핸들러의 소유 ClientId를 반환합니다.
+    /// </summary>
+    public ulong PlayerClientId => OwnerClientId;
+
+    /// <summary>
+    /// 현재 예약된 자동 리스폰이 있는지 반환합니다.
+    /// </summary>
+    public bool HasScheduledRespawn => _respawnRoutine != null;
 
     /// <summary>
     /// 필요한 참조를 자동 보정합니다.
@@ -44,6 +63,7 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     private void OnEnable()
     {
         ResolveReferences();
+        RegisterActiveHandler();
         RegisterHealthListener();
     }
 
@@ -53,6 +73,7 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     private void OnDisable()
     {
         UnregisterHealthListener();
+        UnregisterActiveHandler();
 
         if (_respawnRoutine != null)
         {
@@ -69,6 +90,7 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         if (IsServer)
         {
             DeadStateByClientId[OwnerClientId] = _healthComponent != null && _healthComponent.IsDead;
+            DeathStateChanged?.Invoke(this, DeadStateByClientId[OwnerClientId]);
         }
     }
 
@@ -80,6 +102,7 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         if (IsServer)
         {
             DeadStateByClientId.Remove(OwnerClientId);
+            DeathStateChanged?.Invoke(this, false);
         }
     }
 
@@ -112,6 +135,12 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         NetworkManager networkManager = NetworkManager.Singleton;
         if (networkManager == null || !networkManager.IsListening)
         {
+            DeathStateChanged?.Invoke(this, true);
+            if (ShouldSuppressAutomaticRespawn())
+            {
+                return;
+            }
+
             ScheduleAuthorityRespawn(true, _singlePlayerRespawnDelaySeconds);
             return;
         }
@@ -136,6 +165,14 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         if (IsSpawned && IsServer)
         {
             DeadStateByClientId[OwnerClientId] = false;
+            DeathStateChanged?.Invoke(this, false);
+            return;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            DeathStateChanged?.Invoke(this, false);
         }
     }
 
@@ -167,6 +204,12 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     private void RegisterServerDeathAndSchedule(ulong deadClientId)
     {
         DeadStateByClientId[deadClientId] = true;
+        DeathStateChanged?.Invoke(this, true);
+        if (ShouldSuppressAutomaticRespawn())
+        {
+            return;
+        }
+
         ScheduleAuthorityRespawn(ShouldResetMonstersForCurrentDeath(), _multiplayerRespawnDelaySeconds);
     }
 
@@ -202,6 +245,11 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     /// </summary>
     private void ScheduleAuthorityRespawn(bool resetMonsters, float delaySeconds)
     {
+        if (!_allowAutomaticRespawn || ShouldSuppressAutomaticRespawn())
+        {
+            return;
+        }
+
         if (_respawnRoutine != null)
         {
             StopCoroutine(_respawnRoutine);
@@ -235,6 +283,98 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         }
 
         _respawnRoutine = null;
+    }
+
+    /// <summary>
+    /// 예약된 자동 리스폰을 취소합니다.
+    /// </summary>
+    public void CancelScheduledRespawn()
+    {
+        if (_respawnRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(_respawnRoutine);
+        _respawnRoutine = null;
+    }
+
+    /// <summary>
+    /// 현재 활성 핸들러들의 예약된 자동 리스폰을 모두 취소합니다.
+    /// </summary>
+    public static void CancelAllScheduledRespawns()
+    {
+        for (int i = ActiveHandlers.Count - 1; i >= 0; i--)
+        {
+            CheckpointPlayerRespawnHandler handler = ActiveHandlers[i]; // 예약 취소를 시도할 활성 핸들러입니다.
+            if (handler != null)
+            {
+                handler.CancelScheduledRespawn();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Host 기준으로 연결된 모든 플레이어가 사망 상태인지 판정합니다.
+    /// </summary>
+    public static bool AreAllConnectedPlayersDead()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            for (int i = 0; i < ActiveHandlers.Count; i++)
+            {
+                CheckpointPlayerRespawnHandler handler = ActiveHandlers[i];
+                if (handler != null && handler._healthComponent != null)
+                {
+                    return handler._healthComponent.IsDead;
+                }
+            }
+
+            return false;
+        }
+
+        if (!networkManager.IsServer || networkManager.ConnectedClientsIds.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (ulong clientId in networkManager.ConnectedClientsIds)
+        {
+            if (!DeadStateByClientId.TryGetValue(clientId, out bool isDead) || !isDead)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 자동 리스폰이 현재 정책 또는 외부 특수 룰에 의해 억제되는지 판정합니다.
+    /// </summary>
+    private bool ShouldSuppressAutomaticRespawn()
+    {
+        if (!_allowAutomaticRespawn)
+        {
+            return true;
+        }
+
+        if (AutomaticRespawnSuppressionRequested == null)
+        {
+            return false;
+        }
+
+        System.Delegate[] delegates = AutomaticRespawnSuppressionRequested.GetInvocationList(); // 등록된 특수 룰 질의 목록입니다.
+        for (int i = 0; i < delegates.Length; i++)
+        {
+            if (delegates[i] is AutomaticRespawnSuppressionHandler handler && handler(this))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -279,5 +419,24 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         {
             _stageController = FindAnyObjectByType<CheckpointStageController>();
         }
+    }
+
+    /// <summary>
+    /// 전역 활성 핸들러 목록에 현재 인스턴스를 등록합니다.
+    /// </summary>
+    private void RegisterActiveHandler()
+    {
+        if (!ActiveHandlers.Contains(this))
+        {
+            ActiveHandlers.Add(this);
+        }
+    }
+
+    /// <summary>
+    /// 전역 활성 핸들러 목록에서 현재 인스턴스를 제거합니다.
+    /// </summary>
+    private void UnregisterActiveHandler()
+    {
+        ActiveHandlers.Remove(this);
     }
 }

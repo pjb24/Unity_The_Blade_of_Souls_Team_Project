@@ -30,6 +30,9 @@ public class StageSession : MonoBehaviour
     [Tooltip("디버그용: 다음 씬에 적용 요청된 BGM 컨텍스트 타입입니다.")]
     [SerializeField] private E_BgmContextType _requestedBgmContextType = E_BgmContextType.None; // 다음 씬에 적용 요청된 BGM 컨텍스트 타입입니다.
 
+    [Tooltip("디버그용: 다음 로드 시 시작 체크포인트를 강제 적용할 Stage ID입니다. 씬 진입 시 1회 소비됩니다.")]
+    [SerializeField] private string _pendingStageEntryCheckpointStageId; // 다음 스테이지 로드에서 시작 체크포인트를 강제할 Stage ID입니다.
+
     /// <summary>
     /// 전역 StageSession 인스턴스를 반환하고, 없으면 새로 생성합니다.
     /// </summary>
@@ -69,6 +72,11 @@ public class StageSession : MonoBehaviour
     /// 다음 씬 진입 때 요청된 BGM 컨텍스트 타입을 반환합니다.
     /// </summary>
     public E_BgmContextType RequestedBgmContextType => _requestedBgmContextType;
+
+    /// <summary>
+    /// 시작 체크포인트 강제 적용이 예약된 Stage ID를 반환합니다.
+    /// </summary>
+    public string PendingStageEntryCheckpointStageId => _pendingStageEntryCheckpointStageId;
 
     /// <summary>
     /// 싱글턴 중복을 방지하고 필요한 경우 씬 전환 뒤에도 유지되도록 설정합니다.
@@ -118,6 +126,57 @@ public class StageSession : MonoBehaviour
     /// </summary>
     public void SetTownReturnPoint(string _)
     {
+    }
+
+    /// <summary>
+    /// 다음에 지정 스테이지가 로드될 때 마지막 체크포인트를 시작 체크포인트로 강제 갱신하도록 예약합니다.
+    /// </summary>
+    public void RequestStageEntryCheckpointOnNextLoad(StageDefinition stageDefinition)
+    {
+        if (stageDefinition == null)
+        {
+            Debug.LogWarning("[StageSession] stageDefinition이 null이라 시작 체크포인트 강제 요청을 기록하지 못했습니다.", this);
+            return;
+        }
+
+        RequestStageEntryCheckpointOnNextLoad(stageDefinition.StageId);
+    }
+
+    /// <summary>
+    /// 다음에 지정 Stage ID가 로드될 때 마지막 체크포인트를 시작 체크포인트로 강제 갱신하도록 예약합니다.
+    /// </summary>
+    public void RequestStageEntryCheckpointOnNextLoad(string stageId)
+    {
+        if (string.IsNullOrWhiteSpace(stageId))
+        {
+            Debug.LogWarning("[StageSession] stageId가 비어 있어 시작 체크포인트 강제 요청을 기록하지 못했습니다.", this);
+            return;
+        }
+
+        _pendingStageEntryCheckpointStageId = stageId;
+    }
+
+    /// <summary>
+    /// 지정 Stage ID에 대한 시작 체크포인트 강제 요청이 있는지 확인합니다.
+    /// </summary>
+    public bool HasPendingStageEntryCheckpointRequest(string stageId)
+    {
+        return !string.IsNullOrWhiteSpace(stageId)
+            && string.Equals(_pendingStageEntryCheckpointStageId, stageId, System.StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 지정 Stage ID에 대한 시작 체크포인트 강제 요청을 소비합니다.
+    /// </summary>
+    public bool ConsumeStageEntryCheckpointRequest(string stageId)
+    {
+        if (!HasPendingStageEntryCheckpointRequest(stageId))
+        {
+            return false;
+        }
+
+        _pendingStageEntryCheckpointStageId = string.Empty;
+        return true;
     }
 
     /// <summary>

@@ -65,6 +65,7 @@ public class CheckpointStageController : NetworkBehaviour
         }
 
         EnsureStageStartCheckpointInitialized();
+        ApplyPendingStageEntryCheckpointRequest();
 
         if (!TryResolveStageEntryCheckpoint(out Checkpoint checkpoint))
         {
@@ -256,6 +257,74 @@ public class CheckpointStageController : NetworkBehaviour
         MovePlayerToCheckpoint(playerObject, checkpoint);
         _recoveryProcessor?.ProcessDeathRespawn(playerObject, resetMonsters);
         return true;
+    }
+
+    /// <summary>
+    /// 현재 스테이지의 리스폰 기준을 Inspector 지정 스테이지 시작 체크포인트로 되돌립니다.
+    /// </summary>
+    public bool ResetCurrentCheckpointToStageEntry()
+    {
+        if (!CanMutateCheckpointState())
+        {
+            Debug.LogWarning($"[CheckpointStageController] Client는 스테이지 시작 체크포인트 리셋을 직접 수행할 수 없습니다. stage={_stageId}", this);
+            return false;
+        }
+
+        ResolveStageId();
+
+        if (_checkpoints.Count == 0 && _autoCollectCheckpoints)
+        {
+            CollectCheckpoints();
+        }
+
+        RebuildCheckpointIndex();
+
+        Checkpoint startCheckpoint = ResolveStageStartCheckpoint(); // 다시 시작 기준으로 사용할 스테이지 시작 체크포인트입니다.
+        if (startCheckpoint == null || string.IsNullOrWhiteSpace(startCheckpoint.CheckpointId))
+        {
+            Debug.LogWarning($"[CheckpointStageController] 스테이지 시작 체크포인트를 찾지 못해 시작점 리셋을 중단합니다. stage={_stageId}", this);
+            return false;
+        }
+
+        _activatedCheckpointIds.Clear();
+        _activatedCheckpointIds.Add(startCheckpoint.CheckpointId);
+        _currentCheckpointId = startCheckpoint.CheckpointId;
+        ApplyVisualStates();
+
+        SaveCheckpointProgress();
+        BroadcastCheckpointState();
+        _checkpointChangedListeners?.Invoke(_currentCheckpointId);
+        return true;
+    }
+
+    /// <summary>
+    /// StageSession에 예약된 시작 체크포인트 강제 요청이 현재 Stage 대상이면 소비하고 체크포인트 진행도를 시작 체크포인트로 갱신합니다.
+    /// </summary>
+    private void ApplyPendingStageEntryCheckpointRequest()
+    {
+        if (!CanMutateCheckpointState())
+        {
+            return;
+        }
+
+        if (!StageSession.TryGetExistingInstance(out StageSession session) || session == null)
+        {
+            return;
+        }
+
+        ResolveStageId();
+        if (!session.HasPendingStageEntryCheckpointRequest(_stageId))
+        {
+            return;
+        }
+
+        if (!ResetCurrentCheckpointToStageEntry())
+        {
+            Debug.LogWarning($"[CheckpointStageController] 예약된 시작 체크포인트 강제 요청을 적용하지 못했습니다. stage={_stageId}", this);
+            return;
+        }
+
+        session.ConsumeStageEntryCheckpointRequest(_stageId);
     }
 
     /// <summary>

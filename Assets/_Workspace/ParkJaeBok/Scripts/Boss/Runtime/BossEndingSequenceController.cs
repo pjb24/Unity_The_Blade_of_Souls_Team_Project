@@ -17,6 +17,9 @@ public sealed class BossEndingSequenceController : NetworkBehaviour, IHealthList
     [Tooltip("엔딩 UI 표시를 담당할 View입니다. 비어 있으면 활성/비활성 오브젝트에서 자동 탐색합니다.")]
     [SerializeField] private EndingPanelView _endingPanelView; // 엔딩 UI 표시 상태를 적용할 View 참조입니다.
 
+    [Tooltip("보스 처치 엔딩 표시 시 함께 꺼둘 사망 UI View입니다. 비어 있으면 활성/비활성 오브젝트에서 자동 탐색합니다.")]
+    [SerializeField] private DeathPanelView _deathPanelView; // 보스 처치 엔딩과 동시에 사망 UI가 남지 않도록 끌 View 참조입니다.
+
     [Tooltip("보스 사망 후 엔딩 UI를 표시하기까지 기다릴 시간입니다.")]
     [Min(0f)]
     [SerializeField] private float _endingUiDelaySeconds = 3f; // 보스 사망 연출을 보여 준 뒤 엔딩 UI를 띄우기 위한 대기 시간입니다.
@@ -218,6 +221,12 @@ public sealed class BossEndingSequenceController : NetworkBehaviour, IHealthList
     private void ShowEndingUi()
     {
         ResolveEndingPanelViewIfNeeded();
+        ResolveDeathPanelViewIfNeeded();
+        if (_deathPanelView != null)
+        {
+            _deathPanelView.SetVisible(false);
+        }
+
         if (_endingPanelView == null)
         {
             if (_warnMissingReferences)
@@ -391,6 +400,7 @@ public sealed class BossEndingSequenceController : NetworkBehaviour, IHealthList
         }
 
         ResolveEndingPanelViewIfNeeded();
+        ResolveDeathPanelViewIfNeeded();
     }
 
     /// <summary>
@@ -407,6 +417,23 @@ public sealed class BossEndingSequenceController : NetworkBehaviour, IHealthList
         if (candidates.Length > 0)
         {
             _endingPanelView = candidates[0];
+        }
+    }
+
+    /// <summary>
+    /// 사망 UI View 참조가 비어 있으면 씬에서 자동 탐색합니다.
+    /// </summary>
+    private void ResolveDeathPanelViewIfNeeded()
+    {
+        if (_deathPanelView != null)
+        {
+            return;
+        }
+
+        DeathPanelView[] candidates = FindObjectsByType<DeathPanelView>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 비활성 UI까지 포함해 찾을 사망 View 후보입니다.
+        if (candidates.Length > 0)
+        {
+            _deathPanelView = candidates[0];
         }
     }
 
