@@ -174,16 +174,47 @@ public class CharacterVfxController : MonoBehaviour
     }
 
     /// <summary>
-    /// 우측 기준 로컬 회전을 현재 바라보는 방향에 맞춰 Y축 180도 보정한 값으로 변환합니다.
+    /// Resolves mirrored local rotation as Euler values while changing only the Y-axis component.
     /// </summary>
-    private Vector3 ResolveMirroredLocalRotationEulerByFacing(Vector3 rightFacingLocalRotationEuler, Transform attachParent, bool isFacingRight)
+    private Vector3 ResolveMirroredLocalRotationEulerYOnlyByFacing(Vector3 rightFacingLocalRotationEuler, Transform attachParent, bool isFacingRight)
     {
-        if (ResolveRequiredLocalDirectionSign(attachParent, isFacingRight) < 0f)
+        Vector3 mirroredLocalRotationEuler = rightFacingLocalRotationEuler; // Euler rotation value whose X/Z components must remain authored values.
+        if (ResolveRequiredLocalDirectionSign(attachParent, isFacingRight) >= 0f)
         {
-            rightFacingLocalRotationEuler.y = Mathf.Repeat(rightFacingLocalRotationEuler.y + 180f, 360f);
+            return mirroredLocalRotationEuler;
         }
 
-        return rightFacingLocalRotationEuler;
+        mirroredLocalRotationEuler.y = Mathf.Repeat(mirroredLocalRotationEuler.y + 180f, 360f);
+        return mirroredLocalRotationEuler;
+    }
+
+    /// <summary>
+    /// Resolves the right-facing base local rotation by the character facing direction regardless of parent scale mirroring.
+    /// </summary>
+    private Quaternion ResolveFacingLocalRotation(Vector3 rightFacingLocalRotationEuler, bool isFacingRight)
+    {
+        Quaternion rightFacingLocalRotation = Quaternion.Euler(rightFacingLocalRotationEuler); // Right-facing base local rotation authored by the designer.
+        if (isFacingRight)
+        {
+            return rightFacingLocalRotation;
+        }
+
+        return rightFacingLocalRotation * Quaternion.Euler(0f, 180f, 0f);
+    }
+
+    /// <summary>
+    /// Resolves facing rotation as explicit Euler values so Unity Inspector shows the Y-axis facing change.
+    /// </summary>
+    private Vector3 ResolveFacingLocalRotationEuler(Vector3 rightFacingLocalRotationEuler, bool isFacingRight)
+    {
+        Vector3 facingLocalRotationEuler = rightFacingLocalRotationEuler; // Inspector-facing Euler rotation value based on the right-facing authored rotation.
+        if (isFacingRight)
+        {
+            return facingLocalRotationEuler;
+        }
+
+        facingLocalRotationEuler.y = Mathf.Repeat(facingLocalRotationEuler.y + 180f, 360f);
+        return facingLocalRotationEuler;
     }
 
     /// <summary>
@@ -405,7 +436,7 @@ public class CharacterVfxController : MonoBehaviour
             {
                 bool isFacingRight = ResolveFacingDirection();
                 effectObject.transform.localPosition = ResolvePersistentObjectLocalPosition(effectObject, resolvedAnchor, attachParent, transformState, isFacingRight);
-                effectObject.transform.localRotation = ResolvePersistentObjectLocalRotation(effectObject, resolvedAnchor, attachParent, transformState, isFacingRight);
+                ApplyPersistentObjectLocalRotation(effectObject, resolvedAnchor, attachParent, transformState, isFacingRight);
                 effectObject.transform.localScale = transformState.LocalScale;
                 return;
             }
@@ -615,13 +646,7 @@ public class CharacterVfxController : MonoBehaviour
             ? anchorWorldRotation
             : Quaternion.Inverse(attachParent.rotation) * anchorWorldRotation;
 
-        Vector3 particleLocalRotationEuler = transformState.LocalRotationEuler;
-        bool shouldFlipByRotation = ResolveRequiredLocalDirectionSign(attachParent, isFacingRight) < 0f;
-        if (shouldFlipByRotation)
-        {
-            particleLocalRotationEuler.y = Mathf.Repeat(particleLocalRotationEuler.y + 180f, 360f);
-        }
-
+        Vector3 particleLocalRotationEuler = ResolveMirroredLocalRotationEulerYOnlyByFacing(transformState.LocalRotationEuler, attachParent, isFacingRight);
         particleTransform.localRotation = anchorLocalRotation * Quaternion.Euler(particleLocalRotationEuler);
 
         particleTransform.localScale = transformState.LocalScale;
@@ -878,11 +903,25 @@ public class CharacterVfxController : MonoBehaviour
         PersistentObjectTransformState transformState = new PersistentObjectTransformState
         {
             LocalOffset = effectTransform.localPosition - anchorLocalPosition,
-            LocalRotationEuler = (Quaternion.Inverse(anchorLocalRotation) * effectTransform.localRotation).eulerAngles,
+            LocalRotationEuler = ResolvePersistentObjectBaseLocalRotationEuler(effectObject, effectTransform, anchorLocalRotation),
             LocalScale = effectTransform.localScale
         };
 
         _persistentObjectTransformStates.Add(effectObjectInstanceId, transformState);
+    }
+
+    /// <summary>
+    /// Captures the persistent VFX object's authored local rotation in the coordinate space used for later alignment.
+    /// </summary>
+    private Vector3 ResolvePersistentObjectBaseLocalRotationEuler(GameObject effectObject, Transform effectTransform, Quaternion anchorLocalRotation)
+    {
+        if (effectObject == _eyeEffectObject)
+        {
+            return effectTransform.localEulerAngles;
+        }
+
+        Quaternion relativeLocalRotation = Quaternion.Inverse(anchorLocalRotation) * effectTransform.localRotation; // Non-eye persistent VFX rotation relative to the mirrored anchor.
+        return relativeLocalRotation.eulerAngles;
     }
 
     /// <summary>
@@ -901,17 +940,31 @@ public class CharacterVfxController : MonoBehaviour
     }
 
     /// <summary>
+    /// Applies the persistent VFX object's facing-aware local rotation to the Transform.
+    /// </summary>
+    private void ApplyPersistentObjectLocalRotation(GameObject effectObject, Transform anchor, Transform attachParent, PersistentObjectTransformState transformState, bool isFacingRight)
+    {
+        if (effectObject == _eyeEffectObject)
+        {
+            effectObject.transform.localEulerAngles = ResolveFacingLocalRotationEuler(transformState.LocalRotationEuler, isFacingRight);
+            return;
+        }
+
+        effectObject.transform.localRotation = ResolvePersistentObjectLocalRotation(effectObject, anchor, attachParent, transformState, isFacingRight);
+    }
+
+    /// <summary>
     /// 지속형 이펙트 오브젝트의 로컬 회전을 계산합니다.
     /// </summary>
     private Quaternion ResolvePersistentObjectLocalRotation(GameObject effectObject, Transform anchor, Transform attachParent, PersistentObjectTransformState transformState, bool isFacingRight)
     {
-        Vector3 mirroredLocalRotationEuler = ResolveMirroredLocalRotationEulerByFacing(transformState.LocalRotationEuler, attachParent, isFacingRight);
+        Quaternion facingLocalRotation = ResolveFacingLocalRotation(transformState.LocalRotationEuler, isFacingRight); // Persistent VFX object local rotation with explicit facing direction applied.
         if (effectObject == _eyeEffectObject)
         {
-            return Quaternion.Euler(mirroredLocalRotationEuler);
+            return facingLocalRotation;
         }
 
-        return ResolveAnchorLocalRotation(anchor, true, attachParent) * Quaternion.Euler(mirroredLocalRotationEuler);
+        return ResolveAnchorLocalRotation(anchor, true, attachParent) * facingLocalRotation;
     }
 
     /// <summary>
