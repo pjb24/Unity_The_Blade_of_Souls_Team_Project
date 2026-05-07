@@ -1510,7 +1510,9 @@ MonoBehaviour:
   _multiplayerSessionOrchestrator: {fileID: 0}
   _hostFlowController: {fileID: 317581821}
   _saveQueryComponent: {fileID: 317581823}
+  _saveDataStore: {fileID: 0}
   _autoResolveMultiplayerSessionOrchestratorOnUse: 1
+  _loadGlobalOptionsOnEnable: 1
   _selectedSlotIndex: 1
   _autoSelectLastUsedSlotForContinue: 1
   _clearSlotBeforeNewGame: 1
@@ -9240,6 +9242,10 @@ PrefabInstance:
       propertyPath: m_AnchoredPosition.y
       value: -32
       objectReference: {fileID: 0}
+    - target: {fileID: 837463386169546900, guid: 956eb6ec9bcab674f967524f1ff46b70, type: 3}
+      propertyPath: _rowEntries.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 870758259736191092, guid: 956eb6ec9bcab674f967524f1ff46b70, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
@@ -10376,6 +10382,10 @@ PrefabInstance:
       propertyPath: _modalBackdrop
       value: 
       objectReference: {fileID: 1955625756}
+    - target: {fileID: 8256576406348959329, guid: 956eb6ec9bcab674f967524f1ff46b70, type: 3}
+      propertyPath: _titlePlayModePresenter
+      value: 
+      objectReference: {fileID: 317581820}
     - target: {fileID: 8398887471081501583, guid: 956eb6ec9bcab674f967524f1ff46b70, type: 3}
       propertyPath: m_AnchorMax.y
       value: 1
