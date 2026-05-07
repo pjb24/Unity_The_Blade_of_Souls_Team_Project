@@ -2816,10 +2816,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 163308252279486875, guid: 177293205a362d44db79305e3901f001, type: 3}
-      propertyPath: _drawDisabledPatterns
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2326021272048947885, guid: 177293205a362d44db79305e3901f001, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -2864,25 +2860,9 @@ PrefabInstance:
       propertyPath: GlobalObjectIdHash
       value: 4180294825
       objectReference: {fileID: 0}
-    - target: {fileID: 3046012231596181951, guid: 177293205a362d44db79305e3901f001, type: 3}
-      propertyPath: SceneMigrationSynchronization
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3046012231596181951, guid: 177293205a362d44db79305e3901f001, type: 3}
-      propertyPath: InScenePlacedSourceGlobalObjectIdHash
-      value: 3740713336
-      objectReference: {fileID: 0}
     - target: {fileID: 6292150401021066319, guid: 177293205a362d44db79305e3901f001, type: 3}
       propertyPath: m_Name
       value: Boss Root
-      objectReference: {fileID: 0}
-    - target: {fileID: 7499435228633890958, guid: 177293205a362d44db79305e3901f001, type: 3}
-      propertyPath: _initialMaxHealth
-      value: 1000
-      objectReference: {fileID: 0}
-    - target: {fileID: 7499435228633890958, guid: 177293205a362d44db79305e3901f001, type: 3}
-      propertyPath: _initialCurrentHealth
-      value: 1000
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

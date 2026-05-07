@@ -344,7 +344,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         ResetRuntimeWarningState(); // 런타임 경고 상태를 초기화합니다.
         _isBattleActive = true; // 전투 활성 상태로 전환합니다.
         _isPatternSelectionEnabled = true; // AI 패턴 선택을 활성화합니다.
-        _isInvincible = false; // 전투 시작 시 보스 무적 상태를 해제합니다.
+        SetBossInvincible(false, "StartBattle"); // 전투 시작 시 보스 무적 상태를 해제합니다.
         _isWeakPointPatternActive = false; // 약점 패턴 활성 상태를 초기화합니다.
         _hasEnteredDeadCleanup = false; // 사망 정리 중복 방지 상태를 초기화합니다.
         EnterIdleState(); // Idle 상태로 진입해 AI 패턴 선택 조건을 만족시킵니다.
@@ -611,7 +611,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         bool wasInvincible = _isInvincible; // 이전 무적 상태 (중복 연출 방지용)
         _isWeakPointPatternActive = true;
-        _isInvincible = true;
+        SetBossInvincible(true, "Pattern4EntryCompleted");
+        RaiseWeakPointVisual();
 
         if (!wasInvincible)
         {
@@ -632,7 +633,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         }
 
         _isWeakPointPatternActive = false;
-        _isInvincible = false;
+        SetBossInvincible(false, "Pattern4EntryStarted");
     }
 
     /// <summary>
@@ -649,7 +650,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         CancelCurrentRegularPatternForPatternFourEnd("Pattern4TimedOut"); // 일반 패턴 취소
 
         _isWeakPointPatternActive = false;
-        _isInvincible = false;
+        SetBossInvincible(false, "Pattern4TimedOut");
+        LowerWeakPointVisual();
 
         if (wasInvincible)
         {
@@ -675,7 +677,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         bool wasInvincible = _isInvincible; // 이전 무적 상태 (연출 동기화를 위한 상태)
         _isWeakPointPatternActive = false; // 약점 패턴 비활성화
-        _isInvincible = false; // 무적 해제
+        SetBossInvincible(false, "Pattern4EntryFailed"); // 무적 해제
+        LowerWeakPointVisual();
 
         if (wasInvincible)
         {
@@ -698,7 +701,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         bool wasInvincible = _isInvincible; // 이전 무적 상태 (연출 동기화용)
         CancelCurrentRegularPatternForPatternFourEnd("Pattern4AllWeakPointsDestroyed"); // 일반 패턴 취소
         _isWeakPointPatternActive = false; // 약점 상태 종료
-        _isInvincible = false; // 무적 해제
+        SetBossInvincible(false, "Pattern4AllWeakPointsDestroyed"); // 무적 해제
+        LowerWeakPointVisual();
 
         if (wasInvincible)
         {
@@ -729,7 +733,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
 
         bool wasInvincible = _isInvincible; // 이전 무적 상태
         _isWeakPointPatternActive = false;
-        _isInvincible = false;
+        SetBossInvincible(false, "Pattern4Groggy");
+        LowerWeakPointVisual();
 
         if (wasInvincible)
         {
@@ -1148,7 +1153,8 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         CancelCurrentPattern("EnterDeadState"); // 현재 패턴 취소
         CleanupWeakPointPatternForBossDeath(); // 약점 패턴 정리
         _isWeakPointPatternActive = false;
-        _isInvincible = false;
+        SetBossInvincible(false, "BossDead");
+        LowerWeakPointVisual();
         _isBattleActive = false;
         SetState(E_BossState.Dead); // Dead 상태 전환
         PlayPresentationCueInternal(E_BossPresentationCue.Dead, E_BossPatternType.None, transform.position); // 사망 연출 실행
@@ -1183,7 +1189,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             _isBattleActive = false;
             _isWeakPointPatternActive = false;
-            _isInvincible = false;
+            SetBossInvincible(false, "ReplicatedDead");
         }
 
         if (replicatedState == E_BossState.Dead || replicatedState == E_BossState.Groggy)
@@ -1205,7 +1211,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         {
             _isBattleActive = false;
             _isWeakPointPatternActive = false;
-            _isInvincible = false;
+            SetBossInvincible(false, "ReplicatedDead");
         }
 
         if (replicatedState == E_BossState.Dead || replicatedState == E_BossState.Groggy)
@@ -1298,7 +1304,7 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     {
         _isBattleActive = false;
         _isPatternSelectionEnabled = false;
-        _isInvincible = false;
+        SetBossInvincible(false, "ResetRuntimeState");
         _isWeakPointPatternActive = false;
         _hasEnteredDeadCleanup = false;
         _isResolvingBossDeath = false;
@@ -1550,6 +1556,63 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         }
 
         _presentationController.PlayCue(cue, patternType, worldPosition);
+    }
+
+    /// <summary>
+    /// 보스 상태 플래그와 HitReceiver 무적 상태를 함께 갱신한다.
+    /// </summary>
+    private void SetBossInvincible(bool isInvincible, string reason)
+    {
+        _isInvincible = isInvincible;
+
+        ResolveOptionalRuntimeReferences();
+        if (_hitReceiver == null)
+        {
+            Debug.LogWarning($"[BossController] HitReceiver가 없어 보스 무적 상태를 피격 시스템에 반영하지 못함. object={name}, isInvincible={isInvincible}, reason={reason}", this);
+            return;
+        }
+
+        _hitReceiver.SetInvincible(isInvincible);
+    }
+
+    /// <summary>
+    /// 약점 패턴 활성화에 맞춰 보스 비주얼 상승 연출을 요청한다.
+    /// </summary>
+    private void RaiseWeakPointVisual()
+    {
+        ResolveOptionalRuntimeReferences();
+        if (_presentationController == null)
+        {
+            if (!_hasLoggedPresentationControllerMissingWarning)
+            {
+                Debug.LogWarning($"[BossController] BossPresentationController가 없어 약점 패턴 비주얼 상승을 건너뜀. object={name}", this);
+                _hasLoggedPresentationControllerMissingWarning = true;
+            }
+
+            return;
+        }
+
+        _presentationController.RaiseWeakPointVisual();
+    }
+
+    /// <summary>
+    /// 약점 패턴 종료에 맞춰 보스 비주얼 하강 연출을 요청한다.
+    /// </summary>
+    private void LowerWeakPointVisual()
+    {
+        ResolveOptionalRuntimeReferences();
+        if (_presentationController == null)
+        {
+            if (!_hasLoggedPresentationControllerMissingWarning)
+            {
+                Debug.LogWarning($"[BossController] BossPresentationController가 없어 약점 패턴 비주얼 하강을 건너뜀. object={name}", this);
+                _hasLoggedPresentationControllerMissingWarning = true;
+            }
+
+            return;
+        }
+
+        _presentationController.LowerWeakPointVisual();
     }
 
     /// <summary>
@@ -2303,6 +2366,16 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// </summary>
     private void ResolveOptionalRuntimeReferences()
     {
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponent<HealthComponent>();
+        }
+
+        if (_hitReceiver == null)
+        {
+            _hitReceiver = GetComponent<HitReceiver>();
+        }
+
         if (_playerTargetProvider == null)
         {
             _playerTargetProvider = GetComponent<BossPlayerTargetProvider>();

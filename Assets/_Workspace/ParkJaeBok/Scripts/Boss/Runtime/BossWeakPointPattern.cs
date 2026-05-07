@@ -112,6 +112,11 @@ public sealed class BossWeakPointPattern : BossPatternBase
         RemoveRemainingWeakPoints();
         ClearWeakPointRuntimeBuffers();
 
+        if (_bossController != null && _bossController.IsBossLogicAuthority())
+        {
+            _bossController.NotifyPatternFourEntryFailed();
+        }
+
         _isEntryResolved = true;
         _isWeakPointFlowResolved = true;
     }

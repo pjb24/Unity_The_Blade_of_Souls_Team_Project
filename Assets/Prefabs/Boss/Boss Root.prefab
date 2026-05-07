@@ -1059,14 +1059,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3740713336
-  InScenePlacedSourceGlobalObjectIdHash: 0
+  GlobalObjectIdHash: 3935098436
+  InScenePlacedSourceGlobalObjectIdHash: 3740713336
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
   ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 1
+  SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
@@ -1084,8 +1084,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ff93807ed5b0f5458fc4cfa20cf1a10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  _initialMaxHealth: 6000
-  _initialCurrentHealth: 6000
+  _initialMaxHealth: 1000
+  _initialCurrentHealth: 1000
   _allowHealWhenDead: 0
   _debugCurrentHealth: 0
 --- !u!114 &6078429381991306388
@@ -1281,6 +1281,10 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _animator: {fileID: 6139070501727823020}
   _presentationOrigin: {fileID: 2326021272048947885}
+  _bossVisualRoot: {fileID: 3003428555051071245}
+  _weakPointVisualYOffset: 7.5
+  _weakPointVisualRaiseSeconds: 0.5
+  _weakPointVisualLowerSeconds: 0.5
   _cueSettings:
   - _cue: 1
     _patternType: 1
@@ -1416,7 +1420,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.000000059604645, y: 0.032698154}
+  m_Offset: {x: -0.012085915, y: 0.35916305}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -1426,7 +1430,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 3.0490742, y: 3.4632483}
+  m_Size: {x: 5.926673, y: 6.442162}
   m_EdgeRadius: 0
 --- !u!114 &140233643245463046
 MonoBehaviour:
