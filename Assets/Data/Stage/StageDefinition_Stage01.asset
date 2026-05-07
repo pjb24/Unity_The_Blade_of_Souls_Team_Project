@@ -16,8 +16,6 @@ MonoBehaviour:
   _sceneName: 1 Chapter
   _displayName: Stage 1 Yongnimsa (Dragon Grove Temple)
   _isTownStage: 0
-  _stageEntryPointId: Stage01_Entry_A
-  _townReturnPointId: Town_Return_A
   _isEntryEnabled: 1
   _isInitiallyUnlocked: 1
   _unlockConditions: []

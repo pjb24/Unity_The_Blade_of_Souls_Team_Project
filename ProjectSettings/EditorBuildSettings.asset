@@ -16,7 +16,7 @@ EditorBuildSettings:
     guid: b75dbfee2d5544b4f80563bebba8b9f5
   - enabled: 1
     path: Assets/Scene/1 Chapter.unity
-    guid: 7d54c946f7468e347b23225b7c17d3a2
+    guid: 805e1c7a64815f342a3db106bc9d3de9
   - enabled: 1
     path: Assets/Scene/BossMap_Hallway.unity
     guid: cd09a338a7f285245a84032d7b104543

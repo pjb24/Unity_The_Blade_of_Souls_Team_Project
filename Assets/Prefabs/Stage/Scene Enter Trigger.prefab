@@ -82,7 +82,7 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -2116480239
   m_SortingLayer: 8
-  m_SortingOrder: 0
+  m_SortingOrder: -10
   m_MaskInteraction: 0
   m_Sprite: {fileID: -1116516773124893796, guid: 65e9e59e7331cf7488ecfc5ba7e3c6ba, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -140,7 +140,7 @@ MonoBehaviour:
   _blockDuplicateUse: 1
   _interactAction: {fileID: 0}
   _interactActionName: Interaction
-  _stageCatalog: {fileID: 0}
+  _stageCatalog: {fileID: 11400000, guid: 250be5058e72c5a45bce4ef68a36f513, type: 2}
   _gameFlowController: {fileID: 0}
 --- !u!61 &2718363593453480929
 BoxCollider2D:
