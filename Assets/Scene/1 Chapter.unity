@@ -3166,10 +3166,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9a63da2cd278b1648acb54218684bc6b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CheckpointRecoveryProcessor
-  _interactionMovementBlockSeconds: 3
-  _respawnMovementBlockSeconds: 3
-  _interactionInvincibleSeconds: 3
-  _respawnInvincibleSeconds: 3
+  _interactionMovementBlockSeconds: 1.5
+  _respawnMovementBlockSeconds: 1.5
+  _interactionInvincibleSeconds: 1.5
+  _respawnInvincibleSeconds: 1.5
   _clearRigidbodyVelocity: 1
   _blockGameplayInput: 0
   _monsterResetter: {fileID: 0}
