@@ -10,6 +10,47 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkTransform))]
 public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
 {
+    private struct ReplicatedHealthState : INetworkSerializable, System.IEquatable<ReplicatedHealthState>
+    {
+        public float CurrentHealth; // 서버가 확정한 현재 체력 값입니다.
+        public float MaxHealth; // 서버가 확정한 최대 체력 값입니다.
+        public bool IsDead; // 서버가 확정한 사망 상태입니다.
+        public int Revision; // 체력 스냅샷의 적용 순서를 판정하는 증가 번호입니다.
+
+        /// <summary>
+        /// 체력 스냅샷을 하나의 네트워크 페이로드로 생성합니다.
+        /// </summary>
+        public ReplicatedHealthState(float currentHealth, float maxHealth, bool isDead, int revision)
+        {
+            CurrentHealth = currentHealth;
+            MaxHealth = maxHealth;
+            IsDead = isDead;
+            Revision = revision;
+        }
+
+        /// <summary>
+        /// NGO NetworkVariable이 체력 스냅샷 전체를 원자적으로 복제할 수 있도록 직렬화합니다.
+        /// </summary>
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref CurrentHealth);
+            serializer.SerializeValue(ref MaxHealth);
+            serializer.SerializeValue(ref IsDead);
+            serializer.SerializeValue(ref Revision);
+        }
+
+        /// <summary>
+        /// NGO NetworkVariable이 스냅샷 변경 여부를 정확하게 비교할 수 있도록 값 동등성을 판정합니다.
+        /// </summary>
+        public bool Equals(ReplicatedHealthState other)
+        {
+            return Mathf.Approximately(CurrentHealth, other.CurrentHealth)
+                && Mathf.Approximately(MaxHealth, other.MaxHealth)
+                && IsDead == other.IsDead
+                && Revision == other.Revision;
+        }
+    }
+
     [Header("Dependencies")]
     [Tooltip("플레이어 Transform 동기화를 담당하는 NetworkTransform 참조입니다. 비어 있으면 자동 탐색합니다.")]
     [SerializeField] private NetworkTransform _networkTransform; // 원격 플레이어 위치 동기화를 처리하는 NetworkTransform 참조입니다.
@@ -109,22 +150,10 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     /// <summary>
     /// 초기화 시 NetworkTransform/의존성 참조를 캐시합니다.
     /// </summary>
-    private readonly NetworkVariable<float> _replicatedCurrentHealth = new NetworkVariable<float>(
-        0f,
+    private readonly NetworkVariable<ReplicatedHealthState> _replicatedHealthState = new NetworkVariable<ReplicatedHealthState>(
+        new ReplicatedHealthState(0f, 1f, false, 0),
         NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 서버 확정 현재 체력 값입니다.
-    private readonly NetworkVariable<float> _replicatedMaxHealth = new NetworkVariable<float>(
-        1f,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 서버 확정 최대 체력 값입니다.
-    private readonly NetworkVariable<bool> _replicatedIsDead = new NetworkVariable<bool>(
-        false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 서버 확정 사망 상태 값입니다.
-    private readonly NetworkVariable<int> _replicatedHealthRevision = new NetworkVariable<int>(
-        0,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 체력 스냅샷 갱신 순번입니다.
+        NetworkVariableWritePermission.Server); // 서버 확정 체력 스냅샷을 하나의 순서 보장 단위로 복제하는 네트워크 변수입니다.
 
     private bool _isHealthListenerRegistered; // 서버 HealthComponent 리스너 등록 여부를 추적하는 플래그입니다.
     private int _lastAppliedHealthRevision = -1; // 로컬 HealthComponent에 마지막으로 반영한 체력 스냅샷 순번입니다.
@@ -168,7 +197,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         _replicatedActionRunning.OnValueChanged += HandleReplicatedActionRunningChanged;
         _replicatedActionStartRevision.OnValueChanged += HandleReplicatedActionStartRevisionChanged;
         _replicatedFacingRight.OnValueChanged += HandleReplicatedFacingDirectionChanged;
-        _replicatedHealthRevision.OnValueChanged += HandleReplicatedHealthRevisionChanged;
+        _replicatedHealthState.OnValueChanged += HandleReplicatedHealthStateChanged;
 
         if (_enableFacingDirectionSync && TryResolvePlayerMovement())
         {
@@ -214,7 +243,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         _replicatedActionRunning.OnValueChanged -= HandleReplicatedActionRunningChanged;
         _replicatedActionStartRevision.OnValueChanged -= HandleReplicatedActionStartRevisionChanged;
         _replicatedFacingRight.OnValueChanged -= HandleReplicatedFacingDirectionChanged;
-        _replicatedHealthRevision.OnValueChanged -= HandleReplicatedHealthRevisionChanged;
+        _replicatedHealthState.OnValueChanged -= HandleReplicatedHealthStateChanged;
 
         if (_playerMovement != null)
         {
@@ -280,7 +309,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        if (_lastAppliedHealthRevision == _replicatedHealthRevision.Value)
+        if (_lastAppliedHealthRevision == _replicatedHealthState.Value.Revision)
         {
             return;
         }
@@ -506,6 +535,19 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// 서버 확정 체력 스냅샷이 변경되면 묶여서 도착한 최신 상태만 로컬 HealthComponent와 UI 리스너에 반영합니다.
+    /// </summary>
+    private void HandleReplicatedHealthStateChanged(ReplicatedHealthState previousValue, ReplicatedHealthState currentValue)
+    {
+        if (currentValue.Revision == previousValue.Revision)
+        {
+            return;
+        }
+
+        ApplyReplicatedHealthState();
+    }
+
+    /// <summary>
     /// 네트워크로 확정된 액션 상태를 비소유 인스턴스 ActionController에 적용합니다.
     /// </summary>
     private void TryApplyReplicatedActionState()
@@ -604,22 +646,6 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 원격 표현 동기화 대상으로 허용된 액션인지 판정합니다.
-    /// </summary>
-    /// <summary>
-    /// 서버 체력 스냅샷 순번이 변경되면 최신 체력 상태를 로컬 HealthComponent에 반영합니다.
-    /// </summary>
-    private void HandleReplicatedHealthRevisionChanged(int previousValue, int currentValue)
-    {
-        if (currentValue == previousValue)
-        {
-            return;
-        }
-
-        ApplyReplicatedHealthState();
-    }
-
-    /// <summary>
     /// HealthComponent 리스너를 등록해 서버 확정 체력 상태를 복제합니다.
     /// </summary>
     private void RegisterHealthListener()
@@ -662,10 +688,12 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        _replicatedCurrentHealth.Value = _healthComponent.GetCurrentHealth();
-        _replicatedMaxHealth.Value = _healthComponent.GetMaxHealth();
-        _replicatedIsDead.Value = _healthComponent.IsDead;
-        _replicatedHealthRevision.Value++;
+        ReplicatedHealthState previousState = _replicatedHealthState.Value; // 새 스냅샷의 순번을 계산하기 위한 직전 서버 상태입니다.
+        _replicatedHealthState.Value = new ReplicatedHealthState(
+            _healthComponent.GetCurrentHealth(),
+            _healthComponent.GetMaxHealth(),
+            _healthComponent.IsDead,
+            previousState.Revision + 1);
     }
 
     /// <summary>
@@ -688,15 +716,22 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        float safeMaxHealth = Mathf.Max(1f, _replicatedMaxHealth.Value);
-        float safeCurrentHealth = Mathf.Clamp(_replicatedCurrentHealth.Value, 0f, safeMaxHealth);
+        ReplicatedHealthState snapshot = _replicatedHealthState.Value; // 하나의 NetworkVariable로 묶여 도착한 서버 확정 체력 상태입니다.
+        if (snapshot.Revision <= _lastAppliedHealthRevision)
+        {
+            return;
+        }
+
+        float safeMaxHealth = Mathf.Max(1f, snapshot.MaxHealth);
+        float safeCurrentHealth = Mathf.Clamp(snapshot.CurrentHealth, 0f, safeMaxHealth);
 
         _healthComponent.SetMaxHealth(safeMaxHealth, false);
 
-        if (_replicatedIsDead.Value)
+        if (snapshot.IsDead)
         {
             _healthComponent.SetCurrentHealth(0f);
-            _lastAppliedHealthRevision = _replicatedHealthRevision.Value;
+            _healthComponent.NotifyCurrentHealthState();
+            _lastAppliedHealthRevision = snapshot.Revision;
             return;
         }
 
@@ -709,7 +744,8 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             _healthComponent.SetCurrentHealth(safeCurrentHealth);
         }
 
-        _lastAppliedHealthRevision = _replicatedHealthRevision.Value;
+        _healthComponent.NotifyCurrentHealthState();
+        _lastAppliedHealthRevision = snapshot.Revision;
     }
 
     /// <summary>

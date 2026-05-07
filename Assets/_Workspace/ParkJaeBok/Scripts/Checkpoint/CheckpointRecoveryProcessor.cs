@@ -103,11 +103,13 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
         if (health.IsDead)
         {
             health.Revive(Mathf.Max(0.01f, maxHealth));
+            health.NotifyCurrentHealthState();
             return;
         }
 
         health.ApplyHeal(new HealContext(maxHealth, playerObject, $"Checkpoint.{reason}", false));
         health.SetCurrentHealth(maxHealth);
+        health.NotifyCurrentHealthState();
     }
 
     /// <summary>
