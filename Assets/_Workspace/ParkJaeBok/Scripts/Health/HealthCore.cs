@@ -243,6 +243,14 @@ public class HealthCore
     }
 
     /// <summary>
+    /// 현재 체력 값을 기준으로 체력 변경 알림을 다시 발행해 UI와 외부 리스너를 현재 상태와 동기화합니다.
+    /// </summary>
+    public void NotifyCurrentHealthState()
+    {
+        NotifyHealthChanged(_currentHealth, _currentHealth);
+    }
+
+    /// <summary>
     /// 데미지를 적용하고 결과를 반환합니다.
     /// </summary>
     public DamageResult ApplyDamage(DamageContext context)

@@ -170,6 +170,7 @@ public class HealthComponent : MonoBehaviour
         }
 
         _healthCore.SetCurrentHealth(currentHealth);
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
     }
 
     /// <summary>
@@ -184,6 +185,22 @@ public class HealthComponent : MonoBehaviour
         }
 
         _healthCore.Revive(health);
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
+    }
+
+    /// <summary>
+    /// 현재 체력 상태를 리스너에게 다시 발행해 UI가 HealthComponent의 최신 값을 다시 반영하도록 합니다.
+    /// </summary>
+    public void NotifyCurrentHealthState()
+    {
+        if (_healthCore == null)
+        {
+            Debug.LogWarning($"[HealthComponent] NotifyCurrentHealthState called before initialization on {name}.");
+            return;
+        }
+
+        _healthCore.NotifyCurrentHealthState();
+        _debugCurrentHealth = _healthCore.GetCurrentHealth();
     }
 
     /// <summary>

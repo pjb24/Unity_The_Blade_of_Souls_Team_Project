@@ -142,7 +142,7 @@ public class HealthImageUiBridge : MonoBehaviour, IHealthListener
     /// </summary>
     public void OnDied()
     {
-        SetFilledSlots(0);
+        ForceRefreshFromHealthComponent();
     }
 
     /// <summary>
