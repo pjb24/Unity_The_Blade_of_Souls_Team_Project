@@ -5127,7 +5127,6 @@ MonoBehaviour:
   _gameFlowController: {fileID: 0}
   _restartStageEntryTargetStage: {fileID: 11400000, guid: 8cecb3ecdc7226448893e9d55bd51e3a, type: 2}
   _restartLastCheckpointTargetStage: {fileID: 11400000, guid: 8cecb3ecdc7226448893e9d55bd51e3a, type: 2}
-  _saveStageEntryRestartCheckpoint: 0
   _returnToTownWhenNextStageMissing: 1
   _verboseLog: 0
 --- !u!1 &1061729117
@@ -9153,6 +9152,10 @@ MonoBehaviour:
   _panelRoot: {fileID: 1110502970}
   _canvasGroup: {fileID: 0}
   _hideOnAwake: 1
+  _hiddenInSinglePlayerObjects:
+  - {fileID: 86259583}
+  - {fileID: 827517203}
+  - {fileID: 1893483934}
   _nextStageButton: {fileID: 683332155}
   _returnToTownButton: {fileID: 1812562630}
   _restartStageEntryButton: {fileID: 1299195768}

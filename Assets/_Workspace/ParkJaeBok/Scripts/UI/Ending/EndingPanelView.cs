@@ -1,4 +1,5 @@
 using System;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,6 +19,10 @@ public sealed class EndingPanelView : MonoBehaviour
     [Header("Initial State")]
     [Tooltip("Awake 시점에 엔딩 UI를 숨길지 여부입니다.")]
     [SerializeField] private bool _hideOnAwake = true; // 씬 시작 시 엔딩 UI를 숨겨 둘지 결정합니다.
+
+    [Header("Mode Visibility")]
+    [Tooltip("싱글플레이 엔딩 UI에서는 표시하지 않을 UI 오브젝트 목록입니다. 멀티플레이 Host/Client에서는 다시 표시됩니다.")]
+    [SerializeField] private GameObject[] _hiddenInSinglePlayerObjects = Array.Empty<GameObject>(); // 싱글플레이 엔딩에서 숨길 디자이너 지정 UI 오브젝트 목록입니다.
 
     [Header("Buttons")]
     [Tooltip("다음 스테이지로 이동하는 버튼입니다. 비어 있으면 자동 바인딩을 건너뜁니다.")]
@@ -94,6 +99,7 @@ public sealed class EndingPanelView : MonoBehaviour
     {
         GameObject root = ResolvePanelRoot(); // 실제 활성 상태를 적용할 UI 루트입니다.
         root.SetActive(isVisible);
+        ApplyModeVisibility(isVisible);
 
         if (_canvasGroup == null)
         {
@@ -135,6 +141,44 @@ public sealed class EndingPanelView : MonoBehaviour
     private GameObject ResolvePanelRoot()
     {
         return _panelRoot != null ? _panelRoot : gameObject;
+    }
+
+    /// <summary>
+    /// 현재 플레이 모드에 따라 엔딩 UI 하위 선택 오브젝트의 표시 상태를 적용합니다.
+    /// </summary>
+    private void ApplyModeVisibility(bool isPanelVisible)
+    {
+        if (_hiddenInSinglePlayerObjects == null || _hiddenInSinglePlayerObjects.Length == 0)
+        {
+            return;
+        }
+
+        bool shouldShowRestrictedObjects = isPanelVisible && !IsSinglePlayerMode(); // 싱글플레이에서 숨겨야 하는 UI를 실제로 표시할지 여부입니다.
+        for (int index = 0; index < _hiddenInSinglePlayerObjects.Length; index++)
+        {
+            GameObject targetObject = _hiddenInSinglePlayerObjects[index]; // 플레이 모드별 표시 상태를 제어할 UI 오브젝트입니다.
+            if (targetObject == null)
+            {
+                continue;
+            }
+
+            targetObject.SetActive(shouldShowRestrictedObjects);
+        }
+    }
+
+    /// <summary>
+    /// 현재 런타임이 싱글플레이 엔딩 표시 조건인지 판정합니다.
+    /// </summary>
+    private bool IsSinglePlayerMode()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO 세션 활성 여부를 확인할 네트워크 관리자입니다.
+        if (networkManager != null && networkManager.IsListening)
+        {
+            return false;
+        }
+
+        GameFlowController gameFlowController = GameFlowController.Instance; // 상위 게임 플레이 모드 설정을 확인할 컨트롤러입니다.
+        return gameFlowController == null || gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer;
     }
 
     /// <summary>
