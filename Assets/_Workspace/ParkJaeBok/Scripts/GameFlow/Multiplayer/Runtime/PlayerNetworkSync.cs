@@ -1012,4 +1012,62 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
 
         return false;
     }
+
+    /// <summary>
+    /// 서버에서 확정한 전투 통계 증가분을 해당 플레이어 Owner의 로컬 저장 런타임에 전달합니다.
+    /// </summary>
+    public static bool TryReportCombatStatsToOwner(GameObject playerObject, float damageDealt, int damageTakenCount)
+    {
+        if (playerObject == null)
+        {
+            return false;
+        }
+
+        PlayerNetworkSync playerNetworkSync = playerObject.GetComponentInParent<PlayerNetworkSync>();
+        if (playerNetworkSync == null || !playerNetworkSync.IsSpawned || !playerNetworkSync.IsServer)
+        {
+            return false;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return false;
+        }
+
+        if (playerNetworkSync.OwnerClientId == networkManager.LocalClientId)
+        {
+            ApplyCombatStatsToLocalRuntime(damageDealt, damageTakenCount);
+            return true;
+        }
+
+        playerNetworkSync.ReportCombatStatsToOwnerRpc(damageDealt, damageTakenCount);
+        return true;
+    }
+
+    /// <summary>
+    /// 서버가 확정한 전투 통계 증가분을 Owner Client에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.Owner)]
+    private void ReportCombatStatsToOwnerRpc(float damageDealt, int damageTakenCount)
+    {
+        ApplyCombatStatsToLocalRuntime(damageDealt, damageTakenCount);
+    }
+
+    /// <summary>
+    /// 전달받은 전투 통계 증가분을 현재 피어의 로컬 런타임에 누적합니다.
+    /// </summary>
+    private static void ApplyCombatStatsToLocalRuntime(float damageDealt, int damageTakenCount)
+    {
+        PlayerCombatStatsRuntime statsRuntime = PlayerCombatStatsRuntime.Instance; // 현재 피어의 개인 전투 통계를 저장할 런타임입니다.
+        if (damageDealt > 0f)
+        {
+            statsRuntime.RecordDamageDealt(damageDealt);
+        }
+
+        if (damageTakenCount > 0)
+        {
+            statsRuntime.RecordDamageTakenCount(damageTakenCount);
+        }
+    }
 }

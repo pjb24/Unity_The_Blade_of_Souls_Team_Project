@@ -1060,6 +1060,16 @@ public class GameFlowController : MonoBehaviour
             LogWarning("StageProgressRuntime이 없어 새 게임 진행도 초기화를 건너뜁니다.");
         }
 
+        PlayerCombatStatsRuntime combatStatsRuntime = PlayerCombatStatsRuntime.Instance; // 새 게임 시작 시 플레이어 전투 통계를 초기화할 런타임입니다.
+        if (combatStatsRuntime != null)
+        {
+            combatStatsRuntime.ApplySnapshot(new PlayerCombatStatsRuntime.SnapshotData());
+        }
+        else
+        {
+            LogWarning("PlayerCombatStatsRuntime이 없어 새 게임 전투 통계 초기화를 건너뜁니다.");
+        }
+
         ClearSaveFailureDirty();
     }
 

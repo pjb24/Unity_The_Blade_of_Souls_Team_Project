@@ -43,6 +43,9 @@ public class SlotPlaySaveData
     [Tooltip("이 슬롯에 저장된 스테이지 클리어와 진행 기록입니다.")]
     public StageProgressRuntime.SnapshotData StageProgress; // 슬롯별 스테이지 진행 상태입니다.
 
+    [Tooltip("이 슬롯에 저장된 플레이어 전투 통계입니다.")]
+    public PlayerCombatStatsRuntime.SnapshotData CombatStats; // 슬롯별 플레이어 전투 통계입니다.
+
     [Tooltip("이 슬롯에 저장된 스테이지 세션과 이어하기 정보입니다.")]
     public StageSession.SnapshotData StageSession; // 슬롯별 현재 스테이지와 복귀 지점 정보입니다.
 
@@ -77,6 +80,7 @@ public class SaveGameData
     public int Version; // 리스너에게 전달하는 스냅샷의 스키마 버전입니다.
     public OptionSaveData Options; // 현재 글로벌 옵션 스냅샷입니다.
     public StageProgressRuntime.SnapshotData StageProgress; // 현재 선택된 슬롯의 진행도 스냅샷입니다.
+    public PlayerCombatStatsRuntime.SnapshotData CombatStats; // 현재 선택된 슬롯의 플레이어 전투 통계 스냅샷입니다.
     public StageSession.SnapshotData StageSession; // 현재 선택된 슬롯의 세션 스냅샷입니다.
     public string LastPlayedSceneName; // 현재 선택된 슬롯의 마지막 플레이 씬 이름입니다.
     public long LastSavedUnixTimeUtc; // 스냅샷 생성 시각입니다. UTC Unix 초 단위입니다.
@@ -92,6 +96,7 @@ public class SaveRuntimeData
 {
     public OptionSaveData Options; // 현재 로컬 글로벌 옵션 상태입니다.
     public StageProgressRuntime.SnapshotData StageProgress; // 현재 선택된 슬롯의 스테이지 진행 상태입니다.
+    public PlayerCombatStatsRuntime.SnapshotData CombatStats; // 현재 선택된 슬롯의 플레이어 전투 통계입니다.
     public StageSession.SnapshotData StageSession; // 현재 선택된 슬롯의 스테이지 세션 상태입니다.
     public string LastPlayedSceneName; // 현재 선택된 슬롯의 마지막 플레이 씬 이름입니다.
     public bool HasProgress; // 현재 선택된 슬롯에 저장 가능한 진행 데이터가 있는지 여부입니다.
@@ -140,6 +145,7 @@ public class SaveRuntimeData
             StageProgress.Records = new List<StageProgressRecord>();
         }
 
+        CombatStats = saveData.CombatStats;
         StageSession = saveData.StageSession;
         LastPlayedSceneName = saveData.LastPlayedSceneName ?? string.Empty;
         HasProgress = saveData.HasProgress;
@@ -172,6 +178,7 @@ public class SaveRuntimeData
             Version = version,
             SlotIndex = (int)slot,
             StageProgress = StageProgress,
+            CombatStats = CombatStats,
             StageSession = StageSession,
             LastPlayedSceneName = LastPlayedSceneName,
             LastSavedUnixTimeUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
@@ -193,6 +200,7 @@ public class SaveRuntimeData
             Version = version,
             Options = Options,
             StageProgress = StageProgress,
+            CombatStats = CombatStats,
             StageSession = StageSession,
             LastPlayedSceneName = LastPlayedSceneName,
             LastSavedUnixTimeUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
@@ -214,6 +222,7 @@ public class SaveRuntimeData
             {
                 Records = new List<StageProgressRecord>()
             },
+            CombatStats = new PlayerCombatStatsRuntime.SnapshotData(),
             StageSession = new StageSession.SnapshotData(),
             LastPlayedSceneName = string.Empty,
             LastSavedUnixTimeUtc = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),

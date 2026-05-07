@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
@@ -24,6 +25,10 @@ public sealed class EndingPanelView : MonoBehaviour
     [Tooltip("싱글플레이 엔딩 UI에서는 표시하지 않을 UI 오브젝트 목록입니다. 멀티플레이 Host/Client에서는 다시 표시됩니다.")]
     [SerializeField] private GameObject[] _hiddenInSinglePlayerObjects = Array.Empty<GameObject>(); // 싱글플레이 엔딩에서 숨길 디자이너 지정 UI 오브젝트 목록입니다.
 
+    [Header("Combat Stats")]
+    [Tooltip("엔딩 UI에 플레이어 전투 통계를 표시할 텍스트 바인딩 목록입니다.")]
+    [SerializeField] private EndingCombatStatTextBinding[] _combatStatTextBindings = Array.Empty<EndingCombatStatTextBinding>(); // 엔딩 UI에서 전투 통계를 표시할 텍스트 바인딩 목록입니다.
+
     [Header("Buttons")]
     [Tooltip("다음 스테이지로 이동하는 버튼입니다. 비어 있으면 자동 바인딩을 건너뜁니다.")]
     [SerializeField] private Button _nextStageButton; // 엔딩 후 다음 스테이지 이동 명령을 발생시키는 버튼입니다.
@@ -37,6 +42,8 @@ public sealed class EndingPanelView : MonoBehaviour
     public event Action NextStageRequested; // 다음 스테이지 이동 버튼 입력을 외부 흐름에 전달하는 이벤트입니다.
     public event Action ReturnToTownRequested; // 마을 이동 버튼 입력을 외부 흐름에 전달하는 이벤트입니다.
     public event Action RestartStageEntryRequested; // 스테이지 진입 체크포인트 재시작 버튼 입력을 외부 흐름에 전달하는 이벤트입니다.
+
+    private bool _isCurrentlyVisible; // 현재 엔딩 UI가 표시 중인지 추적해 통계 변경 시 텍스트 갱신에 사용합니다.
 
     /// <summary>
     /// 컴포넌트 초기화 시 디자이너가 지정한 초기 표시 상태를 적용합니다.
@@ -58,6 +65,26 @@ public sealed class EndingPanelView : MonoBehaviour
     private void OnValidate()
     {
         ResolveOptionalReferences();
+    }
+
+    /// <summary>
+    /// 전투 통계 변경 알림을 구독합니다.
+    /// </summary>
+    private void OnEnable()
+    {
+        PlayerCombatStatsRuntime.Instance.RemoveListener(HandleCombatStatsChanged);
+        PlayerCombatStatsRuntime.Instance.AddListener(HandleCombatStatsChanged);
+    }
+
+    /// <summary>
+    /// 전투 통계 변경 알림 구독을 해제합니다.
+    /// </summary>
+    private void OnDisable()
+    {
+        if (PlayerCombatStatsRuntime.TryGetExistingInstance(out PlayerCombatStatsRuntime statsRuntime) && statsRuntime != null)
+        {
+            statsRuntime.RemoveListener(HandleCombatStatsChanged);
+        }
     }
 
     /// <summary>
@@ -97,9 +124,11 @@ public sealed class EndingPanelView : MonoBehaviour
     /// </summary>
     public void SetVisible(bool isVisible)
     {
+        _isCurrentlyVisible = isVisible;
         GameObject root = ResolvePanelRoot(); // 실제 활성 상태를 적용할 UI 루트입니다.
         root.SetActive(isVisible);
         ApplyModeVisibility(isVisible);
+        RefreshCombatStatTexts(isVisible);
 
         if (_canvasGroup == null)
         {
@@ -182,6 +211,37 @@ public sealed class EndingPanelView : MonoBehaviour
     }
 
     /// <summary>
+    /// 엔딩 UI에 연결된 전투 통계 텍스트들을 현재 런타임 값으로 갱신합니다.
+    /// </summary>
+    private void RefreshCombatStatTexts(bool isPanelVisible)
+    {
+        if (!isPanelVisible || _combatStatTextBindings == null || _combatStatTextBindings.Length == 0)
+        {
+            return;
+        }
+
+        PlayerCombatStatsRuntime statsRuntime = PlayerCombatStatsRuntime.Instance; // 저장/런타임에서 로드된 로컬 플레이어 전투 통계입니다.
+        for (int index = 0; index < _combatStatTextBindings.Length; index++)
+        {
+            EndingCombatStatTextBinding binding = _combatStatTextBindings[index]; // 갱신할 텍스트와 표시 데이터 설정입니다.
+            if (binding == null)
+            {
+                continue;
+            }
+
+            binding.Apply(statsRuntime);
+        }
+    }
+
+    /// <summary>
+    /// 전투 통계가 바뀌면 엔딩 UI 표시 중인 텍스트를 즉시 갱신합니다.
+    /// </summary>
+    private void HandleCombatStatsChanged()
+    {
+        RefreshCombatStatTexts(_isCurrentlyVisible);
+    }
+
+    /// <summary>
     /// Inspector에 연결된 버튼을 View 이벤트에 바인딩합니다.
     /// </summary>
     private void BindButtons()
@@ -222,6 +282,61 @@ public sealed class EndingPanelView : MonoBehaviour
         if (_restartStageEntryButton != null)
         {
             _restartStageEntryButton.onClick.RemoveListener(RequestRestartStageEntry);
+        }
+    }
+}
+
+/// <summary>
+/// 엔딩 UI에서 표시할 플레이어 전투 통계 종류입니다.
+/// </summary>
+public enum E_EndingCombatStatType
+{
+    TotalDamageDealt = 0,
+    DamageTakenCount = 1
+}
+
+/// <summary>
+/// 하나의 텍스트 UI와 표시할 전투 통계 값을 연결하는 바인딩입니다.
+/// </summary>
+[Serializable]
+public sealed class EndingCombatStatTextBinding
+{
+    public string Name;
+
+    [Tooltip("전투 통계 값을 표시할 TMP 텍스트입니다.")]
+    [SerializeField] private TMP_Text _text; // 전투 통계 값을 출력할 TMP 텍스트입니다.
+
+    [Tooltip("이 텍스트에 표시할 전투 통계 종류입니다.")]
+    [SerializeField] private E_EndingCombatStatType _statType; // 텍스트가 표시할 전투 통계 종류입니다.
+
+    [Tooltip("표시 형식입니다. {0} 위치에 수치가 들어갑니다.")]
+    [SerializeField] private string _format = "{0}"; // 통계 수치를 문자열로 변환할 때 사용할 표시 형식입니다.
+
+    [Tooltip("대미지처럼 실수 값인 통계에 적용할 소수점 자리수입니다.")]
+    [Min(0)]
+    [SerializeField] private int _decimalPlaces; // 실수 통계 표시 시 사용할 소수점 자리수입니다.
+
+    /// <summary>
+    /// 런타임 전투 통계 값을 텍스트 UI에 적용합니다.
+    /// </summary>
+    public void Apply(PlayerCombatStatsRuntime statsRuntime)
+    {
+        if (_text == null)
+        {
+            return;
+        }
+
+        string safeFormat = string.IsNullOrWhiteSpace(_format) ? "{0}" : _format; // 비어 있는 포맷의 안전한 폴백입니다.
+        switch (_statType)
+        {
+            case E_EndingCombatStatType.TotalDamageDealt:
+                float damage = statsRuntime != null ? statsRuntime.TotalDamageDealt : 0f; // 표시할 누적 적용 대미지입니다.
+                _text.text = string.Format(safeFormat, damage.ToString($"F{Mathf.Max(0, _decimalPlaces)}"));
+                break;
+            case E_EndingCombatStatType.DamageTakenCount:
+                int hitCount = statsRuntime != null ? statsRuntime.DamageTakenCount : 0; // 표시할 누적 피격 횟수입니다.
+                _text.text = string.Format(safeFormat, hitCount);
+                break;
         }
     }
 }

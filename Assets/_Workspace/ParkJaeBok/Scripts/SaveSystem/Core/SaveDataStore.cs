@@ -36,6 +36,9 @@ public class SaveDataStore : MonoBehaviour
     [Tooltip("로드한 슬롯 진행도를 적용할 StageProgressRuntime입니다. 비어 있으면 현재 씬의 기존 인스턴스를 찾습니다.")]
     [SerializeField] private StageProgressRuntime _stageProgressRuntime; // 스테이지 진행 런타임 상태와 슬롯 저장 데이터를 연결하는 브리지입니다.
 
+    [Tooltip("로드한 슬롯 전투 통계를 적용할 PlayerCombatStatsRuntime입니다. 비어 있으면 현재 씬의 기존 인스턴스를 찾습니다.")]
+    [SerializeField] private PlayerCombatStatsRuntime _combatStatsRuntime; // 플레이어 전투 통계 런타임 상태와 슬롯 저장 데이터를 연결하는 브리지입니다.
+
     [Tooltip("로드한 슬롯 세션 데이터를 적용할 StageSession입니다. 비어 있으면 현재 씬의 기존 인스턴스를 찾습니다.")]
     [SerializeField] private StageSession _stageSession; // 스테이지 세션 런타임 상태와 슬롯 저장 데이터를 연결하는 브리지입니다.
 
@@ -694,6 +697,11 @@ public class SaveDataStore : MonoBehaviour
             _stageProgressRuntime = progressRuntime;
         }
 
+        if (_combatStatsRuntime == null)
+        {
+            _combatStatsRuntime = PlayerCombatStatsRuntime.Instance;
+        }
+
         if (_stageSession == null && StageSession.TryGetExistingInstance(out StageSession session))
         {
             _stageSession = session;
@@ -739,6 +747,19 @@ public class SaveDataStore : MonoBehaviour
                 _stageProgressRuntime.RemoveListener(HandleStageProgressChanged);
             }
         }
+
+        if (_combatStatsRuntime != null)
+        {
+            if (shouldBind)
+            {
+                _combatStatsRuntime.RemoveListener(HandleCombatStatsChanged);
+                _combatStatsRuntime.AddListener(HandleCombatStatsChanged);
+            }
+            else
+            {
+                _combatStatsRuntime.RemoveListener(HandleCombatStatsChanged);
+            }
+        }
     }
 
     /// <summary>
@@ -778,6 +799,15 @@ public class SaveDataStore : MonoBehaviour
             Debug.LogWarning($"[SaveDataStore] StageProgressRuntime was not found. Loaded progress data stayed only in SaveRuntimeData. reason={reason}", this);
         }
 
+        if (_combatStatsRuntime != null)
+        {
+            _combatStatsRuntime.ApplySnapshot(_runtimeData.CombatStats);
+        }
+        else
+        {
+            Debug.LogWarning($"[SaveDataStore] PlayerCombatStatsRuntime was not found. Loaded combat stats stayed only in SaveRuntimeData. reason={reason}", this);
+        }
+
         if (_stageSession != null)
         {
             _stageSession.ApplySnapshot(_runtimeData.StageSession);
@@ -813,6 +843,11 @@ public class SaveDataStore : MonoBehaviour
         if (_stageProgressRuntime != null)
         {
             _runtimeData.StageProgress = _stageProgressRuntime.CreateSnapshot();
+        }
+
+        if (_combatStatsRuntime != null)
+        {
+            _runtimeData.CombatStats = _combatStatsRuntime.CreateSnapshot();
         }
 
         if (_stageSession != null)
@@ -1051,6 +1086,20 @@ public class SaveDataStore : MonoBehaviour
     }
 
     /// <summary>
+    /// 플레이어 전투 통계 변경을 감지해 현재 슬롯 파일만 자동 저장 대상으로 예약합니다.
+    /// </summary>
+    private void HandleCombatStatsChanged()
+    {
+        if (_isApplyingLoadedData)
+        {
+            return;
+        }
+
+        CapturePlayDataFromRuntime();
+        QueueAutoSave("CombatStatsChanged", false);
+    }
+
+    /// <summary>
     /// 글로벌 옵션 또는 슬롯 플레이 데이터 저장을 지연 예약합니다.
     /// </summary>
     private void QueueAutoSave(string reason, bool isGlobalOptions)
@@ -1081,10 +1130,23 @@ public class SaveDataStore : MonoBehaviour
         {
             SaveGlobalOptions($"Auto.{reason}");
         }
+        else if (IsMultiplayerClient())
+        {
+            SaveClientPersonalPlayData($"Auto.{reason}");
+        }
         else
         {
             SaveSlot(_currentSlot, $"Auto.{reason}");
         }
+    }
+
+    /// <summary>
+    /// 현재 피어가 Host 권한이 없는 멀티플레이 Client인지 반환합니다.
+    /// </summary>
+    private bool IsMultiplayerClient()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+        return networkManager != null && networkManager.IsListening && networkManager.IsClient && !networkManager.IsServer;
     }
 
     /// <summary>

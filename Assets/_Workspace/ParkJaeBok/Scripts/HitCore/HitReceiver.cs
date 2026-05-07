@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -28,6 +29,8 @@ public class HitReceiver : MonoBehaviour
 
     private Coroutine _postHitInvincibilityCoroutine; // 피격 후 자동 무적 해제 시점을 관리하는 코루틴입니다.
     private bool _isPostHitInvincibilityActive; // 피격 후 자동 무적 상태가 현재 적용 중인지 나타냅니다.
+
+    public static event Action<HitReceiver, HitRequest, HitResult> GlobalHitResolved; // 모든 HitReceiver의 피격 처리 결과를 런타임 통계 시스템에 전달하는 전역 이벤트입니다.
 
     /// <summary>
     /// 수동 무적 또는 피격 후 무적이 활성화되어 있는 경우 true를 반환합니다.
@@ -398,6 +401,8 @@ public class HitReceiver : MonoBehaviour
     /// </summary>
     private void NotifyListeners(in HitRequest request, in HitResult result)
     {
+        GlobalHitResolved?.Invoke(this, request, result);
+
         for (int i = 0; i < _listeners.Count; i++)
         {
             IHitListener listener = _listeners[i];

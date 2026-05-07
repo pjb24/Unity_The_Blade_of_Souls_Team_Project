@@ -9156,6 +9156,27 @@ MonoBehaviour:
   - {fileID: 86259583}
   - {fileID: 827517203}
   - {fileID: 1893483934}
+  _combatStatTextBindings:
+  - Name: TotalDamageDealt_Host
+    _text: {fileID: 740080798}
+    _statType: 0
+    _format: 
+    _decimalPlaces: 0
+  - Name: DamageTakenCount_Host
+    _text: {fileID: 1003323417}
+    _statType: 1
+    _format: 
+    _decimalPlaces: 0
+  - Name: TotalDamageDealt_Client
+    _text: {fileID: 639994813}
+    _statType: 0
+    _format: 
+    _decimalPlaces: 0
+  - Name: DamageTakenCount_Client
+    _text: {fileID: 1789022729}
+    _statType: 1
+    _format: 
+    _decimalPlaces: 0
   _nextStageButton: {fileID: 683332155}
   _returnToTownButton: {fileID: 1812562630}
   _restartStageEntryButton: {fileID: 1299195768}
