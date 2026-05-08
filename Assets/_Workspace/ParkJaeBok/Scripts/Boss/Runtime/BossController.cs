@@ -286,6 +286,17 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
     /// </summary>
     public void OnDamaged(DamageResult result)
     {
+        if (!IsBossLogicAuthority())
+        {
+            return;
+        }
+
+        if (result.IsInvalid || result.IsBlocked || result.AppliedAmount <= 0f)
+        {
+            return;
+        }
+
+        PlayHitShowTriggerInternal();
     }
 
     /// <summary>
@@ -1556,6 +1567,26 @@ public class BossController : NetworkBehaviour, IBossPatternExecutionListener, I
         }
 
         _presentationController.PlayCue(cue, patternType, worldPosition);
+    }
+
+    /// <summary>
+    /// 권한 인스턴스에서 확정된 보스 피격 Show Trigger를 프레젠테이션 컨트롤러에 전달합니다.
+    /// </summary>
+    private void PlayHitShowTriggerInternal()
+    {
+        ResolveOptionalRuntimeReferences();
+        if (_presentationController == null)
+        {
+            if (!_hasLoggedPresentationControllerMissingWarning)
+            {
+                Debug.LogWarning($"[BossController] BossPresentationController가 없어 피격 Show Trigger 실행 스킵됨. object={name}", this);
+                _hasLoggedPresentationControllerMissingWarning = true;
+            }
+
+            return;
+        }
+
+        _presentationController.PlayHitShowTrigger();
     }
 
     /// <summary>

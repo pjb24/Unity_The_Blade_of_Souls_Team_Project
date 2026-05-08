@@ -57,6 +57,13 @@ public sealed class BossPresentationController : NetworkBehaviour
     [Tooltip("Cue의 위치가 없을 때 기본으로 사용할 연출 위치입니다.")]
     [SerializeField] private Transform _presentationOrigin; // VFX, SFX 기본 위치
 
+    [Header("Hit Show Trigger")]
+    [Tooltip("보스가 실제 피해를 받았을 때 Show Trigger를 받을 Animator입니다. 비워두면 Required References의 Animator를 사용합니다.")]
+    [SerializeField] private Animator _hitShowAnimator; // 보스 피격 표시용 Show Trigger를 실행할 Animator 참조입니다.
+
+    [Tooltip("보스 피격 시 실행할 Animator Trigger 이름입니다.")]
+    [SerializeField] private string _hitShowTriggerName = "Show"; // 피격 표시 애니메이터에 전달할 Trigger 이름입니다.
+
     [Header("Weak Point Visual Motion")]
     [Tooltip("약점 패턴 중 Y축으로 이동시킬 보스 비주얼 루트입니다. 비워두면 Animator Transform을 사용합니다.")]
     [SerializeField] private Transform _bossVisualRoot; // 약점 패턴 중 실제로 위아래 이동하는 보스 비주얼 Transform
@@ -82,6 +89,7 @@ public sealed class BossPresentationController : NetworkBehaviour
     private bool _hasLoggedAudioManagerMissingWarning; // AudioManager 없음 경고 중복 방지
     private bool _hasLoggedNetworkFallbackWarning; // 네트워크 실패 시 로컬 fallback 경고 중복 방지
     private bool _hasLoggedInvalidPositionWarning; // 잘못된 위치 fallback 경고 중복 방지
+    private bool _hasLoggedMissingHitShowAnimatorWarning; // 피격 Show Trigger Animator 누락 경고 중복 방지
 
     /// <summary>
     /// 연출 실행 전에 참조와 비주얼 기준 위치를 초기화한다.
@@ -134,6 +142,24 @@ public sealed class BossPresentationController : NetworkBehaviour
     }
 
     /// <summary>
+    /// 보스 피격 Show Trigger를 싱글플레이에서는 로컬에서, 멀티플레이에서는 모든 클라이언트와 Host에 동기화해 실행합니다.
+    /// </summary>
+    public void PlayHitShowTrigger()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // NGO 세션 상태를 확인하기 위한 매니저입니다.
+        bool shouldUseNetwork = networkManager != null && networkManager.IsListening; // 네트워크 세션에서 RPC 전파가 필요한지 여부입니다.
+
+        if (shouldUseNetwork && IsSpawned)
+        {
+            PlayHitShowTriggerRpc();
+            return;
+        }
+
+        LogNetworkFallbackIfNeeded(shouldUseNetwork, "PlayHitShowTrigger");
+        PlayHitShowTriggerLocal();
+    }
+
+    /// <summary>
     /// 약점 패턴 활성화에 맞춰 보스 비주얼을 설정된 Y 오프셋까지 상승시킨다.
     /// </summary>
     public void RaiseWeakPointVisual()
@@ -181,6 +207,15 @@ public sealed class BossPresentationController : NetworkBehaviour
     }
 
     /// <summary>
+    /// 서버가 확정한 보스 피격 Show Trigger를 각 클라이언트와 Host 로컬 Animator에 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.ClientsAndHost)]
+    private void PlayHitShowTriggerRpc()
+    {
+        PlayHitShowTriggerLocal();
+    }
+
+    /// <summary>
     /// 서버가 확정한 약점 패턴 비주얼 상승을 각 클라이언트 로컬에서 실행한다.
     /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
@@ -215,6 +250,34 @@ public sealed class BossPresentationController : NetworkBehaviour
         PlayAnimatorTrigger(settings);
         PlayVfx(settings, cuePosition);
         PlaySfx(settings, cuePosition);
+    }
+
+    /// <summary>
+    /// Inspector에 연결된 피격 표시 Animator의 Show Trigger를 실제로 실행합니다.
+    /// </summary>
+    private void PlayHitShowTriggerLocal()
+    {
+        ResolveReferences();
+
+        if (string.IsNullOrWhiteSpace(_hitShowTriggerName))
+        {
+            return;
+        }
+
+        Animator targetAnimator = _hitShowAnimator != null ? _hitShowAnimator : _animator; // 디자이너가 별도로 지정한 Animator가 있으면 우선 사용합니다.
+        if (targetAnimator == null)
+        {
+            if (!_hasLoggedMissingHitShowAnimatorWarning)
+            {
+                Debug.LogWarning($"[BossPresentationController] 피격 Show Trigger를 실행할 Animator가 없습니다. object={name}, trigger={_hitShowTriggerName}", this);
+                _hasLoggedMissingHitShowAnimatorWarning = true;
+            }
+
+            return;
+        }
+
+        targetAnimator.ResetTrigger(_hitShowTriggerName);
+        targetAnimator.SetTrigger(_hitShowTriggerName);
     }
 
     /// <summary>
@@ -524,6 +587,11 @@ public sealed class BossPresentationController : NetworkBehaviour
         if (_animator == null)
         {
             _animator = GetComponentInChildren<Animator>(true);
+        }
+
+        if (_hitShowAnimator == null)
+        {
+            _hitShowAnimator = _animator;
         }
 
         if (_bossVisualRoot == null && _animator != null)
