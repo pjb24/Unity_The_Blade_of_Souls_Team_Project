@@ -88,9 +88,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db2579f0b51567a4b95020fff4a3d19d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SceneTransitionService
+  _sceneExitFadeOutPreset: {fileID: 11400000, guid: 0067e747c8b029f4195dd959705ab59b, type: 2}
+  _sceneEnterFadeInPreset: {fileID: 0}
   _dontDestroyOnLoad: 1
   _fadeOutDuration: 0.2
-  _fadeInDuration: 0.2
+  _fadeInDuration: 0
   _blockInputWhileTransition: 1
   _preferNetworkSceneManagement: 1
 --- !u!114 &4397434496589944427
@@ -108,6 +110,7 @@ MonoBehaviour:
   _dontDestroyOnLoad: 1
   _selectedStageId: 
   _requestedBgmContextType: 0
+  _pendingStageEntryCheckpointStageId: 
 --- !u!114 &16871069682181859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -200,6 +203,9 @@ MonoBehaviour:
     StageProgress:
       Records: []
       CheckpointRecords: []
+    CombatStats:
+      TotalDamageDealt: 0
+      DamageTakenCount: 0
     StageSession:
       SelectedStageId: 
       RequestedBgmContextType: 0
@@ -212,6 +218,7 @@ MonoBehaviour:
     PlayTimeSeconds: 0
   _optionManager: {fileID: 0}
   _stageProgressRuntime: {fileID: 16871069682181859}
+  _combatStatsRuntime: {fileID: 0}
   _stageSession: {fileID: 4397434496589944427}
   _slotCount: 3
   _currentSlot: 1

@@ -34,6 +34,13 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
     [Tooltip("결과 UI 대기 시간을 Time.timeScale 영향을 받지 않는 시간으로 계산할지 여부입니다.")]
     [SerializeField] private bool _useUnscaledDelayTime = true; // Pause 상태와 무관하게 UI 지연 시간을 계산할지 결정합니다.
 
+    [Header("Camera Effect")]
+    [Tooltip("Death 또는 Ending UI를 표시하기 직전에 재생할 FadeOut CameraEffectPreset입니다.")]
+    [SerializeField] private CameraEffectPresetBase _outcomeFadeOutPreset; // 결과 UI 표시 직전에 화면을 자연스럽게 가리는 카메라 이펙트 프리셋입니다.
+
+    [Tooltip("Death 또는 Ending UI가 준비된 직후 재생할 FadeIn CameraEffectPreset입니다.")]
+    [SerializeField] private CameraEffectPresetBase _outcomeFadeInPreset; // 결과 UI 표시 직후 화면을 다시 보여주는 카메라 이펙트 프리셋입니다.
+
     [Header("Boss Room Death Rule")]
     [Tooltip("싱글플레이에서 보스룸 플레이어가 죽으면 사망 UI를 표시할지 여부입니다. 보스 처치 엔딩과 플레이어 사망 결과를 분리합니다.")]
     [SerializeField] private bool _showDeathPanelOnSinglePlayerDeath = true; // 싱글플레이 보스룸 사망 시 사망 UI를 사용할지 결정합니다.
@@ -317,7 +324,10 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
             }
         }
 
+        yield return CameraEffectPlaybackUtility.PlayAndWait(_outcomeFadeOutPreset, gameObject, 0f);
         ShowOutcomePanel(outcomeKind);
+        yield return null;
+        yield return CameraEffectPlaybackUtility.PlayAndWait(_outcomeFadeInPreset, gameObject, 0f);
         _showOutcomeCoroutine = null;
     }
 

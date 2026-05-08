@@ -482,6 +482,71 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 731b1747058a8ea42954e9fd79791d9c, type: 3}
+--- !u!1 &1070570323
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1070570325}
+  - component: {fileID: 1070570324}
+  m_Layer: 0
+  m_Name: CameraEffectManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1070570324
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1070570323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc61070571f4c774bbd6e88734042437, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraEffectManager
+  _targetCamera: {fileID: 0}
+  _dontDestroyOnLoad: 1
+  _channelConflictPolicy: 0
+  _lowPriorityPolicy: 0
+  _lowPriorityDurationScale: 0.5
+  _enableLoopSafetyTimeout: 1
+  _loopSafetyTimeoutSeconds: 30
+  _enableAccessibilityIntegration: 1
+  _flashScaleWhenReductionOn: 1
+  _colorScaleWhenColorBlindModeOn: 1
+  _colorScaleWhenHighContrastOn: 1
+  _fallbackShakeScale: 1
+  _fallbackFlashScale: 1
+  _fallbackColorScale: 1
+  _verboseLogging: 0
+  _activeChannelEffectCount: 0
+  _lastPlayedChannel: 0
+  _debugAccessibilityShakeScale: 1
+  _debugAccessibilityFlashScale: 1
+  _debugAccessibilityColorScale: 1
+  _debugUsingOptionAccessibility: 0
+--- !u!4 &1070570325
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1070570323}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1191172439
 GameObject:
   m_ObjectHideFlags: 0
@@ -965,3 +1030,4 @@ SceneRoots:
   - {fileID: 1537142223}
   - {fileID: 1996693374}
   - {fileID: 99725065}
+  - {fileID: 1070570325}

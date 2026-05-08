@@ -42,6 +42,10 @@ public class CameraEffectPreset : CameraEffectPresetBase
     [Tooltip("Overlay 모듈이 적용할 목표 색상입니다.")]
     [SerializeField] private Color _overlayColor = Color.red; // Overlay 모듈이 최종 보간할 색상 값입니다.
 
+    [Header("Overlay Lifetime")]
+    [Tooltip("효과가 종료되어도 마지막 Fade/Overlay 화면 덮개를 유지할지 여부입니다. FadeOut 후 씬 로드 대기처럼 화면을 계속 가려야 할 때 사용합니다.")]
+    [SerializeField] private bool _keepOverlayOnStop; // 효과 종료 시 마지막 Fade/Overlay 화면 덮개를 유지할지 결정합니다.
+
     [Header("Designer")]
     [Tooltip("디자이너 작업 메모입니다. 런타임 동작에는 영향을 주지 않습니다.")]
     [TextArea]
@@ -52,7 +56,7 @@ public class CameraEffectPreset : CameraEffectPresetBase
     private Vector3 _initialLocalPosition; // 효과 종료 시 복원할 카메라 로컬 위치입니다.
     private float _initialOrthographicSize; // 효과 종료 시 복원할 카메라 Orthographic Size 값입니다.
     private float _initialFieldOfView; // 효과 종료 시 복원할 카메라 Field Of View 값입니다.
-    private Color _initialBackgroundColor; // 효과 종료 시 복원할 카메라 배경색 값입니다.
+    private int _overlaySourceId; // Fade/Overlay UI 오버레이 상태를 등록하고 해제할 때 사용하는 효과 인스턴스 식별자입니다.
 
     /// <summary>
     /// 현재 프리셋 기반 최소 재생 요청을 생성합니다.
@@ -84,7 +88,7 @@ public class CameraEffectPreset : CameraEffectPresetBase
         _initialLocalPosition = targetCamera.transform.localPosition;
         _initialOrthographicSize = targetCamera.orthographicSize;
         _initialFieldOfView = targetCamera.fieldOfView;
-        _initialBackgroundColor = targetCamera.backgroundColor;
+        _overlaySourceId = GetInstanceID();
         _hasRuntimeSnapshot = true;
 
         ValidateModule("Fade", _fadeModule);
@@ -135,12 +139,17 @@ public class CameraEffectPreset : CameraEffectPresetBase
             }
         }
 
-        if (_fadeModule.Enabled || _overlayModule.Enabled)
+        if (_keepOverlayOnStop && HasColorOverlayModule())
         {
-            _runtimeCamera.backgroundColor = _initialBackgroundColor;
+            CameraEffectScreenOverlay.RetainOverlay(_overlaySourceId);
+        }
+        else
+        {
+            CameraEffectScreenOverlay.ClearOverlay(_overlaySourceId);
         }
 
         _runtimeCamera = null;
+        _overlaySourceId = 0;
         _hasRuntimeSnapshot = false;
     }
 
@@ -204,9 +213,20 @@ public class CameraEffectPreset : CameraEffectPresetBase
         float fadeWeight = EvaluateModuleWeight("Fade", _fadeModule, request, elapsedSeconds) * flashScale;
         float overlayWeight = EvaluateModuleWeight("Overlay", _overlayModule, request, elapsedSeconds) * flashScale;
 
-        Color fadedColor = Color.Lerp(_initialBackgroundColor, Color.black, Mathf.Clamp01(fadeWeight));
-        Color finalColor = Color.Lerp(fadedColor, _overlayColor, Mathf.Clamp01(overlayWeight));
-        targetCamera.backgroundColor = Color.Lerp(_initialBackgroundColor, finalColor, colorScale);
+        Color overlayBaseColor = Color.Lerp(Color.black, _overlayColor, Mathf.Clamp01(overlayWeight));
+        float overlayAlpha = Mathf.Max(Mathf.Clamp01(fadeWeight), Mathf.Clamp01(overlayWeight) * _overlayColor.a);
+        Color finalColor = overlayBaseColor;
+        finalColor.a = Mathf.Clamp01(overlayAlpha * colorScale);
+
+        CameraEffectScreenOverlay.SetOverlay(_overlaySourceId, ResolvePriority(request), finalColor);
+    }
+
+    /// <summary>
+    /// 현재 프리셋에서 화면 오버레이를 사용하는 모듈이 켜져 있는지 반환합니다.
+    /// </summary>
+    private bool HasColorOverlayModule()
+    {
+        return _fadeModule.Enabled || _overlayModule.Enabled;
     }
 
     /// <summary>

@@ -9,6 +9,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class BossWeakPointPattern : BossPatternBase
 {
+    [Header("Camera Effect")]
+    [Tooltip("약점 패턴이 실제로 시작되어 약점이 활성화되는 동안 재생할 CameraEffectPreset입니다. Loop 프리셋을 권장합니다.")]
+    [SerializeField] private CameraEffectPresetBase _weakPointActiveCameraEffectPreset; // 약점 패턴 활성 상태를 표시하는 카메라 이펙트 프리셋입니다.
+    private CameraEffectHandle _weakPointCameraEffectHandle; // 로컬 환경에서 재생 중인 약점 패턴 카메라 이펙트 핸들입니다.
+    private SceneTransitionService _boundSceneTransitionService; // 씬 전환 시작 이벤트를 수신 중인 SceneTransitionService 참조입니다.
+
     [Header("필수 참조")]
     [Tooltip("권한, Pattern 4 상태 플래그, Groggy 타이밍을 관리하는 BossController")]
     [SerializeField] private BossController _bossController; // Pattern 4 상태를 소유하는 보스 권한 및 데이터
@@ -54,6 +60,14 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
+    /// 씬 전환 시작 이벤트를 구독해 약점 패턴 진행 중 씬 이동 시 런타임 상태를 정리합니다.
+    /// </summary>
+    private void OnEnable()
+    {
+        TryBindSceneTransitionService();
+    }
+
+    /// <summary>
     /// 에디터에서 값 수정 시 참조를 갱신한다.
     /// </summary>
     private void OnValidate()
@@ -62,11 +76,32 @@ public sealed class BossWeakPointPattern : BossPatternBase
     }
 
     /// <summary>
+    /// SceneTransitionService가 늦게 준비되는 경우를 보정해 씬 전환 이벤트 구독을 재시도합니다.
+    /// </summary>
+    private void Update()
+    {
+        if (_boundSceneTransitionService == null)
+        {
+            TryBindSceneTransitionService();
+        }
+    }
+
+    /// <summary>
+    /// 씬 전환 이벤트 구독과 로컬 카메라 이펙트 상태를 정리합니다.
+    /// </summary>
+    private void OnDisable()
+    {
+        UnbindSceneTransitionService();
+        StopWeakPointCameraEffectLocally("BossWeakPointPatternDisabled");
+    }
+
+    /// <summary>
     /// Pattern 4 진입을 시작하고 애니메이션 이벤트 또는 fallback 타이머를 대기한다.
     /// </summary>
     protected override void OnPatternExecutionStarted()
     {
         ResolveReferences();
+        TryBindSceneTransitionService();
 
         if (_bossController == null || !_bossController.IsBossLogicAuthority())
         {
@@ -106,6 +141,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
     /// </summary>
     protected override void OnPatternExecutionCancelled(string reason)
     {
+        StopWeakPointCameraEffectAuthoritatively("PatternCancelled");
         StopEntryFallbackTimer();
         StopWeakPointTimeLimitTimer();
 
@@ -172,6 +208,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
             return;
         }
 
+        StopWeakPointCameraEffectAuthoritatively("BossDeath");
         StopEntryFallbackTimer();
         StopWeakPointTimeLimitTimer();
 
@@ -719,6 +756,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         _isEntryResolved = true;
 
         _bossController.NotifyPatternFourEntryCompleted();
+        BeginWeakPointCameraEffectAuthoritatively();
 
         _bossController.PlayPresentationCue(
             E_BossPresentationCue.PatternAttack,
@@ -790,6 +828,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isWeakPointFlowResolved = true;
+        StopWeakPointCameraEffectAuthoritatively("WeakPointTimedOut");
 
         StopWeakPointTimeLimitTimer();
 
@@ -1006,6 +1045,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isWeakPointFlowResolved = true;
+        StopWeakPointCameraEffectAuthoritatively("AllWeakPointsDestroyed");
 
         StopWeakPointTimeLimitTimer();
 
@@ -1345,6 +1385,7 @@ public sealed class BossWeakPointPattern : BossPatternBase
         }
 
         _isEntryResolved = true;
+        StopWeakPointCameraEffectAuthoritatively("WeakPointEntryFailed");
 
         StopEntryFallbackTimer();
         StopWeakPointTimeLimitTimer();
@@ -1386,6 +1427,165 @@ public sealed class BossWeakPointPattern : BossPatternBase
 
         StopCoroutine(_weakPointTimeLimitCoroutine);
         _weakPointTimeLimitCoroutine = null;
+    }
+
+    /// <summary>
+    /// 권한 인스턴스에서 약점 패턴 카메라 이펙트 시작을 로컬 또는 모든 클라이언트에 전파합니다.
+    /// </summary>
+    private void BeginWeakPointCameraEffectAuthoritatively()
+    {
+        if (_weakPointActiveCameraEffectPreset == null)
+        {
+            return;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening || !IsSpawned)
+        {
+            BeginWeakPointCameraEffectLocally();
+            return;
+        }
+
+        BeginWeakPointCameraEffectRpc();
+    }
+
+    /// <summary>
+    /// 권한 인스턴스에서 약점 패턴 카메라 이펙트 종료를 로컬 또는 모든 클라이언트에 전파합니다.
+    /// </summary>
+    private void StopWeakPointCameraEffectAuthoritatively(string reason)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager == null || !networkManager.IsListening || !IsSpawned)
+        {
+            StopWeakPointCameraEffectLocally(reason);
+            return;
+        }
+
+        StopWeakPointCameraEffectRpc(reason);
+    }
+
+    /// <summary>
+    /// 모든 클라이언트와 Host에서 약점 패턴 카메라 이펙트를 시작합니다.
+    /// </summary>
+    [Rpc(SendTo.ClientsAndHost)]
+    private void BeginWeakPointCameraEffectRpc()
+    {
+        BeginWeakPointCameraEffectLocally();
+    }
+
+    /// <summary>
+    /// 모든 클라이언트와 Host에서 약점 패턴 카메라 이펙트를 종료합니다.
+    /// </summary>
+    [Rpc(SendTo.ClientsAndHost)]
+    private void StopWeakPointCameraEffectRpc(string reason)
+    {
+        StopWeakPointCameraEffectLocally(reason);
+    }
+
+    /// <summary>
+    /// 현재 로컬 환경에서 약점 패턴 카메라 이펙트를 재생합니다.
+    /// </summary>
+    private void BeginWeakPointCameraEffectLocally()
+    {
+        if (_weakPointActiveCameraEffectPreset == null)
+        {
+            return;
+        }
+
+        if (_weakPointCameraEffectHandle.IsValid)
+        {
+            _weakPointCameraEffectHandle.Stop("WeakPointCameraEffectRestart");
+        }
+
+        _weakPointCameraEffectHandle = CameraEffectPlaybackUtility.Play(_weakPointActiveCameraEffectPreset, gameObject);
+    }
+
+    /// <summary>
+    /// 현재 로컬 환경에서 재생 중인 약점 패턴 카메라 이펙트를 종료합니다.
+    /// </summary>
+    private void StopWeakPointCameraEffectLocally(string reason)
+    {
+        if (!_weakPointCameraEffectHandle.IsValid)
+        {
+            return;
+        }
+
+        _weakPointCameraEffectHandle.Stop(reason);
+        _weakPointCameraEffectHandle = default;
+    }
+
+    /// <summary>
+    /// SceneTransitionService의 씬 전환 시작 이벤트를 구독합니다.
+    /// </summary>
+    private void TryBindSceneTransitionService()
+    {
+        if (_boundSceneTransitionService != null)
+        {
+            return;
+        }
+
+        if (!SceneTransitionService.TryGetExistingInstance(out SceneTransitionService sceneTransitionService) ||
+            sceneTransitionService == null)
+        {
+            return;
+        }
+
+        _boundSceneTransitionService = sceneTransitionService;
+        _boundSceneTransitionService.OnBeforeSceneLoad += HandleBeforeSceneLoad;
+    }
+
+    /// <summary>
+    /// SceneTransitionService의 씬 전환 시작 이벤트 구독을 해제합니다.
+    /// </summary>
+    private void UnbindSceneTransitionService()
+    {
+        if (_boundSceneTransitionService == null)
+        {
+            return;
+        }
+
+        _boundSceneTransitionService.OnBeforeSceneLoad -= HandleBeforeSceneLoad;
+        _boundSceneTransitionService = null;
+    }
+
+    /// <summary>
+    /// 씬 전환이 시작되면 약점 패턴 런타임 상태와 카메라 이펙트를 정리합니다.
+    /// </summary>
+    private void HandleBeforeSceneLoad(string sceneName)
+    {
+        StopWeakPointCameraEffectLocally("SceneTransitionStarted");
+
+        ResolveReferences();
+        if (_bossController == null || !_bossController.IsBossLogicAuthority())
+        {
+            return;
+        }
+
+        if (IsExecuting)
+        {
+            CancelPattern("SceneTransitionStarted");
+            return;
+        }
+
+        CleanupWeakPointRuntimeForSceneTransition();
+    }
+
+    /// <summary>
+    /// 패턴 실행 보고 없이 씬 전환 직전 남아 있을 수 있는 약점 패턴 런타임 리소스를 정리합니다.
+    /// </summary>
+    private void CleanupWeakPointRuntimeForSceneTransition()
+    {
+        StopEntryFallbackTimer();
+        StopWeakPointTimeLimitTimer();
+        RemoveRemainingWeakPoints();
+        ClearWeakPointRuntimeBuffers();
+        _isEntryResolved = true;
+        _isWeakPointFlowResolved = true;
+
+        if (_bossController != null && _bossController.IsWeakPointPatternActive)
+        {
+            _bossController.NotifyPatternFourEntryFailed();
+        }
     }
 
     /// <summary>

@@ -9,6 +9,12 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public class SceneTransitionService : MonoBehaviour
 {
+    [Tooltip("씬을 나가기 직전에 재생할 FadeOut CameraEffectPreset입니다. 비어 있으면 기존 시간 대기만 사용합니다.")]
+    [SerializeField] private CameraEffectPresetBase _sceneExitFadeOutPreset; // 씬 로드 직전에 재생할 카메라 FadeOut 프리셋입니다.
+
+    [Tooltip("새 씬에 진입한 직후 재생할 FadeIn CameraEffectPreset입니다. 비어 있으면 기존 시간 대기만 사용합니다.")]
+    [SerializeField] private CameraEffectPresetBase _sceneEnterFadeInPreset; // 씬 로드 직후 재생할 카메라 FadeIn 프리셋입니다.
+
     private static SceneTransitionService _instance; // 전역 접근을 위한 씬 전환 서비스 싱글톤 인스턴스입니다.
 
     [Header("Lifecycle")]
@@ -183,11 +189,7 @@ public class SceneTransitionService : MonoBehaviour
         ToggleInput(false);
         OnBeforeSceneLoad?.Invoke(sceneName);
 
-        float safeFadeOut = Mathf.Max(0f, _fadeOutDuration); // 음수 방지를 적용한 페이드 아웃 시간입니다.
-        if (safeFadeOut > 0f)
-        {
-            yield return new WaitForSecondsRealtime(safeFadeOut);
-        }
+        yield return PlaySceneExitFadeOut();
 
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single); // 실제 비동기 씬 로드 작업입니다.
         if (operation == null)
@@ -205,11 +207,7 @@ public class SceneTransitionService : MonoBehaviour
 
         OnAfterSceneLoad?.Invoke(sceneName);
 
-        float safeFadeIn = Mathf.Max(0f, _fadeInDuration); // 음수 방지를 적용한 페이드 인 시간입니다.
-        if (safeFadeIn > 0f)
-        {
-            yield return new WaitForSecondsRealtime(safeFadeIn);
-        }
+        yield return PlaySceneEnterFadeIn();
 
         ToggleInput(true);
         _isTransitioning = false;
@@ -249,19 +247,43 @@ public class SceneTransitionService : MonoBehaviour
             return false;
         }
 
-        SceneEventProgressStatus status = networkManager.SceneManager.LoadScene(sceneName, LoadSceneMode.Single); // Host/Server 권한으로 모든 클라이언트 씬 전환을 시작하는 NGO API 호출 결과입니다.
-        if (status != SceneEventProgressStatus.Started)
-        {
-            Debug.LogError($"[SceneTransitionService] NetworkSceneManager.LoadScene 시작 실패. scene={sceneName}, status={status}", this);
-            return false;
-        }
+        StartCoroutine(LoadNetworkSceneRoutine(sceneName, networkManager));
+        return true;
+    }
 
+    /// <summary>
+    /// Host/Server 권한에서 FadeOut을 완료한 뒤 NGO NetworkSceneManager로 씬 전환을 시작합니다.
+    /// </summary>
+    private IEnumerator LoadNetworkSceneRoutine(string sceneName, NetworkManager networkManager)
+    {
         _isTransitioning = true;
         _isNetworkTransitionInProgress = true;
         _pendingNetworkSceneName = sceneName;
         ToggleInput(false);
         OnBeforeSceneLoad?.Invoke(sceneName);
-        return true;
+
+        yield return PlaySceneExitFadeOut();
+
+        if (networkManager == null || networkManager.SceneManager == null)
+        {
+            Debug.LogError($"[SceneTransitionService] NetworkSceneManager가 사라져 네트워크 씬 전환을 중단합니다. scene={sceneName}", this);
+            ToggleInput(true);
+            _isTransitioning = false;
+            _isNetworkTransitionInProgress = false;
+            _pendingNetworkSceneName = string.Empty;
+            yield break;
+        }
+
+        SceneEventProgressStatus status = networkManager.SceneManager.LoadScene(sceneName, LoadSceneMode.Single); // Host/Server 권한으로 모든 클라이언트 씬 전환을 시작하는 NGO API 호출 결과입니다.
+        if (status != SceneEventProgressStatus.Started)
+        {
+            Debug.LogError($"[SceneTransitionService] NetworkSceneManager.LoadScene 시작 실패. scene={sceneName}, status={status}", this);
+            ToggleInput(true);
+            _isTransitioning = false;
+            _isNetworkTransitionInProgress = false;
+            _pendingNetworkSceneName = string.Empty;
+            yield break;
+        }
     }
 
     /// <summary>
@@ -363,6 +385,7 @@ public class SceneTransitionService : MonoBehaviour
         _isNetworkTransitionInProgress = true;
         _pendingNetworkSceneName = sceneName;
         ToggleInput(false);
+        CameraEffectPlaybackUtility.Play(_sceneExitFadeOutPreset, gameObject);
         OnBeforeSceneLoad?.Invoke(sceneName);
     }
 
@@ -391,10 +414,27 @@ public class SceneTransitionService : MonoBehaviour
     private void CompleteNetworkSceneLoad(string sceneName)
     {
         OnAfterSceneLoad?.Invoke(sceneName);
+        CameraEffectPlaybackUtility.Play(_sceneEnterFadeInPreset, gameObject);
         ToggleInput(true);
         _isTransitioning = false;
         _isNetworkTransitionInProgress = false;
         _pendingNetworkSceneName = string.Empty;
+    }
+
+    /// <summary>
+    /// 씬을 나가기 직전에 설정된 FadeOut 프리셋을 재생하고 완료 시간만큼 대기합니다.
+    /// </summary>
+    private IEnumerator PlaySceneExitFadeOut()
+    {
+        yield return CameraEffectPlaybackUtility.PlayAndWait(_sceneExitFadeOutPreset, gameObject, _fadeOutDuration);
+    }
+
+    /// <summary>
+    /// 새 씬 진입 직후 설정된 FadeIn 프리셋을 재생하고 완료 시간만큼 대기합니다.
+    /// </summary>
+    private IEnumerator PlaySceneEnterFadeIn()
+    {
+        yield return CameraEffectPlaybackUtility.PlayAndWait(_sceneEnterFadeInPreset, gameObject, _fadeInDuration);
     }
 
     /// <summary>
