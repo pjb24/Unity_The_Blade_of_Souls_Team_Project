@@ -1299,7 +1299,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3740713336
+  GlobalObjectIdHash: 3935098436
   InScenePlacedSourceGlobalObjectIdHash: 3740713336
   DeferredDespawnTick: 0
   Ownership: 1
@@ -1521,6 +1521,8 @@ MonoBehaviour:
   ShowTopMostFoldoutHeaderGroup: 1
   _animator: {fileID: 6139070501727823020}
   _presentationOrigin: {fileID: 2326021272048947885}
+  _hitShowAnimator: {fileID: 8487015544051490572}
+  _hitShowTriggerName: Show
   _bossVisualRoot: {fileID: 3003428555051071245}
   _weakPointVisualYOffset: 7.5
   _weakPointVisualRaiseSeconds: 0.5
