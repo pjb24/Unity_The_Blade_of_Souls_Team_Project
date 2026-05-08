@@ -17,7 +17,7 @@ MonoBehaviour:
   _areaType: 0
   _localOffset: {x: 1, y: 2}
   _radius: 1.5
-  _boxSize: {x: 2.5, y: 1.2}
+  _boxSize: {x: 2.7, y: 1.2}
   _targetLayerMask:
     serializedVersion: 2
     m_Bits: 256
