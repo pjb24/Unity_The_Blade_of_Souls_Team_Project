@@ -1553,6 +1553,16 @@ MonoBehaviour:
     _animatorTriggerName: Dead
     _effectId: 0
     _soundId: 0
+  - _cue: 8
+    _patternType: 0
+    _animatorTriggerName: Groggy
+    _effectId: 0
+    _soundId: 0
+  - _cue: 9
+    _patternType: 0
+    _animatorTriggerName: Idle
+    _effectId: 0
+    _soundId: 0
 --- !u!114 &400823587022845212
 MonoBehaviour:
   m_ObjectHideFlags: 0
