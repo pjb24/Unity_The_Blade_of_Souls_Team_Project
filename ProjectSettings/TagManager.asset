@@ -48,9 +48,6 @@ TagManager:
   - name: Altar
     uniqueID: 2411164379
     locked: 0
-  - name: Boss
-    uniqueID: 1595461513
-    locked: 0
   - name: Object
     uniqueID: 382832513
     locked: 0
@@ -62,6 +59,9 @@ TagManager:
     locked: 0
   - name: Core
     uniqueID: 2548084689
+    locked: 0
+  - name: Boss
+    uniqueID: 1595461513
     locked: 0
   - name: Player
     uniqueID: 2178487057
