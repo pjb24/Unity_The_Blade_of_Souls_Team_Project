@@ -188,6 +188,11 @@ public class ActionMovementLockBridge : MonoBehaviour, IActionListener
     /// </summary>
     private E_MovementLockReason ResolveMovementLockReason(E_ActionType actionType)
     {
+        if (actionType == E_ActionType.Revive)
+        {
+            return E_MovementLockReason.Cutscene;
+        }
+
         if (ContainsAction(_defaultHitLockActions, actionType))
         {
             return E_MovementLockReason.Hit;

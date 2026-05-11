@@ -62,6 +62,14 @@ MonoBehaviour:
     Priority: 0
     IsInterruptible: 0
     AutoCompleteSeconds: 0
+  - Name: Revive
+    ActionType: 34
+    Enabled: 1
+    Priority: 100
+    IsInterruptible: 0
+    AutoCompleteSeconds: 0
+    OverrideMovementLockSetting: 1
+    LockMovementDuringAction: 1
   - Name: Attack Combo 1
     ActionType: 22
     Enabled: 1

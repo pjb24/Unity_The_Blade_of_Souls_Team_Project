@@ -51,6 +51,7 @@ public enum E_ActionType
 
     HoverIdle,
     FlyMove,
+    Revive = 34,
 }
 
 /// <summary>

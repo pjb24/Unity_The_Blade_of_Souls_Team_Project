@@ -53,6 +53,11 @@ MonoBehaviour:
     StateName: Player_Die
     LayerIndex: 0
     IsOneShot: 0
+  - Name: Revive
+    ActionType: 34
+    StateName: Player_Revive
+    LayerIndex: 0
+    IsOneShot: 1
   - Name: Attack Combo 1
     ActionType: 22
     StateName: Player_Attack_1

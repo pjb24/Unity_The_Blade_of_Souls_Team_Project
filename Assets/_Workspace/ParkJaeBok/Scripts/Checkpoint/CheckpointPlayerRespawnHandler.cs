@@ -19,6 +19,9 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     [Tooltip("사망 상태를 구독할 HealthComponent입니다. 비어 있으면 같은 오브젝트에서 자동 탐색합니다.")]
     [SerializeField] private HealthComponent _healthComponent; // 플레이어 사망 이벤트를 제공하는 HealthComponent입니다.
 
+    [Tooltip("부활 시점에 Revive 액션을 요청할 ActionController입니다. 비어 있으면 자식/부모 계층에서 자동 탐색합니다.")]
+    [SerializeField] private ActionController _actionController; // 부활 시점에 플레이어 Revive 애니메이션을 재생할 액션 컨트롤러입니다.
+
     [Header("Multiplayer")]
     [Tooltip("멀티플레이 사망 후 부활 대기 시간입니다.")]
     [Min(0f)]
@@ -162,6 +165,8 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
     /// </summary>
     public void OnRevived()
     {
+        RequestReviveAction();
+
         if (IsSpawned && IsServer)
         {
             DeadStateByClientId[OwnerClientId] = false;
@@ -418,6 +423,35 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         if (_stageController == null)
         {
             _stageController = FindAnyObjectByType<CheckpointStageController>();
+        }
+
+        if (_actionController == null)
+        {
+            _actionController = GetComponentInChildren<ActionController>(true);
+        }
+
+        if (_actionController == null)
+        {
+            _actionController = GetComponentInParent<ActionController>();
+        }
+    }
+
+    /// <summary>
+    /// HealthComponent 부활 이벤트를 플레이어 액션 표현과 분리해 Revive 애니메이션을 요청합니다.
+    /// </summary>
+    private void RequestReviveAction()
+    {
+        ResolveReferences();
+        if (_actionController == null)
+        {
+            Debug.LogWarning($"[CheckpointPlayerRespawnHandler] ActionController를 찾지 못해 Revive 액션을 요청하지 못했습니다. player={name}", this);
+            return;
+        }
+
+        bool accepted = _actionController.RequestAction(E_ActionType.Revive); // Die 상태를 Revive 표현으로 전환하는 액션 요청 결과입니다.
+        if (!accepted)
+        {
+            Debug.LogWarning($"[CheckpointPlayerRespawnHandler] Revive 액션 요청이 거부됐습니다. player={name}", this);
         }
     }
 

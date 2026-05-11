@@ -166,7 +166,7 @@ public class ActionAnimationPresenter : MonoBehaviour, IActionListener
             return true;
         }
 
-        if (IsPresentationLockReleaseAction(startedActionType))
+        if (IsPresentationLockReleaseAction(startedActionType) || startedActionType == E_ActionType.Revive)
         {
             ReleasePresentationLock(startedActionType);
             return true;

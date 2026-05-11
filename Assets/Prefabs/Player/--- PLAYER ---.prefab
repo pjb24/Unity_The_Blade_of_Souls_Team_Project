@@ -291,11 +291,14 @@ MonoBehaviour:
   _attackExecutor: {fileID: 0}
   _enableActionStateSync: 1
   _actionStateSendInterval: 0.033
+  _unconfirmedActionStateResendInterval: 0.1
   _replicateAllActionTypes: 1
   _additionalReplicatedActions: 1600000017000000
   _warnMissingActionController: 1
   _serverAuthoritativeActions: 0e000000130000000f000000
   _applyServerAuthoritativeActionsToOwner: 1
+  _serverAuthoritativeActionMaxDuration: 0.6
+  _serverAuthoritativeAutoCompleteExclusions: 0f000000
   _enableFacingDirectionSync: 1
   _facingDirectionSendInterval: 0.05
   _warnMissingPlayerMovement: 1
@@ -452,7 +455,7 @@ MonoBehaviour:
   _stageController: {fileID: 0}
   _healthComponent: {fileID: 420058020910919654}
   _multiplayerRespawnDelaySeconds: 10
-  _singlePlayerRespawnDelaySeconds: 0
+  _singlePlayerRespawnDelaySeconds: 2
   _allowAutomaticRespawn: 1
 --- !u!1001 &482668432451794149
 PrefabInstance:

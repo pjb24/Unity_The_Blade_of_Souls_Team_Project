@@ -113,3 +113,13 @@ MonoBehaviour:
     RequireHitWindowOpen: 0
     RequireCurrentPhaseMatch: 1
     RequiredCurrentPhase: 2
+  - Name: Allow_Die_to_Revive
+    Enabled: 1
+    Priority: 100
+    CurrentActionType: 15
+    RequestedActionType: 34
+    Decision: 1
+    RequireComboWindowOpen: 0
+    RequireHitWindowOpen: 0
+    RequireCurrentPhaseMatch: 0
+    RequiredCurrentPhase: 0
