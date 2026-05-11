@@ -8,6 +8,47 @@ using UnityEngine;
 [RequireComponent(typeof(NetworkObject))]
 public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
 {
+    private struct ReplicatedBossHealthState : INetworkSerializable, System.IEquatable<ReplicatedBossHealthState>
+    {
+        public float CurrentHealth; // 서버가 확정한 현재 체력 값입니다.
+        public float MaxHealth; // 서버가 확정한 최대 체력 값입니다.
+        public bool IsDead; // 서버가 확정한 사망 상태입니다.
+        public int Revision; // 체력 스냅샷 적용 순서를 판단하기 위한 증가 순번입니다.
+
+        /// <summary>
+        /// 서버 확정 보스 체력 스냅샷을 하나의 네트워크 페이로드로 생성합니다.
+        /// </summary>
+        public ReplicatedBossHealthState(float currentHealth, float maxHealth, bool isDead, int revision)
+        {
+            CurrentHealth = currentHealth;
+            MaxHealth = maxHealth;
+            IsDead = isDead;
+            Revision = revision;
+        }
+
+        /// <summary>
+        /// NGO가 보스 체력 스냅샷을 원자적인 값으로 복제할 수 있도록 직렬화합니다.
+        /// </summary>
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref CurrentHealth);
+            serializer.SerializeValue(ref MaxHealth);
+            serializer.SerializeValue(ref IsDead);
+            serializer.SerializeValue(ref Revision);
+        }
+
+        /// <summary>
+        /// NetworkVariable이 스냅샷 변경 여부를 정확히 판단할 수 있도록 값 동등성을 비교합니다.
+        /// </summary>
+        public bool Equals(ReplicatedBossHealthState other)
+        {
+            return Mathf.Approximately(CurrentHealth, other.CurrentHealth)
+                && Mathf.Approximately(MaxHealth, other.MaxHealth)
+                && IsDead == other.IsDead
+                && Revision == other.Revision;
+        }
+    }
+
     [Header("Dependencies")]
     [Tooltip("네트워크로 복제할 보스 체력 컴포넌트입니다. 비어 있으면 같은 오브젝트의 BossController 또는 HealthComponent에서 자동 탐색합니다.")]
     [SerializeField] private HealthComponent _bossHealthComponent; // 서버 확정 보스 체력 상태를 읽고 Client 로컬 상태를 갱신할 HealthComponent 참조입니다.
@@ -35,29 +76,16 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     [Tooltip("마지막으로 복제된 사망 상태입니다.")]
     [SerializeField] private bool _debugReplicatedIsDead; // Inspector 확인용 최근 복제 사망 상태입니다.
 
-    private readonly NetworkVariable<float> _replicatedCurrentHealth = new NetworkVariable<float>(
-        0f,
+    private readonly NetworkVariable<ReplicatedBossHealthState> _replicatedHealthState = new NetworkVariable<ReplicatedBossHealthState>(
+        new ReplicatedBossHealthState(0f, 1f, false, 0),
         NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 서버가 확정한 보스 현재 체력 값입니다.
-
-    private readonly NetworkVariable<float> _replicatedMaxHealth = new NetworkVariable<float>(
-        1f,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 서버가 확정한 보스 최대 체력 값입니다.
-
-    private readonly NetworkVariable<bool> _replicatedIsDead = new NetworkVariable<bool>(
-        false,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 서버가 확정한 보스 사망 상태입니다.
-
-    private readonly NetworkVariable<int> _replicatedHealthRevision = new NetworkVariable<int>(
-        0,
-        NetworkVariableReadPermission.Everyone,
-        NetworkVariableWritePermission.Server); // 체력 스냅샷 변경을 감지하기 위한 순번 값입니다.
+        NetworkVariableWritePermission.Server); // 서버 확정 보스 체력 스냅샷을 하나의 순서 보장 단위로 복제하는 네트워크 변수입니다.
 
     private bool _isHealthListenerRegistered; // 서버 HealthComponent에 Listener로 등록되었는지 추적하는 플래그입니다.
     private int _lastAppliedHealthRevision = -1; // Client 로컬 HealthComponent에 마지막으로 적용한 스냅샷 순번입니다.
     private bool _hasWarnedMissingHealthComponent; // HealthComponent 누락 경고 중복 출력을 막는 플래그입니다.
+
+    public event System.Action ReplicatedHealthSnapshotChanged; // UI가 HealthComponent 이벤트 손실 없이 네트워크 체력 스냅샷 변경을 직접 수신하기 위한 이벤트입니다.
 
     /// <summary>
     /// 현재 로컬에서 확인 가능한 보스 HealthComponent를 반환합니다.
@@ -67,12 +95,17 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     /// <summary>
     /// 복제된 현재 체력을 반환합니다.
     /// </summary>
-    public float ReplicatedCurrentHealth => _replicatedCurrentHealth.Value;
+    public float ReplicatedCurrentHealth => _replicatedHealthState.Value.CurrentHealth;
 
     /// <summary>
     /// 복제된 최대 체력을 반환합니다.
     /// </summary>
-    public float ReplicatedMaxHealth => _replicatedMaxHealth.Value;
+    public float ReplicatedMaxHealth => _replicatedHealthState.Value.MaxHealth;
+
+    /// <summary>
+    /// 복제된 체력 스냅샷의 최신 순번을 반환합니다.
+    /// </summary>
+    public int ReplicatedHealthRevision => _replicatedHealthState.Value.Revision;
 
     /// <summary>
     /// 복제된 체력 비율을 0~1 범위로 반환합니다.
@@ -81,8 +114,8 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     {
         get
         {
-            float safeMaxHealth = Mathf.Max(1f, _replicatedMaxHealth.Value); // 0 나눗셈을 막기 위한 보정 최대 체력입니다.
-            return Mathf.Clamp01(_replicatedCurrentHealth.Value / safeMaxHealth);
+            float safeMaxHealth = Mathf.Max(1f, _replicatedHealthState.Value.MaxHealth); // 0 나눗셈을 막기 위한 보정 최대 체력입니다.
+            return Mathf.Clamp01(_replicatedHealthState.Value.CurrentHealth / safeMaxHealth);
         }
     }
 
@@ -126,7 +159,7 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        _replicatedHealthRevision.OnValueChanged += HandleReplicatedHealthRevisionChanged;
+        _replicatedHealthState.OnValueChanged += HandleReplicatedHealthStateChanged;
 
         if (IsServer)
         {
@@ -143,7 +176,7 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     /// </summary>
     public override void OnNetworkDespawn()
     {
-        _replicatedHealthRevision.OnValueChanged -= HandleReplicatedHealthRevisionChanged;
+        _replicatedHealthState.OnValueChanged -= HandleReplicatedHealthStateChanged;
         UnregisterHealthListener();
     }
 
@@ -247,18 +280,22 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        _replicatedCurrentHealth.Value = _bossHealthComponent.GetCurrentHealth();
-        _replicatedMaxHealth.Value = Mathf.Max(1f, _bossHealthComponent.GetMaxHealth());
-        _replicatedIsDead.Value = _bossHealthComponent.IsDead;
-        _replicatedHealthRevision.Value++;
+        ReplicatedBossHealthState previousSnapshot = _replicatedHealthState.Value; // 새 순번을 계산하기 위한 이전 스냅샷입니다.
+        ReplicatedBossHealthState nextSnapshot = new ReplicatedBossHealthState(
+            _bossHealthComponent.GetCurrentHealth(),
+            Mathf.Max(1f, _bossHealthComponent.GetMaxHealth()),
+            _bossHealthComponent.IsDead,
+            previousSnapshot.Revision + 1);
 
+        _replicatedHealthState.Value = nextSnapshot;
         CacheDebugSnapshot();
+        NotifyReplicatedHealthSnapshotChanged();
     }
 
     /// <summary>
-    /// Client에서 체력 스냅샷 순번이 바뀌면 로컬 HealthComponent에 최신 값을 적용합니다.
+    /// Client에서 체력 스냅샷 값이 바뀌면 로컬 HealthComponent에 최신 값을 적용합니다.
     /// </summary>
-    private void HandleReplicatedHealthRevisionChanged(int previousValue, int currentValue)
+    private void HandleReplicatedHealthStateChanged(ReplicatedBossHealthState previousValue, ReplicatedBossHealthState currentValue)
     {
         ApplyReplicatedHealthSnapshot();
     }
@@ -269,13 +306,16 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     private void ApplyReplicatedHealthSnapshot()
     {
         CacheDebugSnapshot();
+        NotifyReplicatedHealthSnapshotChanged();
 
         if (!_enableHealthStateSync || !_applyReplicatedHealthOnClient || IsServer)
         {
             return;
         }
 
-        if (_lastAppliedHealthRevision == _replicatedHealthRevision.Value)
+        ReplicatedBossHealthState snapshot = _replicatedHealthState.Value; // 하나의 NetworkVariable로 묶여 도착한 서버 확정 체력 상태입니다.
+
+        if (_lastAppliedHealthRevision == snapshot.Revision)
         {
             return;
         }
@@ -285,12 +325,12 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        float safeMaxHealth = Mathf.Max(1f, _replicatedMaxHealth.Value);
-        float safeCurrentHealth = Mathf.Clamp(_replicatedCurrentHealth.Value, 0f, safeMaxHealth);
+        float safeMaxHealth = Mathf.Max(1f, snapshot.MaxHealth);
+        float safeCurrentHealth = Mathf.Clamp(snapshot.CurrentHealth, 0f, safeMaxHealth);
 
         _bossHealthComponent.SetMaxHealth(safeMaxHealth, false);
         _bossHealthComponent.SetCurrentHealth(safeCurrentHealth);
-        _lastAppliedHealthRevision = _replicatedHealthRevision.Value;
+        _lastAppliedHealthRevision = snapshot.Revision;
     }
 
     /// <summary>
@@ -298,9 +338,18 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     /// </summary>
     private void CacheDebugSnapshot()
     {
-        _debugReplicatedCurrentHealth = _replicatedCurrentHealth.Value;
-        _debugReplicatedMaxHealth = _replicatedMaxHealth.Value;
-        _debugReplicatedIsDead = _replicatedIsDead.Value;
+        ReplicatedBossHealthState snapshot = _replicatedHealthState.Value; // Inspector 디버그 값에 반영할 최신 네트워크 스냅샷입니다.
+        _debugReplicatedCurrentHealth = snapshot.CurrentHealth;
+        _debugReplicatedMaxHealth = snapshot.MaxHealth;
+        _debugReplicatedIsDead = snapshot.IsDead;
+    }
+
+    /// <summary>
+    /// 네트워크 체력 스냅샷 변경을 외부 UI 브리지에 알립니다.
+    /// </summary>
+    private void NotifyReplicatedHealthSnapshotChanged()
+    {
+        ReplicatedHealthSnapshotChanged?.Invoke();
     }
 
     /// <summary>
