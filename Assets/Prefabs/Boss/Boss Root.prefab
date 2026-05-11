@@ -1323,8 +1323,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ff93807ed5b0f5458fc4cfa20cf1a10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthComponent
-  _initialMaxHealth: 1000
-  _initialCurrentHealth: 1000
+  _initialMaxHealth: 6000
+  _initialCurrentHealth: 6000
   _allowHealWhenDead: 0
   _debugCurrentHealth: 0
 --- !u!114 &6078429381991306388
@@ -1340,9 +1340,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HitReceiver
   _healthComponent: {fileID: 7499435228633890958}
+  _networkObject: {fileID: 3046012231596181951}
   _isInvincible: 0
   _postHitInvincibilitySeconds: 0
   _incomingDamageMultiplier: 1
+  _requireServerAuthorityWhenNetworked: 1
 --- !u!114 &2001514356791471925
 MonoBehaviour:
   m_ObjectHideFlags: 0
