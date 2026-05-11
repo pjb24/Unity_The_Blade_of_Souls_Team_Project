@@ -37,6 +37,29 @@ public class CheckpointStageController : NetworkBehaviour
     [Tooltip("회복/조작 Block/무적/몬스터 리셋을 담당하는 Processor입니다.")]
     [SerializeField] private CheckpointRecoveryProcessor _recoveryProcessor; // 체크포인트 회복 처리 담당 컴포넌트입니다.
 
+    [Tooltip("체크포인트 상호작용 SFX 라우팅을 담당하는 오케스트레이터입니다. 비어 있으면 씬에서 자동 탐색합니다.")]
+    [SerializeField] private SfxOrchestrator _sfxOrchestrator; // 체크포인트 상호작용 사운드를 이벤트 기반으로 라우팅하는 오케스트레이터 참조입니다.
+
+    [Header("Checkpoint SFX")]
+    [Tooltip("체크포인트 상호작용 SFX를 재생할지 여부입니다.")]
+    [SerializeField] private bool _playCheckpointInteractSfx = true; // 체크포인트 활성화 확정 시 SFX 재생을 허용할지 결정합니다.
+
+    [Tooltip("체크포인트 상호작용 SFX를 SfxOrchestrator로 먼저 라우팅할지 여부입니다.")]
+    [SerializeField] private bool _useOrchestratorFirstForCheckpointSfx = true; // 이벤트 라우팅 성공 시 SoundId 직접 재생보다 오케스트레이터 설정을 우선합니다.
+
+    [Tooltip("체크포인트 상호작용 시 SfxOrchestrator에 전달할 이벤트 타입입니다.")]
+    [SerializeField] private E_SfxEventType _checkpointInteractSfxEventType = E_SfxEventType.CheckpointInteract; // 체크포인트 상호작용 사운드 라우팅에 사용할 이벤트 타입입니다.
+
+    [Tooltip("체크포인트 상호작용 SFX 라우팅에 사용할 세부 키입니다. 비워 두면 EventType 단독 룰을 사용합니다.")]
+    [SerializeField] private string _checkpointInteractSfxSubTypeKey = string.Empty; // 같은 체크포인트 이벤트 안에서 사운드 변형을 구분하는 라우팅 키입니다.
+
+    [Tooltip("오케스트레이터 라우팅에 실패했을 때 직접 재생할 체크포인트 상호작용 SFX SoundId입니다.")]
+    [SerializeField] private E_SoundId _checkpointInteractFallbackSoundId = E_SoundId.SFX_Checkpoint_Interact; // 체크포인트 상호작용 SFX의 직접 재생 fallback SoundId입니다.
+
+    [Header("Client Interaction Validation")]
+    [Tooltip("Client가 보낸 체크포인트 상호작용 요청을 서버에서 허용할 최대 거리입니다. 0 이하면 거리 검증을 비활성화합니다.")]
+    [SerializeField] private float _clientInteractionMaxDistance = 5f; // Client RPC 상호작용 요청이 실제 체크포인트 주변에서 발생했는지 검증하는 최대 거리입니다.
+
     [Header("Multiplayer Host Interaction")]
     [Tooltip("Host가 체크포인트와 상호작용했을 때 다른 Client 플레이어도 함께 회복 처리할지 설정합니다.")]
     [SerializeField] private bool _recoverRemotePlayersOnHostInteraction = true; // Host 체크포인트 상호작용을 Client 플레이어에게도 적용할지 결정합니다.
@@ -235,6 +258,11 @@ public class CheckpointStageController : NetworkBehaviour
             return;
         }
 
+        if (TryForwardClientCheckpointInteractionToServer(checkpoint))
+        {
+            return;
+        }
+
         if (!CanHostInteract(playerObject))
         {
             Debug.LogWarning($"[CheckpointStageController] Client 또는 Host가 아닌 객체의 체크포인트 상호작용을 무시합니다. checkpoint={checkpoint.CheckpointId}", this);
@@ -369,6 +397,8 @@ public class CheckpointStageController : NetworkBehaviour
         _activatedCheckpointIds.Add(checkpoint.CheckpointId);
         _currentCheckpointId = checkpoint.CheckpointId;
         ApplyVisualStates();
+
+        PlayCheckpointInteractSfx(checkpoint);
 
         DeactivatePlayerBuffForCheckpointInteraction(playerObject);
         _recoveryProcessor?.ProcessCheckpointInteraction(playerObject, true, ShouldForceHostInteractionGameplayInputBlock(playerObject));
@@ -822,6 +852,178 @@ public class CheckpointStageController : NetworkBehaviour
 
             checkpoint.ApplyState(state);
         }
+    }
+
+    /// <summary>
+    /// 클라이언트에서 발생한 체크포인트 상호작용을 서버 권한 RPC로 전달합니다.
+    /// </summary>
+    private bool TryForwardClientCheckpointInteractionToServer(Checkpoint checkpoint)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션 상태를 확인할 NetworkManager입니다.
+        if (networkManager == null || !networkManager.IsListening || networkManager.IsServer)
+        {
+            return false;
+        }
+
+        if (!IsSpawned)
+        {
+            Debug.LogWarning($"[CheckpointStageController] NetworkObject가 Spawn되지 않아 Client 체크포인트 상호작용 요청을 서버로 보낼 수 없습니다. checkpoint={checkpoint.CheckpointId}", this);
+            return true;
+        }
+
+        SubmitCheckpointInteractionToServerRpc(checkpoint.CheckpointId);
+        return true;
+    }
+
+    /// <summary>
+    /// 클라이언트가 요청한 체크포인트 상호작용을 서버에서 검증한 뒤 활성화합니다.
+    /// </summary>
+    [Rpc(SendTo.Server)]
+    private void SubmitCheckpointInteractionToServerRpc(string checkpointId, RpcParams rpcParams = default)
+    {
+        if (!IsServer)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(checkpointId))
+        {
+            Debug.LogWarning("[CheckpointStageController] Client가 빈 Checkpoint ID로 상호작용을 요청해 무시합니다.", this);
+            return;
+        }
+
+        if (!_checkpointById.TryGetValue(checkpointId, out Checkpoint checkpoint) || checkpoint == null)
+        {
+            RebuildCheckpointIndex();
+            if (!_checkpointById.TryGetValue(checkpointId, out checkpoint) || checkpoint == null)
+            {
+                Debug.LogWarning($"[CheckpointStageController] Client가 현재 Stage에 없는 Checkpoint ID로 상호작용을 요청해 무시합니다. checkpoint={checkpointId}", this);
+                return;
+            }
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // 요청 송신자의 PlayerObject를 조회할 NetworkManager입니다.
+        if (networkManager == null || !networkManager.ConnectedClients.TryGetValue(rpcParams.Receive.SenderClientId, out NetworkClient senderClient) || senderClient.PlayerObject == null)
+        {
+            Debug.LogWarning($"[CheckpointStageController] Client 체크포인트 상호작용 요청자의 PlayerObject를 찾지 못했습니다. clientId={rpcParams.Receive.SenderClientId}, checkpoint={checkpointId}", this);
+            return;
+        }
+
+        if (!CanAcceptClientCheckpointInteraction(checkpoint, senderClient.PlayerObject.gameObject, rpcParams.Receive.SenderClientId))
+        {
+            return;
+        }
+
+        ActivateCheckpoint(checkpoint, senderClient.PlayerObject.gameObject, true);
+    }
+
+    /// <summary>
+    /// 클라이언트가 보낸 체크포인트 상호작용 요청이 서버 기준 위치 검증을 통과하는지 확인합니다.
+    /// </summary>
+    private bool CanAcceptClientCheckpointInteraction(Checkpoint checkpoint, GameObject playerObject, ulong senderClientId)
+    {
+        if (checkpoint == null || playerObject == null)
+        {
+            Debug.LogWarning($"[CheckpointStageController] Client 체크포인트 상호작용 검증 대상이 비어 있습니다. clientId={senderClientId}", this);
+            return false;
+        }
+
+        if (_clientInteractionMaxDistance <= 0f)
+        {
+            return true;
+        }
+
+        float sqrDistance = (checkpoint.transform.position - playerObject.transform.position).sqrMagnitude; // 서버 기준 플레이어와 체크포인트 사이의 제곱 거리입니다.
+        float maxSqrDistance = _clientInteractionMaxDistance * _clientInteractionMaxDistance; // 비교용 최대 허용 제곱 거리입니다.
+        if (sqrDistance <= maxSqrDistance)
+        {
+            return true;
+        }
+
+        Debug.LogWarning($"[CheckpointStageController] Client 체크포인트 상호작용 요청이 허용 거리 밖이라 무시합니다. clientId={senderClientId}, checkpoint={checkpoint.CheckpointId}, distance={Mathf.Sqrt(sqrDistance):F2}, max={_clientInteractionMaxDistance:F2}", this);
+        return false;
+    }
+
+    /// <summary>
+    /// 서버가 확정한 체크포인트 상호작용 SFX를 로컬에 재생하고 클라이언트로 전파합니다.
+    /// </summary>
+    private void PlayCheckpointInteractSfx(Checkpoint checkpoint)
+    {
+        if (!_playCheckpointInteractSfx)
+        {
+            return;
+        }
+
+        Vector3 playbackPosition = checkpoint != null ? checkpoint.transform.position : transform.position; // SFX가 재생될 월드 위치입니다.
+        Transform emitter = checkpoint != null ? checkpoint.transform : transform; // 3D SFX와 쿨다운 기준으로 사용할 발신 Transform입니다.
+        TryRequestCheckpointInteractSfx(emitter, playbackPosition, "CheckpointInteract.ServerOrSingle");
+
+        if (!IsSpawned || !IsServer)
+        {
+            return;
+        }
+
+        PlayCheckpointInteractSfxRpc(playbackPosition);
+    }
+
+    /// <summary>
+    /// 서버에서 확정한 체크포인트 상호작용 SFX를 클라이언트 로컬 오디오에 재생합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void PlayCheckpointInteractSfxRpc(Vector3 playbackPosition)
+    {
+        TryRequestCheckpointInteractSfx(null, playbackPosition, "CheckpointInteract.ClientSync");
+    }
+
+    /// <summary>
+    /// 오케스트레이터 우선 라우팅 후 실패하면 fallback SoundId로 체크포인트 상호작용 SFX를 재생합니다.
+    /// </summary>
+    private bool TryRequestCheckpointInteractSfx(Transform emitter, Vector3 playbackPosition, string debugTag)
+    {
+        bool requestedByOrchestrator = false; // 오케스트레이터 라우팅 성공 여부입니다.
+        if (_useOrchestratorFirstForCheckpointSfx && _checkpointInteractSfxEventType != E_SfxEventType.None)
+        {
+            SfxOrchestrator orchestrator = ResolveSfxOrchestrator(); // 체크포인트 SFX 이벤트 라우팅에 사용할 오케스트레이터입니다.
+            if (orchestrator != null)
+            {
+                requestedByOrchestrator = orchestrator.Request(_checkpointInteractSfxEventType, _checkpointInteractSfxSubTypeKey ?? string.Empty, emitter, playbackPosition);
+            }
+        }
+
+        if (requestedByOrchestrator)
+        {
+            return true;
+        }
+
+        if (_checkpointInteractFallbackSoundId == E_SoundId.None)
+        {
+            Debug.LogWarning($"[CheckpointStageController] {debugTag} Checkpoint SFX fallback SoundId가 None이라 재생하지 않습니다. stage={_stageId}", this);
+            return false;
+        }
+
+        AudioManager audioManager = AudioManager.Instance; // fallback SoundId를 실제 AudioSource로 재생할 AudioManager입니다.
+        if (audioManager == null)
+        {
+            Debug.LogWarning($"[CheckpointStageController] {debugTag} AudioManager를 찾지 못해 Checkpoint SFX 재생에 실패했습니다. stage={_stageId}, soundId={_checkpointInteractFallbackSoundId}", this);
+            return false;
+        }
+
+        audioManager.PlaySfx(_checkpointInteractFallbackSoundId, playbackPosition);
+        return true;
+    }
+
+    /// <summary>
+    /// 체크포인트 SFX 라우팅에 사용할 SfxOrchestrator 참조를 반환하고 필요 시 씬에서 보정합니다.
+    /// </summary>
+    private SfxOrchestrator ResolveSfxOrchestrator()
+    {
+        if (_sfxOrchestrator != null)
+        {
+            return _sfxOrchestrator;
+        }
+
+        _sfxOrchestrator = FindAnyObjectByType<SfxOrchestrator>();
+        return _sfxOrchestrator;
     }
 
     /// <summary>
@@ -1292,6 +1494,8 @@ public class CheckpointStageController : NetworkBehaviour
         {
             _recoveryProcessor = FindAnyObjectByType<CheckpointRecoveryProcessor>();
         }
+
+        ResolveSfxOrchestrator();
     }
 
     /// <summary>

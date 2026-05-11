@@ -15,5 +15,7 @@ public enum E_SfxEventType
     PlayerDash = 203,
     PlayerHit = 204,
 
+    CheckpointInteract = 250,
+
     EnemyHit = 300,
 }

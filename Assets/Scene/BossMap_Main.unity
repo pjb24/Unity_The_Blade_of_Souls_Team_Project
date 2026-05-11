@@ -4403,6 +4403,13 @@ MonoBehaviour:
   _sharedInteractActionName: Interact
   _initializeStartCheckpointOnStageStart: 1
   _recoveryProcessor: {fileID: 825458747}
+  _sfxOrchestrator: {fileID: 0}
+  _playCheckpointInteractSfx: 1
+  _useOrchestratorFirstForCheckpointSfx: 1
+  _checkpointInteractSfxEventType: 250
+  _checkpointInteractSfxSubTypeKey: 
+  _checkpointInteractFallbackSoundId: 2014
+  _clientInteractionMaxDistance: 5
   _recoverRemotePlayersOnHostInteraction: 1
   _teleportRemotePlayersOnHostInteraction: 1
 --- !u!114 &825458747
@@ -5520,6 +5527,7 @@ MonoBehaviour:
   _returnToTownWhenNextStageMissing: 1
   _reviveDeadPlayersBeforeSceneChange: 1
   _sceneChangeReviveHealthRatio: 1
+  _restoreAllPlayersOnRestartStageEntry: 1
   _verboseLog: 0
 --- !u!1 &1061729117
 GameObject:
@@ -9033,6 +9041,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3944142564042955172, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4869100328194102366, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}
+      propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6015805924198814478, guid: b86bb6f65ff5cce49b47c337f8d60ae3, type: 3}

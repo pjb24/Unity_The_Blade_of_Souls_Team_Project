@@ -22,4 +22,5 @@ public enum E_SoundId
     SFX_Player_Landing = 2011,
     SFX_Player_Jumping = 2012,
     SFX_Player_Hit = 2013,
+    SFX_Checkpoint_Interact = 2014,
 }

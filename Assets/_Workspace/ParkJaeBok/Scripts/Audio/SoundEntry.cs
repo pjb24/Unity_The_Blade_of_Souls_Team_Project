@@ -4,6 +4,8 @@ using UnityEngine;
 [Serializable]
 public class SoundEntry
 {
+    public string Name;
+
     [SerializeField]
     private E_SoundId _soundId = E_SoundId.None; // 사운드 조회/재생에 사용하는 고유 ID
 
