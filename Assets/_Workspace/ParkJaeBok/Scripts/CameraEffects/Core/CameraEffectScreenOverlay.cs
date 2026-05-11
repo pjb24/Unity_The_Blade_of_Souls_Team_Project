@@ -13,6 +13,7 @@ public sealed class CameraEffectScreenOverlay : MonoBehaviour
         public int Sequence; // 같은 우선순위 요청 중 가장 최근 요청을 선택하기 위한 순번입니다.
         public Color Color; // 화면 전체에 덮을 최종 오버레이 색상입니다.
         public bool IsRetained; // 원본 효과가 종료된 뒤에도 유지 중인 오버레이 상태인지 여부입니다.
+        public bool IsProtectedFromEffectCleanup; // 일반 CameraEffect 갱신이 자동 정리하지 않아야 하는 시스템 오버레이인지 여부입니다.
     }
 
     private static CameraEffectScreenOverlay _instance; // 런타임에서 자동 생성되어 유지되는 전역 오버레이 인스턴스입니다.
@@ -53,7 +54,20 @@ public sealed class CameraEffectScreenOverlay : MonoBehaviour
             return;
         }
 
-        Instance.SetOverlayInternal(sourceId, priority, color);
+        Instance.SetOverlayInternal(sourceId, priority, color, false);
+    }
+
+    /// <summary>
+    /// 지정한 소스의 시스템 오버레이 색상을 등록하고 일반 CameraEffect 정리 정책에서 보호합니다.
+    /// </summary>
+    public static void SetProtectedOverlay(int sourceId, int priority, Color color)
+    {
+        if (sourceId == 0)
+        {
+            return;
+        }
+
+        Instance.SetOverlayInternal(sourceId, priority, color, true);
     }
 
     /// <summary>
@@ -161,7 +175,7 @@ public sealed class CameraEffectScreenOverlay : MonoBehaviour
     /// <summary>
     /// 지정한 효과 인스턴스의 오버레이 상태를 저장하고 표시 색을 갱신합니다.
     /// </summary>
-    private void SetOverlayInternal(int sourceId, int priority, Color color)
+    private void SetOverlayInternal(int sourceId, int priority, Color color, bool isProtectedFromEffectCleanup)
     {
         RemoveRetainedOverlaysExcept(sourceId);
 
@@ -170,6 +184,7 @@ public sealed class CameraEffectScreenOverlay : MonoBehaviour
         state.Sequence = _nextSequence++;
         state.Color = color;
         state.IsRetained = false;
+        state.IsProtectedFromEffectCleanup = isProtectedFromEffectCleanup;
 
         _overlayStates[sourceId] = state;
         RefreshOverlayImage();
@@ -213,7 +228,9 @@ public sealed class CameraEffectScreenOverlay : MonoBehaviour
 
         foreach (KeyValuePair<int, OverlayState> overlayStatePair in _overlayStates)
         {
-            if (overlayStatePair.Key == activeSourceId || !overlayStatePair.Value.IsRetained)
+            if (overlayStatePair.Key == activeSourceId ||
+                !overlayStatePair.Value.IsRetained ||
+                overlayStatePair.Value.IsProtectedFromEffectCleanup)
             {
                 continue;
             }

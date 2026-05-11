@@ -312,14 +312,16 @@ public class CameraEffectManager : MonoBehaviour
         _channelByToken[newState.Token] = targetChannel;
         _lastPlayedChannel = targetChannel;
 
-        newState.RuntimePresetInstance.OnEffectStarted(_targetCamera, newState.RuntimeRequest);
-
         if (newState.LifecycleMode == CameraEffectPresetBase.E_CameraEffectLifecycleMode.Instant)
         {
+            newState.RuntimePresetInstance.OnEffectStarted(_targetCamera, newState.RuntimeRequest);
             newState.RuntimePresetInstance.OnEffectUpdated(_targetCamera, newState.RuntimeRequest, 0f, 1f);
             StopChannelEffectInternal(targetChannel, "InstantCompleted");
             return new CameraEffectHandle(this, 0);
         }
+
+        newState.RuntimePresetInstance.OnEffectStarted(_targetCamera, newState.RuntimeRequest);
+        newState.RuntimePresetInstance.OnEffectUpdated(_targetCamera, newState.RuntimeRequest, 0f, 0f);
 
         if (_verboseLogging)
         {

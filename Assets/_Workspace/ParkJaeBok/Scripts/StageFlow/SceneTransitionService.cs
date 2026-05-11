@@ -34,10 +34,28 @@ public class SceneTransitionService : MonoBehaviour
     [Tooltip("NGO NetworkManager가 활성인 경우 Host/Server에서 NetworkSceneManager.LoadScene을 우선 사용할지 여부입니다.")]
     [SerializeField] private bool _preferNetworkSceneManagement = true; // 멀티플레이 세션에서 NGO 네트워크 씬 전환을 우선 적용할지 여부입니다.
 
+    [Header("Scene Entry Cover")]
+    [Tooltip("새 씬의 첫 화면을 FadeIn 시작 전까지 덮을 색상입니다.")]
+    [SerializeField] private Color _sceneEntryCoverColor = Color.black; // 씬 진입 첫 프레임을 보장하기 위한 전환용 검은 화면 색상입니다.
+
+    [Tooltip("씬 진입 덮개가 다른 CameraEffect 오버레이보다 우선 보이도록 사용할 우선순위입니다.")]
+    [SerializeField] private int _sceneEntryCoverPriority = int.MaxValue - 1; // FadeIn 프리셋이 시작되기 전까지 유지할 전환용 오버레이 우선순위입니다.
+
+    [Tooltip("FadeIn 프리셋이 비어 있을 때 전환용 검은 덮개를 자동으로 제거할지 여부입니다.")]
+    [SerializeField] private bool _clearSceneEntryCoverWhenFadeInMissing = true; // FadeIn 프리셋 미지정 시 검은 화면이 영구 유지되지 않도록 정리할지 여부입니다.
+
+    [Tooltip("멀티플레이 씬 진입 후 CameraEffectManager와 Main Camera가 준비될 때까지 FadeIn 재생을 기다릴 최대 시간입니다.")]
+    [Min(0f)]
+    [SerializeField] private float _networkFadeInReadyTimeoutSeconds = 3f; // NGO 씬 완료 이벤트가 카메라 준비보다 먼저 오는 상황을 보정하는 최대 대기 시간입니다.
+
     private bool _isTransitioning; // 현재 씬 전환이 진행 중인지 여부입니다.
     private bool _isNetworkTransitionInProgress; // 현재 씬 전환이 NGO NetworkSceneManager 경로로 진행 중인지 여부입니다.
     private string _pendingNetworkSceneName; // NGO 씬 전환 완료 콜백과 매칭할 씬 이름입니다.
     private NetworkManager _boundNetworkManager; // NGO 씬 이벤트를 구독 중인 NetworkManager 참조입니다.
+    private int _sceneEntryCoverSourceId; // 전환용 검은 화면 오버레이를 등록하고 해제하는 데 사용할 고유 식별자입니다.
+    private Coroutine _sceneEntryFadeInRoutine; // 네트워크 씬 완료 후 FadeIn 재생과 덮개 정리를 순차 처리하는 코루틴입니다.
+    private bool _hasCompletedNetworkSceneLoad; // NGO LoadComplete/SynchronizeComplete 중복 이벤트에서 후처리를 한 번만 수행하기 위한 플래그입니다.
+    private string _completedNetworkSceneName; // 이미 후처리한 NGO 씬 이름입니다.
 
     /// <summary>
     /// 씬 로드 직전에 호출되는 이벤트입니다.
@@ -92,6 +110,7 @@ public class SceneTransitionService : MonoBehaviour
         }
 
         _instance = this;
+        _sceneEntryCoverSourceId = GetInstanceID();
 
         if (_dontDestroyOnLoad)
         {
@@ -115,6 +134,7 @@ public class SceneTransitionService : MonoBehaviour
     {
         SceneManager.sceneLoaded -= HandleUnitySceneLoaded;
         UnbindNetworkSceneEvents();
+        StopSceneEntryFadeInRoutine();
     }
 
     /// <summary>
@@ -191,10 +211,13 @@ public class SceneTransitionService : MonoBehaviour
 
         yield return PlaySceneExitFadeOut();
 
+        EnsureSceneEntryCover(false);
+
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Single); // 실제 비동기 씬 로드 작업입니다.
         if (operation == null)
         {
             Debug.LogWarning($"[SceneTransitionService] LoadSceneAsync가 null을 반환했습니다. scene={sceneName}", this);
+            ClearSceneEntryCover();
             _isTransitioning = false;
             ToggleInput(true);
             yield break;
@@ -208,6 +231,7 @@ public class SceneTransitionService : MonoBehaviour
         OnAfterSceneLoad?.Invoke(sceneName);
 
         yield return PlaySceneEnterFadeIn();
+        ClearSceneEntryCover();
 
         ToggleInput(true);
         _isTransitioning = false;
@@ -259,14 +283,18 @@ public class SceneTransitionService : MonoBehaviour
         _isTransitioning = true;
         _isNetworkTransitionInProgress = true;
         _pendingNetworkSceneName = sceneName;
+        _hasCompletedNetworkSceneLoad = false;
+        _completedNetworkSceneName = string.Empty;
         ToggleInput(false);
         OnBeforeSceneLoad?.Invoke(sceneName);
 
         yield return PlaySceneExitFadeOut();
+        EnsureSceneEntryCover(false);
 
         if (networkManager == null || networkManager.SceneManager == null)
         {
             Debug.LogError($"[SceneTransitionService] NetworkSceneManager가 사라져 네트워크 씬 전환을 중단합니다. scene={sceneName}", this);
+            ClearSceneEntryCover();
             ToggleInput(true);
             _isTransitioning = false;
             _isNetworkTransitionInProgress = false;
@@ -278,6 +306,7 @@ public class SceneTransitionService : MonoBehaviour
         if (status != SceneEventProgressStatus.Started)
         {
             Debug.LogError($"[SceneTransitionService] NetworkSceneManager.LoadScene 시작 실패. scene={sceneName}, status={status}", this);
+            ClearSceneEntryCover();
             ToggleInput(true);
             _isTransitioning = false;
             _isNetworkTransitionInProgress = false;
@@ -381,10 +410,18 @@ public class SceneTransitionService : MonoBehaviour
             return;
         }
 
+        if (_isNetworkTransitionInProgress && string.Equals(_pendingNetworkSceneName, sceneName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         _isTransitioning = true;
         _isNetworkTransitionInProgress = true;
         _pendingNetworkSceneName = sceneName;
+        _hasCompletedNetworkSceneLoad = false;
+        _completedNetworkSceneName = string.Empty;
         ToggleInput(false);
+        EnsureSceneEntryCover(true);
         CameraEffectPlaybackUtility.Play(_sceneExitFadeOutPreset, gameObject);
         OnBeforeSceneLoad?.Invoke(sceneName);
     }
@@ -400,6 +437,11 @@ public class SceneTransitionService : MonoBehaviour
             completedSceneName = SceneManager.GetActiveScene().name;
         }
 
+        if (IsDuplicateNetworkSceneCompletion(completedSceneName))
+        {
+            return;
+        }
+
         if (!_isNetworkTransitionInProgress)
         {
             BeginReceivedNetworkSceneLoad(completedSceneName);
@@ -413,12 +455,38 @@ public class SceneTransitionService : MonoBehaviour
     /// </summary>
     private void CompleteNetworkSceneLoad(string sceneName)
     {
+        if (IsDuplicateNetworkSceneCompletion(sceneName))
+        {
+            return;
+        }
+
+        _hasCompletedNetworkSceneLoad = true;
+        _completedNetworkSceneName = sceneName;
+
         OnAfterSceneLoad?.Invoke(sceneName);
-        CameraEffectPlaybackUtility.Play(_sceneEnterFadeInPreset, gameObject);
+        PlaySceneEnterFadeInAndReleaseCover();
         ToggleInput(true);
         _isTransitioning = false;
         _isNetworkTransitionInProgress = false;
         _pendingNetworkSceneName = string.Empty;
+    }
+
+    /// <summary>
+    /// NGO LoadComplete와 SynchronizeComplete가 같은 씬에 대해 중복 도착했는지 판별합니다.
+    /// </summary>
+    private bool IsDuplicateNetworkSceneCompletion(string sceneName)
+    {
+        if (!_hasCompletedNetworkSceneLoad)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            return true;
+        }
+
+        return string.Equals(_completedNetworkSceneName, sceneName, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -435,6 +503,116 @@ public class SceneTransitionService : MonoBehaviour
     private IEnumerator PlaySceneEnterFadeIn()
     {
         yield return CameraEffectPlaybackUtility.PlayAndWait(_sceneEnterFadeInPreset, gameObject, _fadeInDuration);
+    }
+
+    /// <summary>
+    /// 새 씬 첫 화면이 보이기 전에 전환용 검은 화면 오버레이를 등록하고 유지합니다.
+    /// </summary>
+    private void EnsureSceneEntryCover(bool protectFromEffectCleanup)
+    {
+        Color coverColor = _sceneEntryCoverColor; // Inspector에서 지정한 씬 진입 덮개 색상입니다.
+        coverColor.a = Mathf.Clamp01(coverColor.a);
+
+        if (protectFromEffectCleanup)
+        {
+            CameraEffectScreenOverlay.SetProtectedOverlay(_sceneEntryCoverSourceId, _sceneEntryCoverPriority, coverColor);
+        }
+        else
+        {
+            CameraEffectScreenOverlay.SetOverlay(_sceneEntryCoverSourceId, _sceneEntryCoverPriority, coverColor);
+        }
+
+        CameraEffectScreenOverlay.RetainOverlay(_sceneEntryCoverSourceId);
+    }
+
+    /// <summary>
+    /// 전환용 검은 화면 오버레이를 즉시 제거합니다.
+    /// </summary>
+    private void ClearSceneEntryCover()
+    {
+        CameraEffectScreenOverlay.ClearOverlay(_sceneEntryCoverSourceId);
+    }
+
+    /// <summary>
+    /// 네트워크 씬 완료 콜백에서 FadeIn 재생과 전환용 덮개 해제를 비동기로 처리합니다.
+    /// </summary>
+    private void PlaySceneEnterFadeInAndReleaseCover()
+    {
+        StopSceneEntryFadeInRoutine();
+        _sceneEntryFadeInRoutine = StartCoroutine(PlaySceneEnterFadeInAndReleaseCoverRoutine());
+    }
+
+    /// <summary>
+    /// FadeIn 프리셋을 재생한 뒤 전환용 덮개가 남지 않도록 정리합니다.
+    /// </summary>
+    private IEnumerator PlaySceneEnterFadeInAndReleaseCoverRoutine()
+    {
+        if (_sceneEnterFadeInPreset == null)
+        {
+            if (_clearSceneEntryCoverWhenFadeInMissing)
+            {
+                ClearSceneEntryCover();
+            }
+
+            _sceneEntryFadeInRoutine = null;
+            yield break;
+        }
+
+        EnsureSceneEntryCover(true);
+
+        CameraEffectHandle fadeInHandle = default; // FadeIn이 실제로 CameraEffectManager에 등록되었는지 확인하기 위한 핸들입니다.
+        float waitStartedAt = Time.unscaledTime; // 카메라/매니저 준비 대기 시간 측정을 위한 시작 시각입니다.
+        while (!TryPlaySceneEnterFadeIn(out fadeInHandle))
+        {
+            if (_networkFadeInReadyTimeoutSeconds <= 0f ||
+                Time.unscaledTime - waitStartedAt >= _networkFadeInReadyTimeoutSeconds)
+            {
+                Debug.LogWarning($"[SceneTransitionService] 멀티플레이 씬 진입 FadeIn 재생 대기 시간이 초과되어 전환용 검은 덮개를 해제합니다. scene={SceneManager.GetActiveScene().name}, timeout={_networkFadeInReadyTimeoutSeconds:F2}", this);
+                break;
+            }
+
+            yield return null;
+        }
+
+        ClearSceneEntryCover();
+
+        float waitSeconds = CameraEffectPlaybackUtility.ResolveWaitSeconds(_sceneEnterFadeInPreset, _fadeInDuration); // FadeIn 재생 완료까지 유지할 대기 시간입니다.
+        if (waitSeconds > 0f)
+        {
+            yield return new WaitForSecondsRealtime(waitSeconds);
+        }
+
+        _sceneEntryFadeInRoutine = null;
+    }
+
+    /// <summary>
+    /// CameraEffectManager와 대상 카메라가 준비된 경우에만 씬 진입 FadeIn 재생을 시작합니다.
+    /// </summary>
+    private bool TryPlaySceneEnterFadeIn(out CameraEffectHandle fadeInHandle)
+    {
+        fadeInHandle = default;
+
+        if (CameraEffectManager.Instance == null)
+        {
+            return false;
+        }
+
+        fadeInHandle = CameraEffectPlaybackUtility.Play(_sceneEnterFadeInPreset, gameObject);
+        return fadeInHandle.IsValid;
+    }
+
+    /// <summary>
+    /// 진행 중인 씬 진입 FadeIn 코루틴을 중지합니다.
+    /// </summary>
+    private void StopSceneEntryFadeInRoutine()
+    {
+        if (_sceneEntryFadeInRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(_sceneEntryFadeInRoutine);
+        _sceneEntryFadeInRoutine = null;
     }
 
     /// <summary>
