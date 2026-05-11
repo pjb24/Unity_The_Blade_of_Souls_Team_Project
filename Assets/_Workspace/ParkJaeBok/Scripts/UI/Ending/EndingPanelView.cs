@@ -239,7 +239,6 @@ public sealed class EndingPanelView : MonoBehaviour
     private void ApplyFlowButtonAccess()
     {
         bool canInteract = _isCurrentlyVisible && _isPanelInteractable && _canSelectFlowButtons; // 패널 표시 상태, 전체 상호작용 상태, 권한을 함께 반영한 실제 버튼 선택 가능 여부입니다.
-        SetButtonInteractable(_nextStageButton, canInteract);
         SetButtonInteractable(_returnToTownButton, canInteract);
         SetButtonInteractable(_restartStageEntryButton, canInteract);
     }

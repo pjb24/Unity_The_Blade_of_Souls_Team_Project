@@ -42,6 +42,9 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
     [Range(0.01f, 1f)]
     [SerializeField] private float _sceneChangeReviveHealthRatio = 1f; // 씬 전환 전 부활 체력 비율입니다.
 
+    [Tooltip("Ending UI의 Restart Stage Entry Button으로 씬을 변경할 때 생존 플레이어도 부활 체력 비율만큼 회복할지 여부입니다.")]
+    [SerializeField] private bool _restoreAllPlayersOnRestartStageEntry = true; // 스테이지 진입 체크포인트 재시작 전 모든 플레이어 체력 복구 여부입니다.
+
     [Header("Debug")]
     [Tooltip("버튼 요청 처리 로그를 출력할지 여부입니다.")]
     [SerializeField] private bool _verboseLog; // 결과 버튼 처리 상세 로그 출력 여부입니다.
@@ -251,7 +254,7 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
             }
         }
 
-        StartRestartStageLoad(restartStage);
+        StartRestartStageLoad(restartStage, _restoreAllPlayersOnRestartStageEntry);
     }
 
     /// <summary>
@@ -265,23 +268,23 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
         }
 
         StageDefinition restartStage = ResolveRestartLastCheckpointTargetStage(); // 사망 UI 재시작 버튼으로 이동할 대상 스테이지입니다.
-        StartRestartStageLoad(restartStage);
+        StartRestartStageLoad(restartStage, false);
     }
 
     /// <summary>
     /// 재시작 대상 스테이지를 로드하고, 대상을 해석하지 못하면 활성 씬 재로드로 폴백합니다.
     /// </summary>
-    private void StartRestartStageLoad(StageDefinition restartStage)
+    private void StartRestartStageLoad(StageDefinition restartStage, bool restoreAllPlayersBeforeLoad)
     {
         if (restartStage == null)
         {
             Debug.LogWarning("[StageOutcomeFlowController] 재시작 대상 StageDefinition을 찾지 못해 활성 씬 이름으로 재로드를 시도합니다.", this);
-            ReviveDeadPlayersBeforeSceneChange();
+            ReviveDeadPlayersBeforeSceneChange(restoreAllPlayersBeforeLoad);
             ResolveSceneTransitionService()?.TryLoadScene(SceneManager.GetActiveScene().name);
             return;
         }
 
-        StartStageLoad(restartStage);
+        StartStageLoad(restartStage, restoreAllPlayersBeforeLoad);
     }
 
     /// <summary>
@@ -302,14 +305,14 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
     /// <summary>
     /// StageDefinition을 GameFlow 또는 SceneTransitionService로 로드합니다.
     /// </summary>
-    private void StartStageLoad(StageDefinition stageDefinition)
+    private void StartStageLoad(StageDefinition stageDefinition, bool restoreAllPlayersBeforeLoad = false)
     {
         if (stageDefinition == null)
         {
             return;
         }
 
-        ReviveDeadPlayersBeforeSceneChange();
+        ReviveDeadPlayersBeforeSceneChange(restoreAllPlayersBeforeLoad);
 
         GameFlowController gameFlowController = ResolveGameFlowController();
         if (gameFlowController != null && !stageDefinition.IsTownStage && gameFlowController.RequestEnterStage(stageDefinition))
@@ -340,8 +343,37 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
             return false;
         }
 
-        Debug.LogWarning($"[StageOutcomeFlowController] Client는 결과 UI의 씬 전환 버튼을 선택할 수 없습니다. request={request}", this);
+        if (!IsSpawned)
+        {
+            Debug.LogWarning($"[StageOutcomeFlowController] Client outcome request could not be sent because NetworkObject is not spawned. request={request}", this);
+            return true;
+        }
+
+        SubmitOutcomeRequestRpc(request);
         return true;
+    }
+
+    /// <summary>
+    /// Client에서 선택한 결과 UI 씬 전환 요청을 NGO 서버 권한으로 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+    private void SubmitOutcomeRequestRpc(E_StageOutcomeRequest request)
+    {
+        switch (request)
+        {
+            case E_StageOutcomeRequest.NextStage:
+                ExecuteNextStage();
+                break;
+            case E_StageOutcomeRequest.ReturnToTown:
+                ExecuteReturnToTown();
+                break;
+            case E_StageOutcomeRequest.RestartStageEntry:
+                ExecuteRestartStageEntry();
+                break;
+            case E_StageOutcomeRequest.RestartLastCheckpoint:
+                ExecuteRestartCurrentStage();
+                break;
+        }
     }
 
     /// <summary>
@@ -355,9 +387,9 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
     }
 
     /// <summary>
-    /// 씬 변경 직전에 현재 씬의 사망 플레이어를 서버 권한 또는 싱글플레이 경로로 부활시킵니다.
+    /// 씬 변경 직전에 현재 씬의 플레이어 체력을 서버 권한 또는 싱글플레이 경로로 복구합니다.
     /// </summary>
-    private void ReviveDeadPlayersBeforeSceneChange()
+    private void ReviveDeadPlayersBeforeSceneChange(bool restoreAlivePlayers = false)
     {
         if (!_reviveDeadPlayersBeforeSceneChange || !HasFlowAuthority())
         {
@@ -367,17 +399,17 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
         NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션의 PlayerObject 목록을 확인할 관리자입니다.
         if (networkManager != null && networkManager.IsListening)
         {
-            ReviveDeadNetworkPlayers(networkManager);
+            RestoreNetworkPlayersForSceneChange(networkManager, restoreAlivePlayers);
             return;
         }
 
-        ReviveDeadLocalPlayers();
+        RestoreLocalPlayersForSceneChange(restoreAlivePlayers);
     }
 
     /// <summary>
-    /// NGO에 연결된 모든 플레이어 오브젝트 중 Die 상태인 캐릭터를 부활시킵니다.
+    /// NGO에 연결된 모든 플레이어 오브젝트의 씬 전환 전 체력 복구를 처리합니다.
     /// </summary>
-    private void ReviveDeadNetworkPlayers(NetworkManager networkManager)
+    private void RestoreNetworkPlayersForSceneChange(NetworkManager networkManager, bool restoreAlivePlayers)
     {
         foreach (NetworkClient client in networkManager.ConnectedClientsList)
         {
@@ -386,14 +418,14 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
                 continue;
             }
 
-            TryRevivePlayerObject(client.PlayerObject.gameObject, $"SceneChange.Client:{client.ClientId}");
+            TryRestorePlayerObject(client.PlayerObject.gameObject, restoreAlivePlayers, $"SceneChange.Client:{client.ClientId}");
         }
     }
 
     /// <summary>
-    /// 싱글플레이 씬에 배치된 플레이어 HealthComponent 중 Die 상태인 캐릭터를 부활시킵니다.
+    /// 싱글플레이 씬에 배치된 플레이어의 씬 전환 전 체력 복구를 처리합니다.
     /// </summary>
-    private void ReviveDeadLocalPlayers()
+    private void RestoreLocalPlayersForSceneChange(bool restoreAlivePlayers)
     {
         PlayerInputDriver[] inputDrivers = FindObjectsByType<PlayerInputDriver>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 싱글플레이 플레이어 후보입니다.
         for (int index = 0; index < inputDrivers.Length; index++)
@@ -404,7 +436,7 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
                 continue;
             }
 
-            TryRevivePlayerObject(inputDriver.gameObject, "SceneChange.SinglePlayerInput");
+            TryRestorePlayerObject(inputDriver.gameObject, restoreAlivePlayers, "SceneChange.SinglePlayerInput");
         }
 
         if (inputDrivers.Length > 0)
@@ -415,14 +447,14 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
         GameObject taggedPlayer = GameObject.FindWithTag("Player"); // PlayerInputDriver가 없는 테스트 씬을 위한 기본 Player 태그 후보입니다.
         if (taggedPlayer != null)
         {
-            TryRevivePlayerObject(taggedPlayer, "SceneChange.TaggedPlayer");
+            TryRestorePlayerObject(taggedPlayer, restoreAlivePlayers, "SceneChange.TaggedPlayer");
         }
     }
 
     /// <summary>
-    /// 지정한 플레이어 계층에서 HealthComponent를 찾아 사망 상태이면 부활시키고 Die 액션 고정을 해제합니다.
+    /// 지정한 플레이어 계층에서 HealthComponent를 찾아 씬 전환 정책에 맞게 체력을 복구합니다.
     /// </summary>
-    private void TryRevivePlayerObject(GameObject playerObject, string reason)
+    private void TryRestorePlayerObject(GameObject playerObject, bool restoreAlivePlayers, string reason)
     {
         if (playerObject == null)
         {
@@ -435,19 +467,32 @@ public sealed class StageOutcomeFlowController : NetworkBehaviour
             healthComponent = playerObject.GetComponentInParent<HealthComponent>();
         }
 
-        if (healthComponent == null || !healthComponent.IsDead)
+        if (healthComponent == null)
         {
             return;
         }
 
-        float reviveHealth = Mathf.Max(0.01f, healthComponent.GetMaxHealth() * Mathf.Clamp01(_sceneChangeReviveHealthRatio)); // 부활 후 적용할 체력입니다.
-        healthComponent.Revive(reviveHealth);
+        if (!healthComponent.IsDead && !restoreAlivePlayers)
+        {
+            return;
+        }
+
+        float restoreHealth = Mathf.Max(0.01f, healthComponent.GetMaxHealth() * Mathf.Clamp01(_sceneChangeReviveHealthRatio)); // 씬 전환 전 적용할 체력입니다.
+        if (healthComponent.IsDead)
+        {
+            healthComponent.Revive(restoreHealth);
+            CompleteDieAction(playerObject, reason);
+        }
+        else
+        {
+            healthComponent.SetCurrentHealth(restoreHealth);
+        }
+
         healthComponent.NotifyCurrentHealthState();
-        CompleteDieAction(playerObject, reason);
 
         if (_verboseLog)
         {
-            Debug.Log($"[StageOutcomeFlowController] Dead player revived before scene change. player={playerObject.name}, reason={reason}, health={reviveHealth}", this);
+            Debug.Log($"[StageOutcomeFlowController] Player health restored before scene change. player={playerObject.name}, reason={reason}, health={restoreHealth}, restoreAlive={restoreAlivePlayers}", this);
         }
     }
 
