@@ -37,6 +37,13 @@ public class CheckpointStageController : NetworkBehaviour
     [Tooltip("회복/조작 Block/무적/몬스터 리셋을 담당하는 Processor입니다.")]
     [SerializeField] private CheckpointRecoveryProcessor _recoveryProcessor; // 체크포인트 회복 처리 담당 컴포넌트입니다.
 
+    [Header("Multiplayer Host Interaction")]
+    [Tooltip("Host가 체크포인트와 상호작용했을 때 다른 Client 플레이어도 함께 회복 처리할지 설정합니다.")]
+    [SerializeField] private bool _recoverRemotePlayersOnHostInteraction = true; // Host 체크포인트 상호작용을 Client 플레이어에게도 적용할지 결정합니다.
+
+    [Tooltip("Host가 체크포인트와 상호작용했을 때 다른 Client 플레이어를 체크포인트 위치로 이동시킬지 설정합니다.")]
+    [SerializeField] private bool _teleportRemotePlayersOnHostInteraction = true; // Host 상호작용 시 Client 플레이어 위치를 체크포인트 리스폰 지점으로 보정할지 결정합니다.
+
     private readonly List<Checkpoint> _checkpoints = new List<Checkpoint>(); // Stage 내 체크포인트 목록입니다.
     private readonly Dictionary<string, Checkpoint> _checkpointById = new Dictionary<string, Checkpoint>(); // Checkpoint ID 기반 조회 인덱스입니다.
     private readonly HashSet<string> _duplicateCheckpointIds = new HashSet<string>(); // 중복 감지된 Checkpoint ID는 임의 선택 방지를 위해 별도로 보관합니다.
@@ -363,7 +370,8 @@ public class CheckpointStageController : NetworkBehaviour
         _currentCheckpointId = checkpoint.CheckpointId;
         ApplyVisualStates();
 
-        _recoveryProcessor?.ProcessCheckpointInteraction(playerObject, true);
+        _recoveryProcessor?.ProcessCheckpointInteraction(playerObject, true, ShouldForceHostInteractionGameplayInputBlock(playerObject));
+        ProcessRemotePlayersForHostCheckpointInteraction(checkpoint, playerObject);
 
         if (saveProgress)
         {
@@ -933,6 +941,110 @@ public class CheckpointStageController : NetworkBehaviour
 
         Debug.LogWarning($"[CheckpointStageController] 진행도 비교 중 현재 씬에 없는 Checkpoint ID를 0순위로 처리합니다. checkpoint={checkpointId}", this);
         return 0;
+    }
+
+    /// <summary>
+    /// Host가 체크포인트와 상호작용했을 때 원격 Client 플레이어를 같은 체크포인트 기준으로 회복시킵니다.
+    /// </summary>
+    private void ProcessRemotePlayersForHostCheckpointInteraction(Checkpoint checkpoint, GameObject interactingPlayerObject)
+    {
+        if (!_recoverRemotePlayersOnHostInteraction || checkpoint == null || _recoveryProcessor == null)
+        {
+            return;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션과 연결 플레이어를 조회하는 NetworkManager입니다.
+        if (networkManager == null || !networkManager.IsListening || !networkManager.IsServer)
+        {
+            return;
+        }
+
+        NetworkObject interactingNetworkObject = interactingPlayerObject != null ? interactingPlayerObject.GetComponent<NetworkObject>() : null; // 중복 회복을 피하기 위한 상호작용 주체입니다.
+        ulong interactingClientId = interactingNetworkObject != null ? interactingNetworkObject.OwnerClientId : NetworkManager.ServerClientId; // 상호작용한 Host의 ClientId입니다.
+
+        foreach (ulong clientId in networkManager.ConnectedClientsIds)
+        {
+            if (clientId == interactingClientId)
+            {
+                continue;
+            }
+
+            if (!networkManager.ConnectedClients.TryGetValue(clientId, out NetworkClient client) || client == null || client.PlayerObject == null)
+            {
+                Debug.LogWarning($"[CheckpointStageController] 체크포인트 동기 회복 대상 PlayerObject를 찾지 못했습니다. clientId={clientId}, checkpoint={checkpoint.CheckpointId}", this);
+                continue;
+            }
+
+            GameObject remotePlayerObject = client.PlayerObject.gameObject; // 회복과 위치 보정을 적용할 원격 Client 플레이어입니다.
+            if (_teleportRemotePlayersOnHostInteraction)
+            {
+                MovePlayerToCheckpoint(remotePlayerObject, checkpoint);
+            }
+
+            _recoveryProcessor.ProcessRemoteAuthorityCheckpointInteraction(remotePlayerObject, false);
+            NotifyOwnerCheckpointInteractionRecovery(client.PlayerObject);
+        }
+    }
+
+    /// <summary>
+    /// Owner 권한 Client의 로컬 플레이어에도 입력 잠금/로컬 회복 표현을 적용하도록 알립니다.
+    /// </summary>
+    private void NotifyOwnerCheckpointInteractionRecovery(NetworkObject playerObject)
+    {
+        if (!IsSpawned || playerObject == null || !playerObject.IsSpawned || playerObject.OwnerClientId == NetworkManager.ServerClientId)
+        {
+            return;
+        }
+
+        ApplyOwnerCheckpointInteractionRecoveryRpc(new NetworkObjectReference(playerObject));
+    }
+
+    /// <summary>
+    /// Host가 확정한 체크포인트 회복을 Owner Client 로컬 객체에 반영해 입력 잠금이 즉시 체감되도록 합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void ApplyOwnerCheckpointInteractionRecoveryRpc(NetworkObjectReference playerReference)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // 수신 Client가 자신의 PlayerObject인지 판정하기 위한 NetworkManager입니다.
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return;
+        }
+
+        if (!playerReference.TryGet(out NetworkObject playerObject) || playerObject == null)
+        {
+            Debug.LogWarning("[CheckpointStageController] 체크포인트 회복 RPC의 PlayerObject 참조를 해석하지 못했습니다.", this);
+            return;
+        }
+
+        if (playerObject.OwnerClientId != networkManager.LocalClientId)
+        {
+            return;
+        }
+
+        ResolveReferences();
+        if (_recoveryProcessor == null)
+        {
+            Debug.LogWarning($"[CheckpointStageController] Client 로컬 회복을 적용할 CheckpointRecoveryProcessor를 찾지 못했습니다. clientId={networkManager.LocalClientId}", this);
+            return;
+        }
+
+        _recoveryProcessor.ProcessCheckpointInteraction(playerObject.gameObject, false, true);
+    }
+
+    /// <summary>
+    /// 멀티플레이 Host 본인이 체크포인트와 상호작용한 경우 로컬 Gameplay 입력 차단을 강제로 적용해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldForceHostInteractionGameplayInputBlock(GameObject playerObject)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 세션이 Host 플레이인지 확인할 NetworkManager입니다.
+        if (networkManager == null || !networkManager.IsListening || !networkManager.IsHost)
+        {
+            return false;
+        }
+
+        NetworkObject playerNetworkObject = playerObject != null ? playerObject.GetComponent<NetworkObject>() : null; // 상호작용한 플레이어의 소유자를 확인할 NetworkObject입니다.
+        return playerNetworkObject == null || playerNetworkObject.OwnerClientId == NetworkManager.ServerClientId;
     }
 
     /// <summary>

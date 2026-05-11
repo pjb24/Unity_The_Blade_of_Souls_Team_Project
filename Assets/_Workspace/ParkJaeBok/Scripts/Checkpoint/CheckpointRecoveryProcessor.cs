@@ -40,7 +40,23 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
     /// </summary>
     public void ProcessCheckpointInteraction(GameObject playerObject, bool resetMonsters)
     {
-        ProcessRecovery(playerObject, _interactionMovementBlockSeconds, _interactionInvincibleSeconds, resetMonsters, "CheckpointInteraction");
+        ProcessCheckpointInteraction(playerObject, resetMonsters, false);
+    }
+
+    /// <summary>
+    /// 체크포인트 직접 상호작용 회복 처리를 수행하고 필요하면 Gameplay 입력 차단을 강제로 적용합니다.
+    /// </summary>
+    public void ProcessCheckpointInteraction(GameObject playerObject, bool resetMonsters, bool forceGameplayInputBlock)
+    {
+        ProcessRecovery(playerObject, _interactionMovementBlockSeconds, _interactionInvincibleSeconds, resetMonsters, "CheckpointInteraction", forceGameplayInputBlock, false);
+    }
+
+    /// <summary>
+    /// 원격 플레이어의 서버 권한 회복 처리를 수행하되 현재 머신의 Gameplay 입력 차단은 건너뜁니다.
+    /// </summary>
+    public void ProcessRemoteAuthorityCheckpointInteraction(GameObject playerObject, bool resetMonsters)
+    {
+        ProcessRecovery(playerObject, _interactionMovementBlockSeconds, _interactionInvincibleSeconds, resetMonsters, "CheckpointInteraction.RemoteAuthority", false, true);
     }
 
     /// <summary>
@@ -48,13 +64,13 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
     /// </summary>
     public void ProcessDeathRespawn(GameObject playerObject, bool resetMonsters)
     {
-        ProcessRecovery(playerObject, _respawnMovementBlockSeconds, _respawnInvincibleSeconds, resetMonsters, "DeathRespawn");
+        ProcessRecovery(playerObject, _respawnMovementBlockSeconds, _respawnInvincibleSeconds, resetMonsters, "DeathRespawn", false, false);
     }
 
     /// <summary>
     /// 플레이어 회복, 조작 잠금, 무적, 몬스터 리셋 처리를 실행합니다.
     /// </summary>
-    private void ProcessRecovery(GameObject playerObject, float movementBlockSeconds, float invincibleSeconds, bool resetMonsters, string reason)
+    private void ProcessRecovery(GameObject playerObject, float movementBlockSeconds, float invincibleSeconds, bool resetMonsters, string reason, bool forceGameplayInputBlock, bool suppressGameplayInputBlock)
     {
         if (playerObject == null)
         {
@@ -64,7 +80,7 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
 
         RestoreHealth(playerObject, reason);
         RestoreBuffGauge(playerObject, reason);
-        ApplyTemporaryMovementBlock(playerObject, movementBlockSeconds, reason);
+        ApplyTemporaryMovementBlock(playerObject, movementBlockSeconds, reason, forceGameplayInputBlock, suppressGameplayInputBlock);
         ApplyTemporaryInvincibility(playerObject, invincibleSeconds, reason);
         ClearVelocity(playerObject);
 
@@ -136,7 +152,7 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
     /// <summary>
     /// PlayerMovement 잠금을 일정 시간 적용합니다.
     /// </summary>
-    private void ApplyTemporaryMovementBlock(GameObject playerObject, float duration, string reason)
+    private void ApplyTemporaryMovementBlock(GameObject playerObject, float duration, string reason, bool forceGameplayInputBlock, bool suppressGameplayInputBlock)
     {
         PlayerMovement movement = playerObject.GetComponentInChildren<PlayerMovement>(true);
         if (movement == null)
@@ -150,7 +166,7 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
             return;
         }
 
-        StartCoroutine(MovementBlockRoutine(movement, Mathf.Max(0f, duration)));
+        StartCoroutine(MovementBlockRoutine(movement, Mathf.Max(0f, duration), forceGameplayInputBlock, suppressGameplayInputBlock));
     }
 
     /// <summary>
@@ -193,11 +209,12 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
     /// <summary>
     /// 이동 잠금 코루틴을 수행합니다.
     /// </summary>
-    private IEnumerator MovementBlockRoutine(PlayerMovement movement, float duration)
+    private IEnumerator MovementBlockRoutine(PlayerMovement movement, float duration, bool forceGameplayInputBlock, bool suppressGameplayInputBlock)
     {
         object inputBlocker = this; // InputManager 전역 차단 소유자입니다.
+        bool shouldBlockGameplayInput = !suppressGameplayInputBlock && (_blockGameplayInput || forceGameplayInputBlock); // Inspector 설정, 호출 측 강제 옵션, 원격 권한 처리 여부에 따른 Gameplay 입력 차단 여부입니다.
         movement.AddMovementLock(E_MovementLockReason.Cutscene, true);
-        if (_blockGameplayInput)
+        if (shouldBlockGameplayInput)
         {
             InputManager.AddGameplayInputBlocker(inputBlocker);
         }
@@ -209,7 +226,7 @@ public class CheckpointRecoveryProcessor : MonoBehaviour
             movement.RemoveMovementLock(E_MovementLockReason.Cutscene);
         }
 
-        if (_blockGameplayInput)
+        if (shouldBlockGameplayInput)
         {
             InputManager.RemoveGameplayInputBlocker(inputBlocker);
         }
