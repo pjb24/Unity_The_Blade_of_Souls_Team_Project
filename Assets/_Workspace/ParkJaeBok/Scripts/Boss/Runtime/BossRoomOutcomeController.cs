@@ -258,6 +258,8 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
     /// </summary>
     private void ShowOutcomeAuthoritatively(E_BossRoomOutcomeKind outcomeKind, float delaySeconds)
     {
+        DeactivateAllPlayerBuffsForOutcome(outcomeKind);
+
         NetworkManager networkManager = NetworkManager.Singleton;
         if (networkManager == null || !networkManager.IsListening)
         {
@@ -281,6 +283,57 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
     }
 
     /// <summary>
+    /// 보스룸 결과가 확정되면 서버 또는 오프라인 권한에서 모든 플레이어 Buff를 종료합니다.
+    /// </summary>
+    private void DeactivateAllPlayerBuffsForOutcome(E_BossRoomOutcomeKind outcomeKind)
+    {
+        PlayerBuffController[] buffControllers = FindObjectsByType<PlayerBuffController>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 결과 진입 시 정리할 플레이어 Buff 컨트롤러 후보 목록입니다.
+        for (int i = 0; i < buffControllers.Length; i++)
+        {
+            PlayerBuffController buffController = buffControllers[i]; // 서버 권한에서 종료를 요청할 Buff 컨트롤러 후보입니다.
+            if (buffController == null)
+            {
+                continue;
+            }
+
+            buffController.RequestStopBuffFromGameplaySystem($"BossRoomOutcome:{outcomeKind}");
+        }
+    }
+
+    /// <summary>
+    /// 결과 UI가 로컬에 열리기 직전에 로컬 오너 플레이어 Buff 종료를 요청합니다.
+    /// </summary>
+    private void DeactivateLocalPlayerBuffForOutcome(E_BossRoomOutcomeKind outcomeKind)
+    {
+        PlayerBuffController[] buffControllers = FindObjectsByType<PlayerBuffController>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 로컬 오너 판정에 사용할 Buff 컨트롤러 후보 목록입니다.
+        for (int i = 0; i < buffControllers.Length; i++)
+        {
+            PlayerBuffController buffController = buffControllers[i]; // 현재 로컬 인스턴스가 제어할 수 있는지 확인할 Buff 컨트롤러 후보입니다.
+            if (buffController == null || !CanLocalInstanceRequestBuffStop(buffController))
+            {
+                continue;
+            }
+
+            buffController.RequestStopBuffFromGameplaySystem($"BossRoomOutcomeLocal:{outcomeKind}");
+        }
+    }
+
+    /// <summary>
+    /// 현재 로컬 인스턴스가 지정한 Buff 컨트롤러의 종료 요청을 보낼 수 있는지 판정합니다.
+    /// </summary>
+    private bool CanLocalInstanceRequestBuffStop(PlayerBuffController buffController)
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션과 로컬 오너 판정에 사용할 NetworkManager 참조입니다.
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return true;
+        }
+
+        NetworkObject networkObject = buffController.GetComponentInParent<NetworkObject>(); // Buff 컨트롤러가 속한 플레이어 NetworkObject 참조입니다.
+        return networkObject == null || networkObject.IsOwner || networkManager.IsServer;
+    }
+
+    /// <summary>
     /// Host가 확정한 보스룸 결과 UI 표시를 모든 Client와 Host에 전달합니다.
     /// </summary>
     [Rpc(SendTo.ClientsAndHost)]
@@ -295,6 +348,7 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
     private void BeginOutcomeLocally(E_BossRoomOutcomeKind outcomeKind, float delaySeconds)
     {
         _isOutcomeResolved = true;
+        DeactivateLocalPlayerBuffForOutcome(outcomeKind);
         ApplyLocalInputRestriction();
         StopOutcomeCoroutine();
         _showOutcomeCoroutine = StartCoroutine(ShowOutcomeAfterDelay(outcomeKind, Mathf.Max(0f, delaySeconds)));

@@ -180,11 +180,56 @@ public class PlayerBuffController : MonoBehaviour, IAttackExecutionListener
     }
 
     /// <summary>
+    /// 체크포인트, 결과 UI 같은 외부 Gameplay 시스템에서 현재 Buff 종료를 요청합니다.
+    /// </summary>
+    public bool RequestStopBuffFromGameplaySystem(string reason)
+    {
+        ResolveDependencies();
+
+        if (!_isBuffActive)
+        {
+            return true;
+        }
+
+        if (_networkRelay == null || !_networkRelay.HasNetworkSession())
+        {
+            return RequestStopBuffOnAuthority(reason);
+        }
+
+        if (_networkRelay.HasServerAuthority())
+        {
+            return RequestStopBuffOnAuthority(reason);
+        }
+
+        if (!_networkRelay.CanDriveOwnerInput())
+        {
+            Debug.LogWarning($"[PlayerBuffController] External buff stop denied because caller is not owner. object={name}, reason={reason}", this);
+            return false;
+        }
+
+        if (_networkRelay.ShouldUseServerRpcRoute())
+        {
+            _networkRelay.RequestStopBuffServerRpc();
+            return true;
+        }
+
+        return RequestStopBuffOnAuthority(reason);
+    }
+
+    /// <summary>
     /// 네트워크 릴레이가 서버 권한에서 위임한 Buff 토글 요청을 처리합니다.
     /// </summary>
     public void HandleRelayServerToggleRequest()
     {
         RequestToggleBuffOnAuthority();
+    }
+
+    /// <summary>
+    /// 네트워크 릴레이가 서버 권한에서 위임한 Buff 종료 요청을 처리합니다.
+    /// </summary>
+    public void HandleRelayServerStopRequest()
+    {
+        RequestStopBuffOnAuthority("RelayServerStopRequest");
     }
 
     /// <summary>
@@ -240,6 +285,26 @@ public class PlayerBuffController : MonoBehaviour, IAttackExecutionListener
         }
 
         SetBuffActive(true, true, "ManualToggleOn");
+        return true;
+    }
+
+    /// <summary>
+    /// 서버 또는 오프라인 권한 경로에서 현재 Buff를 종료합니다.
+    /// </summary>
+    private bool RequestStopBuffOnAuthority(string reason)
+    {
+        if (!CanProcessAuthorityLogic())
+        {
+            Debug.LogWarning($"[PlayerBuffController] RequestStopBuff denied because caller is not authority. object={name}, reason={reason}", this);
+            return false;
+        }
+
+        if (!_isBuffActive)
+        {
+            return true;
+        }
+
+        SetBuffActive(false, true, reason);
         return true;
     }
 

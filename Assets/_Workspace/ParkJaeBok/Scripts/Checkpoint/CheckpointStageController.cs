@@ -370,6 +370,7 @@ public class CheckpointStageController : NetworkBehaviour
         _currentCheckpointId = checkpoint.CheckpointId;
         ApplyVisualStates();
 
+        DeactivatePlayerBuffForCheckpointInteraction(playerObject);
         _recoveryProcessor?.ProcessCheckpointInteraction(playerObject, true, ShouldForceHostInteractionGameplayInputBlock(playerObject));
         ProcessRemotePlayersForHostCheckpointInteraction(checkpoint, playerObject);
 
@@ -981,13 +982,43 @@ public class CheckpointStageController : NetworkBehaviour
                 MovePlayerToCheckpoint(remotePlayerObject, checkpoint);
             }
 
+            DeactivatePlayerBuffForCheckpointInteraction(remotePlayerObject);
             _recoveryProcessor.ProcessRemoteAuthorityCheckpointInteraction(remotePlayerObject, false);
             NotifyOwnerCheckpointInteractionRecovery(client.PlayerObject);
         }
     }
 
     /// <summary>
-    /// Owner 권한 Client의 로컬 플레이어에도 입력 잠금/로컬 회복 표현을 적용하도록 알립니다.
+    /// 체크포인트 상호작용으로 회복 흐름에 들어가는 플레이어의 Buff를 서버 권한에서 종료합니다.
+    /// </summary>
+    private void DeactivatePlayerBuffForCheckpointInteraction(GameObject playerObject)
+    {
+        if (playerObject == null)
+        {
+            return;
+        }
+
+        PlayerBuffController buffController = playerObject.GetComponent<PlayerBuffController>(); // 체크포인트 처리 대상 플레이어의 Buff 컨트롤러 참조입니다.
+        if (buffController == null)
+        {
+            buffController = playerObject.GetComponentInChildren<PlayerBuffController>(true);
+        }
+
+        if (buffController == null)
+        {
+            buffController = playerObject.GetComponentInParent<PlayerBuffController>();
+        }
+
+        if (buffController == null)
+        {
+            return;
+        }
+
+        buffController.RequestStopBuffFromGameplaySystem("CheckpointInteraction");
+    }
+
+    /// <summary>
+    /// Owner Client에 체크포인트 회복 처리를 통지합니다.
     /// </summary>
     private void NotifyOwnerCheckpointInteractionRecovery(NetworkObject playerObject)
     {
