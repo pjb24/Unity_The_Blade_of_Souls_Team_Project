@@ -284,6 +284,7 @@ public sealed class EndingPanelView : MonoBehaviour
             _restartStageEntryButton.onClick.RemoveListener(RequestRestartStageEntry);
         }
     }
+
 }
 
 /// <summary>
@@ -296,12 +297,29 @@ public enum E_EndingCombatStatType
 }
 
 /// <summary>
+/// 엔딩 UI 텍스트가 표시할 멀티플레이 전투 통계 소스입니다.
+/// </summary>
+public enum E_EndingCombatStatSource
+{
+    LocalPlayer = 0,
+    HostPlayer = 1,
+    FirstClientPlayer = 2,
+    SpecificClientId = 3
+}
+
+/// <summary>
 /// 하나의 텍스트 UI와 표시할 전투 통계 값을 연결하는 바인딩입니다.
 /// </summary>
 [Serializable]
 public sealed class EndingCombatStatTextBinding
 {
     public string Name;
+
+    [Tooltip("멀티플레이 엔딩 UI에서 이 바인딩이 표시할 플레이어 통계 소스입니다.")]
+    [SerializeField] private E_EndingCombatStatSource _statSource; // Host/Client/Local 중 어떤 플레이어의 통계를 표시할지 결정하는 소스입니다.
+
+    [Tooltip("Stat Source가 Specific Client Id일 때 사용할 NGO ClientId입니다.")]
+    [SerializeField] private ulong _specificClientId; // 특정 ClientId의 통계를 직접 표시해야 할 때 사용하는 NGO ClientId입니다.
 
     [Tooltip("전투 통계 값을 표시할 TMP 텍스트입니다.")]
     [SerializeField] private TMP_Text _text; // 전투 통계 값을 출력할 TMP 텍스트입니다.
@@ -327,16 +345,41 @@ public sealed class EndingCombatStatTextBinding
         }
 
         string safeFormat = string.IsNullOrWhiteSpace(_format) ? "{0}" : _format; // 비어 있는 포맷의 안전한 폴백입니다.
+        PlayerCombatStatsRuntime.SnapshotData snapshot = ResolveSnapshot(statsRuntime); // 선택된 플레이어 소스에 해당하는 전투 통계입니다.
         switch (_statType)
         {
             case E_EndingCombatStatType.TotalDamageDealt:
-                float damage = statsRuntime != null ? statsRuntime.TotalDamageDealt : 0f; // 표시할 누적 적용 대미지입니다.
+                float damage = snapshot.TotalDamageDealt; // 표시할 누적 적용 대미지입니다.
                 _text.text = string.Format(safeFormat, damage.ToString($"F{Mathf.Max(0, _decimalPlaces)}"));
                 break;
             case E_EndingCombatStatType.DamageTakenCount:
-                int hitCount = statsRuntime != null ? statsRuntime.DamageTakenCount : 0; // 표시할 누적 피격 횟수입니다.
+                int hitCount = snapshot.DamageTakenCount; // 표시할 누적 피격 횟수입니다.
                 _text.text = string.Format(safeFormat, hitCount);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Inspector에서 선택한 통계 소스에 맞는 전투 통계 스냅샷을 반환합니다.
+    /// </summary>
+    private PlayerCombatStatsRuntime.SnapshotData ResolveSnapshot(PlayerCombatStatsRuntime statsRuntime)
+    {
+        if (statsRuntime == null)
+        {
+            return default;
+        }
+
+        switch (_statSource)
+        {
+            case E_EndingCombatStatSource.HostPlayer:
+                return statsRuntime.GetHostPlayerSnapshot();
+            case E_EndingCombatStatSource.FirstClientPlayer:
+                return statsRuntime.GetFirstRemoteClientSnapshot();
+            case E_EndingCombatStatSource.SpecificClientId:
+                return statsRuntime.GetSnapshotForClientId(_specificClientId);
+            case E_EndingCombatStatSource.LocalPlayer:
+            default:
+                return statsRuntime.GetLocalPlayerSnapshot();
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     }
 
     private static PlayerCombatStatsRuntime _instance; // 전역 접근에 사용할 전투 통계 런타임 단일 인스턴스입니다.
+    private readonly Dictionary<ulong, SnapshotData> _statsByClientId = new Dictionary<ulong, SnapshotData>(); // 멀티플레이에서 ClientId별 전투 통계를 분리 보관하는 저장소입니다.
 
     [Tooltip("씬 전환 뒤에도 전투 통계 런타임 오브젝트를 유지할지 여부입니다.")]
     [SerializeField] private bool _dontDestroyOnLoad = true; // 씬 전환 중 전투 통계 데이터를 유지할지 여부입니다.
@@ -70,6 +72,70 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     /// 플레이어가 적군, 적군 투사체, 보스 투사체/패턴 또는 장애물에게 실제로 피해를 입은 누적 횟수를 반환합니다.
     /// </summary>
     public int DamageTakenCount => _damageTakenCount;
+
+    /// <summary>
+    /// 현재 피어의 로컬 플레이어 ClientId 기준 전투 통계 스냅샷을 반환합니다.
+    /// </summary>
+    public SnapshotData GetLocalPlayerSnapshot()
+    {
+        return GetSnapshotForClientId(ResolveLocalClientId());
+    }
+
+    /// <summary>
+    /// Host 플레이어 ClientId 기준 전투 통계 스냅샷을 반환합니다.
+    /// </summary>
+    public SnapshotData GetHostPlayerSnapshot()
+    {
+        return GetSnapshotForClientId(NetworkManager.ServerClientId);
+    }
+
+    /// <summary>
+    /// 첫 번째 원격 Client 플레이어 전투 통계 스냅샷을 반환합니다.
+    /// </summary>
+    public SnapshotData GetFirstRemoteClientSnapshot()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton; // 접속자 목록에서 Host가 아닌 ClientId를 찾기 위한 NGO 관리자입니다.
+        if (networkManager != null && networkManager.IsListening)
+        {
+            foreach (ulong clientId in networkManager.ConnectedClientsIds)
+            {
+                if (clientId == NetworkManager.ServerClientId)
+                {
+                    continue;
+                }
+
+                return GetSnapshotForClientId(clientId);
+            }
+        }
+
+        foreach (KeyValuePair<ulong, SnapshotData> pair in _statsByClientId)
+        {
+            if (pair.Key != NetworkManager.ServerClientId)
+            {
+                return SanitizeSnapshot(pair.Value);
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
+    /// 지정한 ClientId에 누적된 전투 통계 스냅샷을 반환합니다.
+    /// </summary>
+    public SnapshotData GetSnapshotForClientId(ulong clientId)
+    {
+        if (_statsByClientId.TryGetValue(clientId, out SnapshotData snapshot))
+        {
+            return SanitizeSnapshot(snapshot);
+        }
+
+        if (clientId == ResolveLocalClientId())
+        {
+            return CreateSnapshot();
+        }
+
+        return default;
+    }
 
     /// <summary>
     /// 인스턴스 중복을 방지하고 피격 이벤트를 구독할 준비를 합니다.
@@ -143,6 +209,7 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     {
         _totalDamageDealt = Mathf.Max(0f, snapshot.TotalDamageDealt);
         _damageTakenCount = Mathf.Max(0, snapshot.DamageTakenCount);
+        _statsByClientId[ResolveLocalClientId()] = CreateSnapshot();
         NotifyChanged();
     }
 
@@ -153,6 +220,8 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     {
         _totalDamageDealt = 0f;
         _damageTakenCount = 0;
+        _statsByClientId.Clear();
+        _statsByClientId[ResolveLocalClientId()] = CreateSnapshot();
         NotifyChanged();
     }
 
@@ -178,22 +247,29 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
         bool hasCountableDamageAttacker = IsDamageTakenStatsAttacker(request.Attacker); // 피격 횟수 통계에 포함할 공격자인지 여부입니다.
         bool isSelfHit = IsSamePlayerObject(request.Attacker, receiver.gameObject); // 같은 플레이어 내부 충돌인지 여부입니다.
 
+        if (networkManager != null && networkManager.IsListening && networkManager.IsServer)
+        {
+            if (hasEnemyTarget && !isSelfHit)
+            {
+                PlayerNetworkSync.TryReportCombatStatsToParticipants(request.Attacker, result.AppliedDamage, 0);
+            }
+
+            if (hasCountableDamageAttacker)
+            {
+                PlayerNetworkSync.TryReportCombatStatsToParticipants(receiver.gameObject, 0f, 1);
+            }
+
+            return;
+        }
+
         if (hasEnemyTarget && hasLocalAttacker && !isSelfHit)
         {
             RecordDamageDealt(result.AppliedDamage);
-        }
-        else if (hasEnemyTarget && networkManager != null && networkManager.IsListening && networkManager.IsServer && !isSelfHit)
-        {
-            PlayerNetworkSync.TryReportCombatStatsToOwner(request.Attacker, result.AppliedDamage, 0);
         }
 
         if (hasCountableDamageAttacker && hasLocalTarget)
         {
             RecordDamageTaken();
-        }
-        else if (hasCountableDamageAttacker && networkManager != null && networkManager.IsListening && networkManager.IsServer)
-        {
-            PlayerNetworkSync.TryReportCombatStatsToOwner(receiver.gameObject, 0f, 1);
         }
     }
 
@@ -202,13 +278,7 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     /// </summary>
     public void RecordDamageDealt(float appliedDamage)
     {
-        if (appliedDamage <= 0f)
-        {
-            return;
-        }
-
-        _totalDamageDealt += appliedDamage;
-        NotifyChanged();
+        RecordCombatStatsForClient(ResolveLocalClientId(), appliedDamage, 0);
     }
 
     /// <summary>
@@ -216,8 +286,7 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     /// </summary>
     public void RecordDamageTaken()
     {
-        _damageTakenCount++;
-        NotifyChanged();
+        RecordCombatStatsForClient(ResolveLocalClientId(), 0f, 1);
     }
 
     /// <summary>
@@ -225,13 +294,59 @@ public sealed class PlayerCombatStatsRuntime : MonoBehaviour
     /// </summary>
     public void RecordDamageTakenCount(int count)
     {
-        if (count <= 0)
+        RecordCombatStatsForClient(ResolveLocalClientId(), 0f, count);
+    }
+
+    /// <summary>
+    /// 지정한 ClientId의 전투 통계 증가분을 누적하고, 로컬 플레이어 값이면 기존 저장/표시용 필드도 함께 갱신합니다.
+    /// </summary>
+    public void RecordCombatStatsForClient(ulong clientId, float damageDealt, int damageTakenCount)
+    {
+        float safeDamageDealt = Mathf.Max(0f, damageDealt); // 누적 가능한 공격 대미지 증가분입니다.
+        int safeDamageTakenCount = Mathf.Max(0, damageTakenCount); // 누적 가능한 피격 횟수 증가분입니다.
+        if (safeDamageDealt <= 0f && safeDamageTakenCount <= 0)
         {
             return;
         }
 
-        _damageTakenCount += count;
+        SnapshotData snapshot = GetSnapshotForClientId(clientId);
+        snapshot.TotalDamageDealt += safeDamageDealt;
+        snapshot.DamageTakenCount += safeDamageTakenCount;
+        _statsByClientId[clientId] = SanitizeSnapshot(snapshot);
+
+        if (clientId == ResolveLocalClientId())
+        {
+            _totalDamageDealt = _statsByClientId[clientId].TotalDamageDealt;
+            _damageTakenCount = _statsByClientId[clientId].DamageTakenCount;
+        }
+
         NotifyChanged();
+    }
+
+    /// <summary>
+    /// 저장 또는 네트워크에서 들어온 전투 통계 값을 안전한 범위로 보정합니다.
+    /// </summary>
+    private SnapshotData SanitizeSnapshot(SnapshotData snapshot)
+    {
+        return new SnapshotData
+        {
+            TotalDamageDealt = Mathf.Max(0f, snapshot.TotalDamageDealt),
+            DamageTakenCount = Mathf.Max(0, snapshot.DamageTakenCount)
+        };
+    }
+
+    /// <summary>
+    /// 현재 피어의 로컬 플레이어 ClientId를 싱글플레이와 멀티플레이 상황에 맞게 해석합니다.
+    /// </summary>
+    private ulong ResolveLocalClientId()
+    {
+        NetworkManager networkManager = NetworkManager.Singleton;
+        if (networkManager != null && networkManager.IsListening)
+        {
+            return networkManager.LocalClientId;
+        }
+
+        return NetworkManager.ServerClientId;
     }
 
     /// <summary>
