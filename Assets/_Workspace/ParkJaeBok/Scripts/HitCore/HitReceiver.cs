@@ -51,6 +51,11 @@ public class HitReceiver : MonoBehaviour
     public bool IsPostHitInvincibilityActive => _isPostHitInvincibilityActive;
 
     /// <summary>
+    /// 현재 대상이 사망 상태라 공격 충돌을 막아서는 안 되는지 반환합니다.
+    /// </summary>
+    public bool IsDead => _healthComponent != null && _healthComponent.IsDead;
+
+    /// <summary>
     /// 설정된 피격 후 무적 지속 시간을 초 단위로 반환합니다.
     /// </summary>
     public float PostHitInvincibilitySeconds => _postHitInvincibilitySeconds;

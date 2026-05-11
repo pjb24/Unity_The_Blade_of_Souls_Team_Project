@@ -273,6 +273,12 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
             yield return new WaitForSeconds(delaySeconds);
         }
 
+        if (ShouldAbortScheduledRespawnBeforeExecution())
+        {
+            _respawnRoutine = null;
+            yield break;
+        }
+
         ResolveReferences();
         if (_stageController == null)
         {
@@ -281,7 +287,19 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
             yield break;
         }
 
-        _stageController.RespawnPlayerAtCurrentCheckpoint(gameObject, resetMonsters);
+        bool respawnSucceeded = _stageController.RespawnPlayerAtCurrentCheckpoint(gameObject, resetMonsters); // Stage Controller를 통한 위치 복귀와 복구 처리 성공 여부입니다.
+        if (!respawnSucceeded)
+        {
+            _respawnRoutine = null;
+            yield break;
+        }
+
+        if (!EnsureRevivedAfterRespawn())
+        {
+            _respawnRoutine = null;
+            yield break;
+        }
+
         if (IsSpawned && IsServer)
         {
             DeadStateByClientId[OwnerClientId] = false;
@@ -380,6 +398,48 @@ public class CheckpointPlayerRespawnHandler : NetworkBehaviour, IHealthListener
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// 예약된 리스폰이 실제 Revive 직전에 취소되어야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldAbortScheduledRespawnBeforeExecution()
+    {
+        if (!_allowAutomaticRespawn)
+        {
+            return true;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // 멀티플레이 연결 인원과 전원 사망 여부를 확인하는 NGO 관리자입니다.
+        if (networkManager != null && networkManager.IsListening && networkManager.ConnectedClients.Count > 1)
+        {
+            return AreAllConnectedPlayersDead();
+        }
+
+        return ShouldSuppressAutomaticRespawn();
+    }
+
+    /// <summary>
+    /// 체크포인트 복구 Processor가 누락된 씬에서도 체력과 Revive 액션 상태가 반드시 복구되도록 보정합니다.
+    /// </summary>
+    private bool EnsureRevivedAfterRespawn()
+    {
+        ResolveReferences();
+        if (_healthComponent == null)
+        {
+            Debug.LogWarning($"[CheckpointPlayerRespawnHandler] HealthComponent를 찾지 못해 Revive 보정을 수행하지 못했습니다. player={name}", this);
+            return false;
+        }
+
+        if (!_healthComponent.IsDead)
+        {
+            return true;
+        }
+
+        float reviveHealth = Mathf.Max(0.01f, _healthComponent.GetMaxHealth()); // Revive 직후 적용할 안전한 체력 값입니다.
+        _healthComponent.Revive(reviveHealth);
+        _healthComponent.NotifyCurrentHealthState();
+        return !_healthComponent.IsDead;
     }
 
     /// <summary>

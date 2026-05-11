@@ -181,6 +181,28 @@ public class PlayerBuffNetworkRelay : NetworkBehaviour
     }
 
     /// <summary>
+    /// 오너 클라이언트의 외부 Gameplay 시스템 Buff 종료 요청을 서버 권한으로 전달합니다.
+    /// </summary>
+    [Rpc(SendTo.Server)]
+    public void RequestStopBuffServerRpc(RpcParams rpcParams = default)
+    {
+        if (rpcParams.Receive.SenderClientId != OwnerClientId)
+        {
+            Debug.LogWarning($"[PlayerBuffNetworkRelay] Unauthorized buff stop sender. object={name}, sender={rpcParams.Receive.SenderClientId}, owner={OwnerClientId}", this);
+            return;
+        }
+
+        ResolveDependencies();
+        if (_targetController == null)
+        {
+            Debug.LogWarning($"[PlayerBuffNetworkRelay] Target PlayerBuffController is missing. object={name}", this);
+            return;
+        }
+
+        _targetController.HandleRelayServerStopRequest();
+    }
+
+    /// <summary>
     /// 직렬화 참조가 비어 있으면 런타임에서 자동 보정합니다.
     /// </summary>
     private void ResolveDependencies()

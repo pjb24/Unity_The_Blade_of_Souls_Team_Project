@@ -253,6 +253,12 @@ public class PooledRangedProjectile : MonoBehaviour, IPoolableObject
 
         if (IsLayerIncluded(hitObject.layer, _targetLayerMask) && IsTargetTagAllowed(hitObject))
         {
+            HitReceiver receiver = FindHitReceiverFromTargetHierarchy(hitObject); // 충돌한 대상의 생존 상태와 피격 처리를 담당하는 수신기입니다.
+            if (receiver != null && receiver.IsDead)
+            {
+                return;
+            }
+
             int targetId = hitObject.GetInstanceID();
             if (_hitTargetIds.Contains(targetId))
             {
@@ -260,7 +266,7 @@ public class PooledRangedProjectile : MonoBehaviour, IPoolableObject
             }
 
             _hitTargetIds.Add(targetId);
-            TryApplyHitToTarget(hitObject);
+            TryApplyHitToTarget(hitObject, receiver);
             PlayHitEffectAt(transform.position);
 
             if (_despawnOnHit)
@@ -281,9 +287,9 @@ public class PooledRangedProjectile : MonoBehaviour, IPoolableObject
     /// <summary>
     /// 타겟에게 HitRequest를 전달합니다.
     /// </summary>
-    private void TryApplyHitToTarget(GameObject targetObject)
+    private void TryApplyHitToTarget(GameObject targetObject, HitReceiver resolvedReceiver)
     {
-        HitReceiver receiver = FindHitReceiverFromTargetHierarchy(targetObject);
+        HitReceiver receiver = resolvedReceiver != null ? resolvedReceiver : FindHitReceiverFromTargetHierarchy(targetObject); // 사전 해석된 수신기가 없을 때만 계층 탐색으로 보정한 최종 수신기입니다.
         if (receiver == null)
         {
             Debug.LogWarning($"[PooledRangedProjectile] Hit target has no HitReceiver on {targetObject.name}.");
