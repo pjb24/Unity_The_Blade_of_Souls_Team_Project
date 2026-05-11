@@ -45,9 +45,6 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
     [Tooltip("싱글플레이에서 보스룸 플레이어가 죽으면 사망 UI를 표시할지 여부입니다. 보스 처치 엔딩과 플레이어 사망 결과를 분리합니다.")]
     [SerializeField] private bool _showDeathPanelOnSinglePlayerDeath = true; // 싱글플레이 보스룸 사망 시 사망 UI를 사용할지 결정합니다.
 
-    [Tooltip("멀티플레이 전원 사망 시 기존 10초 리스폰 예약을 취소하고 사망 UI를 우선할지 여부입니다.")]
-    [SerializeField] private bool _cancelRespawnsWhenAllPlayersDead = true; // 전원 사망 결과 UI 표시 시 예약 리스폰 취소 여부입니다.
-
     [Header("Input Restriction")]
     [Tooltip("결과 UI 표시 중 Gameplay 입력을 차단할지 여부입니다.")]
     [SerializeField] private bool _blockGameplayInput = true; // 결과 UI가 열린 동안 로컬 Gameplay 입력을 차단할지 여부입니다.
@@ -190,11 +187,7 @@ public sealed class BossRoomOutcomeController : NetworkBehaviour, IHealthListene
             return;
         }
 
-        if (_cancelRespawnsWhenAllPlayersDead)
-        {
-            CheckpointPlayerRespawnHandler.CancelAllScheduledRespawns();
-        }
-
+        CheckpointPlayerRespawnHandler.CancelAllScheduledRespawns();
         ResolveAllPlayersDeadOutcome();
     }
 
