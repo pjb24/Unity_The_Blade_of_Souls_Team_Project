@@ -5518,6 +5518,8 @@ MonoBehaviour:
   _restartStageEntryTargetStage: {fileID: 11400000, guid: 8cecb3ecdc7226448893e9d55bd51e3a, type: 2}
   _restartLastCheckpointTargetStage: {fileID: 11400000, guid: 8cecb3ecdc7226448893e9d55bd51e3a, type: 2}
   _returnToTownWhenNextStageMissing: 1
+  _reviveDeadPlayersBeforeSceneChange: 1
+  _sceneChangeReviveHealthRatio: 1
   _verboseLog: 0
 --- !u!1 &1061729117
 GameObject:

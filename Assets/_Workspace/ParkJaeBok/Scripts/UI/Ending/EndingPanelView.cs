@@ -44,6 +44,8 @@ public sealed class EndingPanelView : MonoBehaviour
     public event Action RestartStageEntryRequested; // 스테이지 진입 체크포인트 재시작 버튼 입력을 외부 흐름에 전달하는 이벤트입니다.
 
     private bool _isCurrentlyVisible; // 현재 엔딩 UI가 표시 중인지 추적해 통계 변경 시 텍스트 갱신에 사용합니다.
+    private bool _isPanelInteractable; // 현재 엔딩 UI 전체 상호작용 허용 상태를 저장합니다.
+    private bool _canSelectFlowButtons = true; // 현재 로컬 플레이어가 Ending UI 진행 버튼을 선택할 수 있는지 저장합니다.
 
     /// <summary>
     /// 컴포넌트 초기화 시 디자이너가 지정한 초기 표시 상태를 적용합니다.
@@ -125,6 +127,7 @@ public sealed class EndingPanelView : MonoBehaviour
     public void SetVisible(bool isVisible)
     {
         _isCurrentlyVisible = isVisible;
+        _isPanelInteractable = isVisible;
         GameObject root = ResolvePanelRoot(); // 실제 활성 상태를 적용할 UI 루트입니다.
         root.SetActive(isVisible);
         ApplyModeVisibility(isVisible);
@@ -132,11 +135,13 @@ public sealed class EndingPanelView : MonoBehaviour
 
         if (_canvasGroup == null)
         {
+            ApplyFlowButtonAccess();
             return;
         }
 
         _canvasGroup.alpha = isVisible ? 1f : 0f;
         SetInteractable(isVisible);
+        ApplyFlowButtonAccess();
     }
 
     /// <summary>
@@ -144,13 +149,31 @@ public sealed class EndingPanelView : MonoBehaviour
     /// </summary>
     public void SetInteractable(bool isInteractable)
     {
+        _isPanelInteractable = isInteractable;
+
         if (_canvasGroup == null)
         {
+            ApplyFlowButtonAccess();
             return;
         }
 
         _canvasGroup.interactable = isInteractable;
         _canvasGroup.blocksRaycasts = isInteractable;
+        ApplyFlowButtonAccess();
+    }
+
+    /// <summary>
+    /// Ending UI의 씬 전환 버튼을 현재 로컬 권한에 맞게 선택 가능/불가능 상태로 갱신합니다.
+    /// </summary>
+    public void SetFlowButtonsSelectable(bool canSelect)
+    {
+        if (_canSelectFlowButtons == canSelect)
+        {
+            return;
+        }
+
+        _canSelectFlowButtons = canSelect;
+        ApplyFlowButtonAccess();
     }
 
     /// <summary>
@@ -208,6 +231,30 @@ public sealed class EndingPanelView : MonoBehaviour
 
         GameFlowController gameFlowController = GameFlowController.Instance; // 상위 게임 플레이 모드 설정을 확인할 컨트롤러입니다.
         return gameFlowController == null || gameFlowController.CurrentPlayMode == E_GamePlayMode.SinglePlayer;
+    }
+
+    /// <summary>
+    /// Host/Single 권한이 없는 Client가 Ending UI 진행 버튼을 선택하지 못하도록 Button 상태를 적용합니다.
+    /// </summary>
+    private void ApplyFlowButtonAccess()
+    {
+        bool canInteract = _isCurrentlyVisible && _isPanelInteractable && _canSelectFlowButtons; // 패널 표시 상태, 전체 상호작용 상태, 권한을 함께 반영한 실제 버튼 선택 가능 여부입니다.
+        SetButtonInteractable(_nextStageButton, canInteract);
+        SetButtonInteractable(_returnToTownButton, canInteract);
+        SetButtonInteractable(_restartStageEntryButton, canInteract);
+    }
+
+    /// <summary>
+    /// null 안전성을 유지하면서 Button 선택 가능 상태를 변경합니다.
+    /// </summary>
+    private void SetButtonInteractable(Button targetButton, bool isInteractable)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        targetButton.interactable = isInteractable;
     }
 
     /// <summary>

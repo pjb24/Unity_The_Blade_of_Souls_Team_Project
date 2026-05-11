@@ -33,6 +33,10 @@ public sealed class DeathPanelView : MonoBehaviour
     public event Action ReturnToTownRequested; // 마을 이동 버튼 입력을 외부 흐름에 전달하는 이벤트입니다.
     public event Action QuitGameRequested; // 게임 종료 버튼 입력을 외부 흐름에 전달하는 이벤트입니다.
 
+    private bool _isCurrentlyVisible; // 현재 사망 UI가 표시 중인지 추적해 버튼 권한 갱신에 사용합니다.
+    private bool _isPanelInteractable; // 현재 사망 UI 전체 상호작용 허용 상태를 저장합니다.
+    private bool _canSelectFlowButtons = true; // 현재 로컬 플레이어가 게임 종료 외 진행 버튼을 선택할 수 있는지 저장합니다.
+
     /// <summary>
     /// 컴포넌트 초기화 시 디자이너가 지정한 초기 표시 상태를 적용합니다.
     /// </summary>
@@ -92,16 +96,20 @@ public sealed class DeathPanelView : MonoBehaviour
     /// </summary>
     public void SetVisible(bool isVisible)
     {
+        _isCurrentlyVisible = isVisible;
+        _isPanelInteractable = isVisible;
         GameObject root = ResolvePanelRoot(); // 실제 활성 상태를 적용할 UI 루트입니다.
         root.SetActive(isVisible);
 
         if (_canvasGroup == null)
         {
+            ApplyFlowButtonAccess();
             return;
         }
 
         _canvasGroup.alpha = isVisible ? 1f : 0f;
         SetInteractable(isVisible);
+        ApplyFlowButtonAccess();
     }
 
     /// <summary>
@@ -109,13 +117,31 @@ public sealed class DeathPanelView : MonoBehaviour
     /// </summary>
     public void SetInteractable(bool isInteractable)
     {
+        _isPanelInteractable = isInteractable;
+
         if (_canvasGroup == null)
         {
+            ApplyFlowButtonAccess();
             return;
         }
 
         _canvasGroup.interactable = isInteractable;
         _canvasGroup.blocksRaycasts = isInteractable;
+        ApplyFlowButtonAccess();
+    }
+
+    /// <summary>
+    /// Death UI의 게임 종료 외 진행 버튼을 현재 로컬 권한에 맞게 선택 가능/불가능 상태로 갱신합니다.
+    /// </summary>
+    public void SetFlowButtonsSelectable(bool canSelect)
+    {
+        if (_canSelectFlowButtons == canSelect)
+        {
+            return;
+        }
+
+        _canSelectFlowButtons = canSelect;
+        ApplyFlowButtonAccess();
     }
 
     /// <summary>
@@ -135,6 +161,34 @@ public sealed class DeathPanelView : MonoBehaviour
     private GameObject ResolvePanelRoot()
     {
         return _panelRoot != null ? _panelRoot : gameObject;
+    }
+
+    /// <summary>
+    /// Host/Single 권한이 없는 Client가 Death UI 진행 버튼을 선택하지 못하도록 Button 상태를 적용합니다.
+    /// </summary>
+    private void ApplyFlowButtonAccess()
+    {
+        bool canInteract = _isCurrentlyVisible && _isPanelInteractable && _canSelectFlowButtons; // 패널 표시 상태, 전체 상호작용 상태, 권한을 함께 반영한 실제 진행 버튼 선택 가능 여부입니다.
+        SetButtonInteractable(_restartLastCheckpointButton, canInteract);
+        SetButtonInteractable(_returnToTownButton, canInteract);
+
+        if (_quitGameButton != null)
+        {
+            _quitGameButton.interactable = _isCurrentlyVisible && _isPanelInteractable;
+        }
+    }
+
+    /// <summary>
+    /// null 안전성을 유지하면서 Button 선택 가능 상태를 변경합니다.
+    /// </summary>
+    private void SetButtonInteractable(Button targetButton, bool isInteractable)
+    {
+        if (targetButton == null)
+        {
+            return;
+        }
+
+        targetButton.interactable = isInteractable;
     }
 
     /// <summary>
