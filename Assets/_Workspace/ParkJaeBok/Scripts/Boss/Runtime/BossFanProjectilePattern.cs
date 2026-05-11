@@ -1,3 +1,4 @@
+using System.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -237,7 +238,7 @@ public sealed class BossFanProjectilePattern : BossPatternBase
         {
             float angle = firstAngle + (angleStep * index); // 기준 방향에서 현재 투사체가 회전할 각도입니다.
             Vector2 projectileDirection = RotateDirection(baseDirection, angle);
-            int projectileVisualId = ShouldReplicateProjectileVisuals() ? NextProjectileVisualId() : 0;
+            int projectileVisualId = ShouldReplicateProjectileVisuals(settings.ProjectilePrefab) ? NextProjectileVisualId() : 0;
             PooledRangedProjectile projectile = _projectileSpawnService.RequestSpawn(
                 settings.ProjectilePrefab,
                 spawnPosition,
@@ -254,6 +255,11 @@ public sealed class BossFanProjectilePattern : BossPatternBase
             }
 
             projectile.ConfigureHitSettings(settings.Damage, settings.ProjectileCollisionLayerMask, settings.StatusTag);
+
+            if (TryGetSpawnedNetworkProjectile(projectile, out NetworkObject projectileNetworkObject))
+            {
+                InitializeNetworkProjectileVisualRpc(new NetworkObjectReference(projectileNetworkObject), spawnPosition, projectileDirection, settings.ProjectileSpeed, settings.ProjectileLifetime);
+            }
 
             if (projectileVisualId > 0)
             {
@@ -329,6 +335,62 @@ public sealed class BossFanProjectilePattern : BossPatternBase
     }
 
     /// <summary>
+    /// 서버가 NGO로 Spawn한 투사체의 발사 파라미터를 Client 시각 인스턴스에 전달한다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void InitializeNetworkProjectileVisualRpc(NetworkObjectReference projectileReference, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
+    {
+        if (TryInitializeNetworkProjectileVisual(projectileReference, firePosition, direction, projectileSpeed, projectileLifetime))
+        {
+            return;
+        }
+
+        StartCoroutine(InitializeNetworkProjectileVisualWhenSpawned(projectileReference, firePosition, direction, projectileSpeed, projectileLifetime));
+    }
+
+    /// <summary>
+    /// NGO Spawn 메시지와 RPC 수신 순서 차이를 흡수하기 위해 투사체가 준비될 때까지 짧게 재시도한다.
+    /// </summary>
+    private IEnumerator InitializeNetworkProjectileVisualWhenSpawned(NetworkObjectReference projectileReference, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
+    {
+        const int MaxRetryCount = 8; // Spawn 메시지 도착 지연을 허용하는 최대 프레임 수입니다.
+
+        for (int retryIndex = 0; retryIndex < MaxRetryCount; retryIndex++)
+        {
+            yield return null;
+
+            if (TryInitializeNetworkProjectileVisual(projectileReference, firePosition, direction, projectileSpeed, projectileLifetime))
+            {
+                yield break;
+            }
+        }
+
+        Debug.LogWarning($"[BossFanProjectilePattern] Client에서 NGO 투사체 초기화를 완료하지 못했습니다. object={name}", this);
+    }
+
+    /// <summary>
+    /// Client에 Spawn된 NGO 투사체를 데미지 없는 시각 전용 상태로 초기화한다.
+    /// </summary>
+    private bool TryInitializeNetworkProjectileVisual(NetworkObjectReference projectileReference, Vector2 firePosition, Vector2 direction, float projectileSpeed, float projectileLifetime)
+    {
+        if (!projectileReference.TryGet(out NetworkObject projectileNetworkObject) || projectileNetworkObject == null)
+        {
+            return false;
+        }
+
+        PooledRangedProjectile projectile = projectileNetworkObject.GetComponent<PooledRangedProjectile>(); // Client에서 이동을 수행할 투사체 런타임 컴포넌트입니다.
+        if (projectile == null)
+        {
+            Debug.LogWarning($"[BossFanProjectilePattern] NGO 투사체에 PooledRangedProjectile이 없습니다. object={name}, projectile={projectileNetworkObject.name}", projectileNetworkObject);
+            return true;
+        }
+
+        projectile.transform.position = firePosition;
+        projectile.Initialize(direction, projectileSpeed, projectileLifetime, gameObject, true);
+        return true;
+    }
+
+    /// <summary>
     /// Client가 수신한 PatternId를 기준으로 동일한 투사체 프리팹을 보스 패턴 데이터에서 찾는다.
     /// </summary>
     private bool TryGetVisualProjectilePrefab(string patternId, out GameObject projectilePrefab)
@@ -385,6 +447,46 @@ public sealed class BossFanProjectilePattern : BossPatternBase
     {
         NetworkManager networkManager = NetworkManager.Singleton; // NGO 세션 활성 여부 확인에 사용하는 매니저 참조입니다.
         return networkManager != null && networkManager.IsListening && IsServer && IsSpawned;
+    }
+
+    /// <summary>
+    /// 투사체 프리팹의 NGO 복제 여부를 고려해 별도 Client 시각 투사체가 필요한지 판정한다.
+    /// </summary>
+    private bool ShouldReplicateProjectileVisuals(GameObject projectilePrefab)
+    {
+        if (!ShouldReplicateProjectileVisuals())
+        {
+            return false;
+        }
+
+        if (projectilePrefab == null)
+        {
+            return false;
+        }
+
+        NetworkObject projectileNetworkObject = projectilePrefab.GetComponent<NetworkObject>(); // NGO가 직접 복제하는 투사체인지 판별하는 NetworkObject 참조입니다.
+        return projectileNetworkObject == null;
+    }
+
+    /// <summary>
+    /// 서버가 Spawn한 NGO 투사체인지 확인하고 Client 초기화 RPC에 사용할 NetworkObject를 반환한다.
+    /// </summary>
+    private bool TryGetSpawnedNetworkProjectile(PooledRangedProjectile projectile, out NetworkObject projectileNetworkObject)
+    {
+        projectileNetworkObject = null;
+
+        if (!ShouldReplicateProjectileVisuals())
+        {
+            return false;
+        }
+
+        if (projectile == null)
+        {
+            return false;
+        }
+
+        projectileNetworkObject = projectile.GetComponent<NetworkObject>();
+        return projectileNetworkObject != null && projectileNetworkObject.IsSpawned;
     }
 
     /// <summary>
