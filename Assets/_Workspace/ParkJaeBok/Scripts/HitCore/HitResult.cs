@@ -12,6 +12,7 @@ public enum E_HitRejectReason
     TargetDead = 6,
     ReceiverNotReady = 7,
     BlockedByHealthSystem = 8,
+    NetworkAuthorityUnavailable = 9,
 }
 
 /// <summary>

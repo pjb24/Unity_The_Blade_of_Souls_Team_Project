@@ -693,9 +693,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HitReceiver
   _healthComponent: {fileID: 6555528832920987762}
+  _networkObject: {fileID: 0}
   _isInvincible: 0
   _postHitInvincibilitySeconds: 0
   _incomingDamageMultiplier: 1
+  _requireServerAuthorityWhenNetworked: 1
 --- !u!1 &8153201445621807567
 GameObject:
   m_ObjectHideFlags: 0

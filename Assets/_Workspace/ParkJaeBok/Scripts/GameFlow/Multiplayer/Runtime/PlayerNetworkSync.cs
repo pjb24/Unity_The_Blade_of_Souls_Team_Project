@@ -349,6 +349,11 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener, IActionListe
         E_ActionType currentActionType = runtime.IsRunning ? runtime.ActionType : E_ActionType.None; // 네트워크 전송용 액션 타입 스냅샷입니다.
         bool currentIsRunning = runtime.IsRunning; // 네트워크 전송용 액션 실행 여부 스냅샷입니다.
 
+        if (currentIsRunning && IsServerAuthoritativeAction(currentActionType))
+        {
+            return;
+        }
+
         if (currentIsRunning && !IsReplicatedAction(currentActionType))
         {
             return;
@@ -588,23 +593,24 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener, IActionListe
             return;
         }
 
-        E_ActionType resolvedActionType = _replicatedActionRunning.Value
+        bool isReplicatedActionRunning = _replicatedActionRunning.Value; // 서버가 복제한 액션 실행 여부입니다.
+        E_ActionType resolvedActionType = isReplicatedActionRunning
             ? (E_ActionType)_replicatedActionType.Value
             : E_ActionType.Idle; // 실행 중이 아닌 경우 원격 화면 표현을 Idle로 정규화합니다.
 
         bool isServerAuthoritativeAction = IsServerAuthoritativeAction(resolvedActionType); // Owner 재적용 허용 여부를 판정할 서버 확정 액션 플래그입니다.
-        if (IsOwner && (!isServerAuthoritativeAction || !_applyServerAuthoritativeActionsToOwner))
+        if (IsOwner && !ShouldApplyReplicatedActionStateToOwner(isReplicatedActionRunning, isServerAuthoritativeAction))
         {
             return;
         }
 
-        if (!IsReplicatedAction(resolvedActionType))
+        if (isReplicatedActionRunning && !IsReplicatedAction(resolvedActionType))
         {
             return;
         }
 
         ActionRuntime runtime = _actionController.Runtime; // 현재 원격 인스턴스에서 실행 중인 액션 런타임 스냅샷입니다.
-        if (_replicatedActionRunning.Value)
+        if (isReplicatedActionRunning)
         {
             if (!IsOwner && isServerAuthoritativeAction)
             {
@@ -621,6 +627,30 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener, IActionListe
         }
 
         _actionController.ApplyReplicatedActionStop(E_ActionType.Idle, "PlayerNetworkSync-State");
+    }
+
+    /// <summary>
+    /// Owner 클라이언트가 서버 복제 액션 상태를 로컬 ActionController에 적용해야 하는지 판정합니다.
+    /// </summary>
+    private bool ShouldApplyReplicatedActionStateToOwner(bool isReplicatedActionRunning, bool isReplicatedServerAuthoritativeAction)
+    {
+        if (!_applyServerAuthoritativeActionsToOwner)
+        {
+            return false;
+        }
+
+        if (isReplicatedActionRunning)
+        {
+            return isReplicatedServerAuthoritativeAction;
+        }
+
+        if (!TryResolveActionController())
+        {
+            return false;
+        }
+
+        ActionRuntime runtime = _actionController.Runtime; // Owner 로컬에서 현재 실행 중인 액션을 확인하기 위한 런타임 참조입니다.
+        return runtime.IsRunning && IsServerAuthoritativeAction(runtime.ActionType);
     }
 
     /// <summary>

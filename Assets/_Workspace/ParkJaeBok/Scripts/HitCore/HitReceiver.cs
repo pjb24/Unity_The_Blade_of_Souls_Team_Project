@@ -1,6 +1,7 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
@@ -11,6 +12,9 @@ public class HitReceiver : MonoBehaviour
     [Header("Dependencies")]
     [Tooltip("수락된 피격 데미지를 적용하는 데 사용하는 HealthComponent입니다. 비어 있을 경우 동일 GameObject에서 자동으로 참조를 시도합니다.")]
     [SerializeField] private HealthComponent _healthComponent; // 기존 Health 시스템의 HealthComponent 참조입니다.
+
+    [Tooltip("NGO 네트워크 세션에서 서버 권한 피격 판정을 적용할 NetworkObject입니다. 비어 있으면 부모/자식 계층에서 자동 탐색합니다.")]
+    [SerializeField] private NetworkObject _networkObject; // 네트워크 세션에서 서버만 Hit를 확정하도록 판정할 때 사용하는 NetworkObject 참조입니다.
 
     [Header("Status")]
     [Tooltip("게임플레이 스크립트에서 제어하는 수동 무적 상태입니다. 활성화되면 모든 피격을 거부합니다.")]
@@ -23,6 +27,10 @@ public class HitReceiver : MonoBehaviour
     [Header("Damage Rules")]
     [Tooltip("입력된 원본 데미지에 적용되는 배율입니다. HealthComponent에 전달되기 전에 적용됩니다.")]
     [SerializeField] private float _incomingDamageMultiplier = 1f; // 최종 데미지 계산에 사용하는 배율입니다.
+
+    [Header("Multiplayer Authority")]
+    [Tooltip("NGO 네트워크 세션에서 Spawn된 대상의 Hit를 서버에서만 확정할지 여부입니다. Client 예측 피격과 서버 피격이 중복 적용되는 것을 방지합니다.")]
+    [SerializeField] private bool _requireServerAuthorityWhenNetworked = true; // 멀티플레이 중 Client 로컬 Hit 적용을 막고 서버 확정 Hit만 허용하는 설정입니다.
 
     private readonly HashSet<string> _consumedHitIds = new HashSet<string>(); // 이미 처리한 HitId를 기록하여 중복 타격을 방지합니다.
     private readonly List<IHitListener> _listeners = new List<IHitListener>(); // 피격 결과 통지를 받을 리스너 목록입니다.
@@ -65,6 +73,8 @@ public class HitReceiver : MonoBehaviour
             }
         }
 
+        TryResolveNetworkObject();
+
         if (_incomingDamageMultiplier < 0f)
         {
             Debug.LogWarning($"[HitReceiver] {name}의 _incomingDamageMultiplier({_incomingDamageMultiplier}) 값이 잘못되었습니다. 0으로 대체합니다.");
@@ -91,6 +101,8 @@ public class HitReceiver : MonoBehaviour
     /// </summary>
     private void OnValidate()
     {
+        TryResolveNetworkObject();
+
         if (_incomingDamageMultiplier < 0f)
         {
             Debug.LogWarning($"[HitReceiver] {name}의 _incomingDamageMultiplier({_incomingDamageMultiplier}) 값이 잘못되었습니다. 0으로 대체합니다.");
@@ -315,6 +327,12 @@ public class HitReceiver : MonoBehaviour
     /// </summary>
     private bool TryCheckAcceptable(in HitRequest request, out E_HitRejectReason failReason)
     {
+        if (!HasHitAuthority())
+        {
+            failReason = E_HitRejectReason.NetworkAuthorityUnavailable;
+            return false;
+        }
+
         if (_healthComponent == null)
         {
             Debug.LogWarning($"[HitReceiver] {name}에서 HealthComponent가 없습니다. HitId={request.HitId}");
@@ -342,6 +360,59 @@ public class HitReceiver : MonoBehaviour
 
         failReason = E_HitRejectReason.None;
         return true;
+    }
+
+    /// <summary>
+    /// 현재 피어가 이 Receiver의 Hit를 실제 체력/액션 결과로 확정할 권한이 있는지 확인합니다.
+    /// </summary>
+    private bool HasHitAuthority()
+    {
+        if (!_requireServerAuthorityWhenNetworked)
+        {
+            return true;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션의 서버/클라이언트 역할을 확인하기 위한 NetworkManager 참조입니다.
+        if (networkManager == null || !networkManager.IsListening)
+        {
+            return true;
+        }
+
+        if (!TryResolveNetworkObject())
+        {
+            return true;
+        }
+
+        if (!_networkObject.IsSpawned)
+        {
+            return true;
+        }
+
+        return networkManager.IsServer;
+    }
+
+    /// <summary>
+    /// 피격 대상 계층에서 NetworkObject를 찾아 네트워크 권한 판정에 사용할 참조를 보정합니다.
+    /// </summary>
+    private bool TryResolveNetworkObject()
+    {
+        if (_networkObject != null)
+        {
+            return true;
+        }
+
+        _networkObject = GetComponent<NetworkObject>();
+        if (_networkObject == null)
+        {
+            _networkObject = GetComponentInParent<NetworkObject>();
+        }
+
+        if (_networkObject == null)
+        {
+            _networkObject = GetComponentInChildren<NetworkObject>(true);
+        }
+
+        return _networkObject != null;
     }
 
     /// <summary>
