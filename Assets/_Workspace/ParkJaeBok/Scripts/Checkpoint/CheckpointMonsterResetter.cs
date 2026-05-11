@@ -98,9 +98,16 @@ public class CheckpointMonsterResetter : MonoBehaviour
                 continue;
             }
 
-            snapshot.Root.SetActive(true);
+            if (snapshot.DeathController != null)
+            {
+                snapshot.DeathController.ResetRuntimeForCheckpointRespawn();
+            }
+            else
+            {
+                snapshot.Root.SetActive(true);
+            }
+
             snapshot.Transform.SetPositionAndRotation(snapshot.Position, snapshot.Rotation);
-            snapshot.DeathController?.ResetRuntime();
             snapshot.MovementController?.StopMovement();
             snapshot.MovementController?.ForceSyncNow();
 

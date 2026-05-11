@@ -40,6 +40,7 @@ public class EnemyAIDeathController : NetworkBehaviour
 
     private EffectHandle _deathVfxHandle; // 현재 재생 중인 사망 VFX 핸들입니다.
     private Coroutine _removeRoutine; // 제거 시퀀스 코루틴 핸들입니다.
+    private HealthComponent _healthComponent; // 체크포인트 리스폰 시 Client 관찰자 체력 상태를 복구할 HealthComponent 참조입니다.
 
     /// <summary>
     /// Death 상태 1회 진입 여부를 반환합니다.
@@ -164,6 +165,21 @@ public class EnemyAIDeathController : NetworkBehaviour
     }
 
     /// <summary>
+    /// 체크포인트 리스폰으로 Enemy를 다시 표시하고 사망 런타임 상태를 서버 기준으로 관찰자에게 복제합니다.
+    /// </summary>
+    public void ResetRuntimeForCheckpointRespawn()
+    {
+        ResetRuntime();
+        ReviveHealthToMax();
+        ShowGameObject();
+
+        if (EnemyNetworkAuthorityUtility.ShouldReplicateFromServer(_networkObject))
+        {
+            ShowOnObserversRpc();
+        }
+    }
+
+    /// <summary>
     /// 현재 Enemy 루트 오브젝트를 즉시 비활성화하거나 파괴합니다.
     /// </summary>
     public void HideGameObject()
@@ -184,6 +200,19 @@ public class EnemyAIDeathController : NetworkBehaviour
         }
 
         gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// 현재 Enemy 루트 오브젝트를 즉시 활성화합니다.
+    /// </summary>
+    public void ShowGameObject()
+    {
+        if (gameObject == null || gameObject.activeSelf)
+        {
+            return;
+        }
+
+        gameObject.SetActive(true);
     }
 
     /// <summary>
@@ -208,6 +237,37 @@ public class EnemyAIDeathController : NetworkBehaviour
         {
             _networkObject = GetComponent<NetworkObject>();
         }
+
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponent<HealthComponent>();
+        }
+
+        if (_healthComponent == null)
+        {
+            _healthComponent = GetComponentInChildren<HealthComponent>(true);
+        }
+    }
+
+    /// <summary>
+    /// 비활성 관찰자 인스턴스가 다시 Death 상태로 진입하지 않도록 체력을 최대치로 복구합니다.
+    /// </summary>
+    private void ReviveHealthToMax()
+    {
+        ResolveReferences();
+        if (_healthComponent == null)
+        {
+            return;
+        }
+
+        float maxHealth = _healthComponent.GetMaxHealth(); // 체크포인트 리스폰 후 Enemy가 가져야 할 최대 체력입니다.
+        if (_healthComponent.IsDead)
+        {
+            _healthComponent.Revive(Mathf.Max(0.01f, maxHealth));
+        }
+
+        _healthComponent.SetCurrentHealth(maxHealth);
+        _healthComponent.NotifyCurrentHealthState();
     }
 
     /// <summary>
@@ -328,5 +388,16 @@ public class EnemyAIDeathController : NetworkBehaviour
     private void HideOnObserversRpc()
     {
         HideGameObject();
+    }
+
+    /// <summary>
+    /// 서버가 확정한 체크포인트 리스폰 표시 복구를 관찰자 인스턴스에도 적용합니다.
+    /// </summary>
+    [Rpc(SendTo.NotServer)]
+    private void ShowOnObserversRpc()
+    {
+        ResetRuntime();
+        ReviveHealthToMax();
+        ShowGameObject();
     }
 }
