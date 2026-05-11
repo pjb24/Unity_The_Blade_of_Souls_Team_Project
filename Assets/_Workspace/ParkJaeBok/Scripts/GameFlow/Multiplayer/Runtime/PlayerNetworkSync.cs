@@ -8,7 +8,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(NetworkObject))]
 [RequireComponent(typeof(NetworkTransform))]
-public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
+public class PlayerNetworkSync : NetworkBehaviour, IHealthListener, IActionListener
 {
     private struct ReplicatedHealthState : INetworkSerializable, System.IEquatable<ReplicatedHealthState>
     {
@@ -70,6 +70,8 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     [SerializeField] private bool _enableActionStateSync = true; // 액션 상태 네트워크 동기화 활성화 여부입니다.
     [Tooltip("액션 상태 전송 간 최소 간격(초)입니다.")]
     [SerializeField] private float _actionStateSendInterval = 0.033f; // 액션 상태 전송 빈도를 제한하기 위한 최소 간격입니다.
+    [Tooltip("서버 권한 액션 때문에 Owner 액션 상태 RPC가 임시 거부됐을 때 미확정 상태를 재전송할 간격(초)입니다.")]
+    [SerializeField] private float _unconfirmedActionStateResendInterval = 0.1f; // 서버 복제 상태가 마지막 Owner 전송 상태와 일치하지 않을 때 재전송을 제한하는 간격입니다.
     [Tooltip("Running 상태에서 필터 없이 모든 액션 타입을 복제할지 여부입니다.")]
     [SerializeField] private bool _replicateAllActionTypes = true; // Running 상태에서 액션 타입 필터를 비활성화하고 전체 액션을 복제할지 여부입니다.
     [Tooltip("모든 액션 복제를 사용하지 않을 때 추가로 복제 허용할 액션 타입 목록입니다.")]
@@ -96,6 +98,10 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     }; // 서버 확정값으로 우선 처리할 액션 타입 목록입니다.
     [Tooltip("Owner 클라이언트에도 서버 확정 피격 계열 액션을 재적용할지 여부입니다.")]
     [SerializeField] private bool _applyServerAuthoritativeActionsToOwner = true; // Owner 화면에 서버 확정 피격 계열 액션을 재적용할지 여부입니다.
+    [Tooltip("서버 권한 액션이 완료 이벤트를 내지 못했을 때 서버 ActionController를 자동 완료 처리할 최대 유지 시간(초)입니다. 0 이하면 비활성화됩니다.")]
+    [SerializeField] private float _serverAuthoritativeActionMaxDuration = 0.6f; // Hit 같은 서버 권한 액션이 완료 신호를 놓쳐 입력 복제가 영구 차단되지 않도록 제한하는 시간입니다.
+    [Tooltip("자동 완료 보호에서 제외할 서버 권한 액션 목록입니다. Die처럼 외부 부활/장면 전환으로 끝나는 액션을 넣습니다.")]
+    [SerializeField] private E_ActionType[] _serverAuthoritativeAutoCompleteExclusions = new E_ActionType[] { E_ActionType.Die }; // 자동 완료 보호를 적용하지 않을 서버 권한 액션 목록입니다.
 
     [Header("Facing Direction Sync")]
     [Tooltip("Owner가 바라보는 방향 상태를 서버로 전송할지 여부입니다.")]
@@ -145,6 +151,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     private E_ActionType _lastSentActionType = E_ActionType.None; // Owner가 서버에 마지막으로 전송한 액션 타입 캐시입니다.
     private bool _lastSentIsRunning; // Owner가 서버에 마지막으로 전송한 액션 실행 여부 캐시입니다.
     private float _nextActionStateSendTime; // 다음 액션 상태 전송 가능 시각(초)입니다.
+    private float _nextUnconfirmedActionStateResendTime; // 서버 복제 변수에 반영되지 않은 Owner 액션 상태를 다음에 재전송할 수 있는 시각입니다.
     private float _nextFacingDirectionSendTime; // 다음 방향 상태 전송 가능 시각(초)입니다.
 
     /// <summary>
@@ -159,6 +166,10 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     private int _lastAppliedHealthRevision = -1; // 로컬 HealthComponent에 마지막으로 반영한 체력 스냅샷 순번입니다.
     private int _lastAppliedActionStartRevision = -1; // 로컬 관찰자 인스턴스가 마지막으로 처리한 액션 시작 revision 값입니다.
     private int _lastPublishedServerAuthoritativeExecutionId = -1; // 서버 권한 액션 시작 이벤트의 중복 발행을 막기 위한 마지막 실행 ID입니다.
+    private bool _isActionListenerRegistered; // 서버 권한 액션 완료/취소를 복제 변수에 반영하기 위한 ActionController 리스너 등록 여부입니다.
+    private E_ActionType _serverAuthoritativeRuntimeAction = E_ActionType.None; // 현재 서버가 권한을 가진 상태로 추적 중인 액션 타입입니다.
+    private int _serverAuthoritativeRuntimeExecutionId = -1; // 현재 서버 권한 액션의 실행 ID입니다.
+    private float _serverAuthoritativeRuntimeReleaseAt = -1f; // 완료 이벤트 누락 시 서버 권한 액션을 자동 완료할 시각입니다.
 
     private void Awake()
     {
@@ -215,6 +226,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
 
         if (_enableActionStateSync)
         {
+            RegisterActionListener();
             TryApplyReplicatedActionStartEvent();
             TryApplyReplicatedActionState();
         }
@@ -250,6 +262,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             _playerMovement.FacingDirectionChanged -= HandleLocalFacingDirectionChanged;
         }
 
+        UnregisterActionListener();
         UnregisterHealthListener();
     }
 
@@ -341,7 +354,13 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
-        if (_lastSentActionType == currentActionType && _lastSentIsRunning == currentIsRunning)
+        bool matchesLastSubmittedState = _lastSentActionType == currentActionType && _lastSentIsRunning == currentIsRunning; // 서버 확인 이후 중복 RPC를 막기 위해 마지막 전송 상태와 현재 로컬 상태가 같은지 비교합니다.
+        if (matchesLastSubmittedState && IsActionStateConfirmedByServer(currentActionType, currentIsRunning))
+        {
+            return;
+        }
+
+        if (matchesLastSubmittedState && Time.time < _nextUnconfirmedActionStateResendTime)
         {
             return;
         }
@@ -350,6 +369,7 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         _lastSentActionType = currentActionType;
         _lastSentIsRunning = currentIsRunning;
         _nextActionStateSendTime = Time.time + Mathf.Max(0.01f, _actionStateSendInterval);
+        _nextUnconfirmedActionStateResendTime = Time.time + Mathf.Max(0.02f, _unconfirmedActionStateResendInterval);
     }
 
     /// <summary>
@@ -426,7 +446,13 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             ActionRuntime runtime = _actionController.Runtime; // 서버 인스턴스에서 현재 유지 중인 액션 상태 스냅샷입니다.
             if (runtime.IsRunning && IsServerAuthoritativeAction(runtime.ActionType))
             {
-                return;
+                TryCompleteExpiredServerAuthoritativeAction(runtime);
+
+                runtime = _actionController.Runtime;
+                if (runtime.IsRunning && IsServerAuthoritativeAction(runtime.ActionType))
+                {
+                    return;
+                }
             }
         }
 
@@ -580,6 +606,11 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         ActionRuntime runtime = _actionController.Runtime; // 현재 원격 인스턴스에서 실행 중인 액션 런타임 스냅샷입니다.
         if (_replicatedActionRunning.Value)
         {
+            if (!IsOwner && isServerAuthoritativeAction)
+            {
+                return;
+            }
+
             if (runtime.IsRunning && runtime.ActionType == resolvedActionType)
             {
                 return;
@@ -593,9 +624,6 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
-    /// 서버 확정 방향 값을 PlayerMovement에 반영해 모든 참여자의 좌우 반전 상태를 일치시킵니다.
-    /// </summary>
-    /// <summary>
     /// 서버가 피격 계열 강제 액션을 감지하면 Owner 입력보다 우선하는 확정 상태로 복제합니다.
     /// </summary>
     private void MaintainServerAuthoritativeActionState()
@@ -605,8 +633,67 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
+        RegisterActionListener();
+
         ActionRuntime runtime = _actionController.Runtime; // 서버 인스턴스에서 현재 실행 중인 액션 스냅샷입니다.
         if (!runtime.IsRunning || !IsServerAuthoritativeAction(runtime.ActionType))
+        {
+            ClearServerAuthoritativeRuntimeTracking();
+            return;
+        }
+
+        if (_lastPublishedServerAuthoritativeExecutionId == runtime.ExecutionId
+            && _replicatedActionRunning.Value
+            && _replicatedActionType.Value == (int)runtime.ActionType)
+        {
+            TryCompleteExpiredServerAuthoritativeAction(runtime);
+            return;
+        }
+
+        PublishServerAuthoritativeActionStart(runtime);
+        TryCompleteExpiredServerAuthoritativeAction(runtime);
+    }
+
+    /// <summary>
+    /// 서버 ActionController의 액션 생명주기 이벤트를 구독해 서버 권한 액션 종료를 복제 상태에 반영합니다.
+    /// </summary>
+    private void RegisterActionListener()
+    {
+        if (!_enableActionStateSync || !IsServer || _isActionListenerRegistered)
+        {
+            return;
+        }
+
+        if (!TryResolveActionController())
+        {
+            return;
+        }
+
+        _actionController.AddListener(this);
+        _isActionListenerRegistered = true;
+    }
+
+    /// <summary>
+    /// 서버 ActionController 액션 생명주기 이벤트 구독을 해제합니다.
+    /// </summary>
+    private void UnregisterActionListener()
+    {
+        if (!_isActionListenerRegistered || _actionController == null)
+        {
+            _isActionListenerRegistered = false;
+            return;
+        }
+
+        _actionController.RemoveListener(this);
+        _isActionListenerRegistered = false;
+    }
+
+    /// <summary>
+    /// 서버 권한 액션 시작을 네트워크 복제 상태와 추적 캐시에 기록합니다.
+    /// </summary>
+    private void PublishServerAuthoritativeActionStart(ActionRuntime runtime)
+    {
+        if (!IsServer || runtime == null || !runtime.IsRunning || !IsServerAuthoritativeAction(runtime.ActionType))
         {
             return;
         }
@@ -619,7 +706,135 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
         }
 
         _lastPublishedServerAuthoritativeExecutionId = runtime.ExecutionId;
+        _serverAuthoritativeRuntimeAction = runtime.ActionType;
+        _serverAuthoritativeRuntimeExecutionId = runtime.ExecutionId;
+        _serverAuthoritativeRuntimeReleaseAt = ResolveServerAuthoritativeReleaseTime(runtime.ActionType);
         PublishReplicatedActionState((int)runtime.ActionType, true, shouldPublishStartEvent: true);
+    }
+
+    /// <summary>
+    /// 서버 권한 액션 종료를 네트워크 복제 상태에 반영해 원격 관찰자가 Hit 상태에 고정되지 않도록 합니다.
+    /// </summary>
+    private void PublishServerAuthoritativeActionStop(ActionRuntime runtime)
+    {
+        if (!IsServer || runtime == null || !IsServerAuthoritativeAction(runtime.ActionType))
+        {
+            return;
+        }
+
+        if (_serverAuthoritativeRuntimeExecutionId >= 0 && _serverAuthoritativeRuntimeExecutionId != runtime.ExecutionId)
+        {
+            return;
+        }
+
+        PublishReplicatedActionState((int)E_ActionType.None, false, shouldPublishStartEvent: false);
+        ClearServerAuthoritativeRuntimeTracking();
+    }
+
+    /// <summary>
+    /// 서버 권한 액션의 자동 완료 보호 시각을 계산합니다.
+    /// </summary>
+    private float ResolveServerAuthoritativeReleaseTime(E_ActionType actionType)
+    {
+        if (_serverAuthoritativeActionMaxDuration <= 0f || IsServerAuthoritativeAutoCompleteExcluded(actionType))
+        {
+            return -1f;
+        }
+
+        return Time.time + Mathf.Max(0.05f, _serverAuthoritativeActionMaxDuration);
+    }
+
+    /// <summary>
+    /// 완료 이벤트가 누락된 서버 권한 액션을 제한 시간 이후 안전하게 완료 처리합니다.
+    /// </summary>
+    private void TryCompleteExpiredServerAuthoritativeAction(ActionRuntime runtime)
+    {
+        if (!IsServer || runtime == null || !runtime.IsRunning || !IsServerAuthoritativeAction(runtime.ActionType))
+        {
+            return;
+        }
+
+        if (_serverAuthoritativeRuntimeExecutionId != runtime.ExecutionId)
+        {
+            _serverAuthoritativeRuntimeAction = runtime.ActionType;
+            _serverAuthoritativeRuntimeExecutionId = runtime.ExecutionId;
+            _serverAuthoritativeRuntimeReleaseAt = ResolveServerAuthoritativeReleaseTime(runtime.ActionType);
+        }
+
+        if (_serverAuthoritativeRuntimeReleaseAt < 0f || Time.time < _serverAuthoritativeRuntimeReleaseAt)
+        {
+            return;
+        }
+
+        _actionController.CompleteCurrentAction();
+    }
+
+    /// <summary>
+    /// 서버 권한 액션 자동 완료 보호에서 제외된 액션인지 확인합니다.
+    /// </summary>
+    private bool IsServerAuthoritativeAutoCompleteExcluded(E_ActionType actionType)
+    {
+        if (_serverAuthoritativeAutoCompleteExclusions == null)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < _serverAuthoritativeAutoCompleteExclusions.Length; index++)
+        {
+            if (_serverAuthoritativeAutoCompleteExclusions[index] == actionType)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// 서버 권한 액션 추적 캐시를 초기화합니다.
+    /// </summary>
+    private void ClearServerAuthoritativeRuntimeTracking()
+    {
+        _lastPublishedServerAuthoritativeExecutionId = -1;
+        _serverAuthoritativeRuntimeAction = E_ActionType.None;
+        _serverAuthoritativeRuntimeExecutionId = -1;
+        _serverAuthoritativeRuntimeReleaseAt = -1f;
+    }
+
+    /// <summary>
+    /// 액션 시작 이벤트에서 서버 권한 액션을 즉시 복제합니다.
+    /// </summary>
+    public void OnActionStarted(ActionRuntime runtime)
+    {
+        if (!IsServer || runtime == null || !IsServerAuthoritativeAction(runtime.ActionType))
+        {
+            return;
+        }
+
+        PublishServerAuthoritativeActionStart(runtime);
+    }
+
+    /// <summary>
+    /// 액션 단계 변경 이벤트는 현재 네트워크 복제에 추가 처리가 필요하지 않습니다.
+    /// </summary>
+    public void OnActionPhaseChanged(ActionRuntime runtime, E_ActionPhase previousPhase, E_ActionPhase currentPhase)
+    {
+    }
+
+    /// <summary>
+    /// 서버 권한 액션 완료 시 원격 관찰자에게 액션 종료 상태를 복제합니다.
+    /// </summary>
+    public void OnActionCompleted(ActionRuntime runtime)
+    {
+        PublishServerAuthoritativeActionStop(runtime);
+    }
+
+    /// <summary>
+    /// 서버 권한 액션 취소 시 원격 관찰자에게 액션 종료 상태를 복제합니다.
+    /// </summary>
+    public void OnActionCancelled(ActionRuntime runtime, string reason)
+    {
+        PublishServerAuthoritativeActionStop(runtime);
     }
 
     /// <summary>
@@ -834,6 +1049,8 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
     /// </summary>
     private void PublishReplicatedActionState(int actionTypeValue, bool isRunning, bool shouldPublishStartEvent)
     {
+        bool actionStateChanged = _replicatedActionType.Value != actionTypeValue || _replicatedActionRunning.Value != isRunning; // 이번 수락 상태가 관찰자에게 새 액션 시작 이벤트로 전달돼야 하는지 판정합니다.
+
         _replicatedActionType.Value = actionTypeValue;
         _replicatedActionRunning.Value = isRunning;
 
@@ -848,8 +1065,27 @@ public class PlayerNetworkSync : NetworkBehaviour, IHealthListener
             return;
         }
 
+        if (!actionStateChanged)
+        {
+            return;
+        }
+
         _replicatedActionStartType.Value = actionTypeValue;
         _replicatedActionStartRevision.Value++;
+    }
+
+    /// <summary>
+    /// 최신 서버 복제 액션 상태가 Owner 로컬 액션 상태와 일치하는지 확인합니다.
+    /// </summary>
+    private bool IsActionStateConfirmedByServer(E_ActionType actionType, bool isRunning)
+    {
+        if (_replicatedActionRunning.Value != isRunning)
+        {
+            return false;
+        }
+
+        E_ActionType replicatedActionType = isRunning ? (E_ActionType)_replicatedActionType.Value : E_ActionType.None; // Owner 전송 확인에 사용할 서버 복제 액션 상태를 정규화한 값입니다.
+        return replicatedActionType == actionType;
     }
 
     /// <summary>
