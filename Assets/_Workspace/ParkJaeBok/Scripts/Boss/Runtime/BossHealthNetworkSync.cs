@@ -144,6 +144,14 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// 네트워크 스폰 이후 늦게 준비되는 HealthComponent와 복제 스냅샷을 지속적으로 보정합니다.
+    /// </summary>
+    private void Update()
+    {
+        MaintainHealthSyncBinding();
+    }
+
+    /// <summary>
     /// Inspector 값 변경 시 자동 참조와 디자이너 입력값을 검증합니다.
     /// </summary>
     private void OnValidate()
@@ -253,6 +261,39 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// 서버에서는 HealthComponent 구독을 보장하고 Client에서는 아직 적용하지 못한 최신 스냅샷을 반영합니다.
+    /// </summary>
+    private void MaintainHealthSyncBinding()
+    {
+        if (!_enableHealthStateSync || !IsSpawned)
+        {
+            return;
+        }
+
+        if (IsServer)
+        {
+            if (!_isHealthListenerRegistered)
+            {
+                RegisterHealthListenerIfServer();
+
+                if (_isHealthListenerRegistered)
+                {
+                    PublishHealthSnapshot();
+                }
+            }
+
+            return;
+        }
+
+        if (_lastAppliedHealthRevision == _replicatedHealthState.Value.Revision)
+        {
+            return;
+        }
+
+        ApplyReplicatedHealthSnapshot();
+    }
+
+    /// <summary>
     /// HealthComponent 이벤트 구독을 해제합니다.
     /// </summary>
     private void UnregisterHealthListener()
@@ -330,6 +371,7 @@ public class BossHealthNetworkSync : NetworkBehaviour, IHealthListener
 
         _bossHealthComponent.SetMaxHealth(safeMaxHealth, false);
         _bossHealthComponent.SetCurrentHealth(safeCurrentHealth);
+        _bossHealthComponent.NotifyCurrentHealthState();
         _lastAppliedHealthRevision = snapshot.Revision;
     }
 

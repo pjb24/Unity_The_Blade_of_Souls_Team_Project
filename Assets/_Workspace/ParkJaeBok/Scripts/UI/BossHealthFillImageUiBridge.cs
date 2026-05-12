@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -38,11 +39,22 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
     [Min(1)]
     [SerializeField] private int _maxRetryCount = 50; // 보스 체력 소스 재탐색 최대 횟수입니다.
 
+    [Tooltip("NGO Client에서는 서버 확정 보스 체력 스냅샷을 우선 사용합니다.")]
+    [SerializeField] private bool _preferNetworkSyncOnClient = true; // Client 로컬 HealthComponent보다 BossHealthNetworkSync 스냅샷을 우선 사용할지 여부입니다.
+
+    [Tooltip("이벤트 수신 여부와 무관하게 현재 보스 체력 값을 주기적으로 UI에 다시 반영합니다.")]
+    [SerializeField] private bool _enableContinuousRefresh = true; // 빌드 환경에서 이벤트 순서 차이가 생겨도 UI가 현재 체력을 따라가도록 유지할지 여부입니다.
+
+    [Tooltip("지속 갱신 간격입니다. 0이면 매 프레임 갱신합니다.")]
+    [Min(0f)]
+    [SerializeField] private float _continuousRefreshInterval = 0.05f; // 보스 체력 UI를 현재 체력 값과 다시 맞추는 주기입니다.
+
     [Header("Debug")]
     [Tooltip("마지막으로 UI에 적용된 보스 체력 비율입니다.")]
     [SerializeField] private float _debugLastAppliedFillAmount = 1f; // Inspector 확인용 최근 적용 fillAmount 값입니다.
 
     private Coroutine _bindingCoroutine; // 보스 체력 소스 지연 바인딩 코루틴 핸들입니다.
+    private float _nextContinuousRefreshTime; // 다음 지속 갱신이 허용되는 Time.unscaledTime 기준 시각입니다.
     private bool _isHealthListenerRegistered; // HealthComponent에 Listener로 등록되었는지 추적하는 플래그입니다.
     private bool _isNetworkSyncListenerRegistered; // BossHealthNetworkSync 체력 스냅샷 이벤트에 등록되었는지 추적하는 플래그입니다.
     private bool _hasWarnedMissingImage; // Image 누락 경고 중복 출력을 막는 플래그입니다.
@@ -69,6 +81,7 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
     {
         ConfigureFillImage();
         RestartBindingCoroutine();
+        ForceRefreshFromBestSource();
     }
 
     /// <summary>
@@ -92,11 +105,20 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// 이벤트가 누락되거나 빌드에서 초기화 순서가 달라져도 현재 보스 체력 값을 UI에 계속 반영합니다.
+    /// </summary>
+    private void Update()
+    {
+        RefreshContinuouslyIfNeeded();
+    }
+
+    /// <summary>
     /// Inspector 값 변경 시 Filled Image 설정과 기본 표시값을 보정합니다.
     /// </summary>
     private void OnValidate()
     {
         _fallbackFillAmount = Mathf.Clamp01(_fallbackFillAmount);
+        _continuousRefreshInterval = Mathf.Max(0f, _continuousRefreshInterval);
 
         if (_targetFillImage != null && _configureImageAsFilled)
         {
@@ -194,7 +216,7 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
             {
                 BindBossHealthInternal(resolvedHealth);
 
-                if (_isHealthListenerRegistered || _isNetworkSyncListenerRegistered)
+                if (CanCompleteBinding())
                 {
                     _bindingCoroutine = null;
                     yield break;
@@ -227,6 +249,40 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
 
         StopCoroutine(_bindingCoroutine);
         _bindingCoroutine = null;
+    }
+
+    /// <summary>
+    /// 설정된 주기에 맞춰 현재 사용 가능한 최선의 체력 소스에서 UI를 다시 갱신합니다.
+    /// </summary>
+    private void RefreshContinuouslyIfNeeded()
+    {
+        if (!_enableContinuousRefresh)
+        {
+            return;
+        }
+
+        float safeInterval = Mathf.Max(0f, _continuousRefreshInterval); // 디자이너 입력값을 안전한 갱신 주기로 보정한 값입니다.
+        if (safeInterval > 0f && Time.unscaledTime < _nextContinuousRefreshTime)
+        {
+            return;
+        }
+
+        _nextContinuousRefreshTime = Time.unscaledTime + safeInterval;
+
+        if (!HasAnyBoundHealthSource() && _bindingCoroutine == null)
+        {
+            RestartBindingCoroutine();
+        }
+
+        ForceRefreshFromBestSource();
+    }
+
+    /// <summary>
+    /// 현재 구독 또는 참조 중인 체력 소스가 하나라도 있는지 반환합니다.
+    /// </summary>
+    private bool HasAnyBoundHealthSource()
+    {
+        return _bossHealthComponent != null || _bossHealthNetworkSync != null || _bossController != null;
     }
 
     /// <summary>
@@ -369,8 +425,55 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
             return true;
         }
 
-        resolvedNetworkSync = FindAnyObjectByType<BossHealthNetworkSync>();
+        BossHealthNetworkSync[] networkSyncCandidates = FindObjectsByType<BossHealthNetworkSync>(FindObjectsInactive.Include, FindObjectsSortMode.None); // 비활성 또는 지연 스폰 보스도 후보로 포함합니다.
+        for (int index = 0; index < networkSyncCandidates.Length; index++)
+        {
+            BossHealthNetworkSync candidate = networkSyncCandidates[index]; // 탐색된 보스 체력 동기화 후보입니다.
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if (candidate.IsSpawned)
+            {
+                resolvedNetworkSync = candidate;
+                return true;
+            }
+
+            if (resolvedNetworkSync == null)
+            {
+                resolvedNetworkSync = candidate;
+            }
+        }
+
         return resolvedNetworkSync != null;
+    }
+
+    /// <summary>
+    /// 현재 실행 모드에서 보스 체력 바 바인딩을 완료해도 되는지 판단합니다.
+    /// </summary>
+    private bool CanCompleteBinding()
+    {
+        if (ShouldRequireNetworkSyncBinding())
+        {
+            return _isNetworkSyncListenerRegistered;
+        }
+
+        return _isHealthListenerRegistered || _isNetworkSyncListenerRegistered;
+    }
+
+    /// <summary>
+    /// Client 권한에서는 서버 복제 스냅샷 연결이 준비될 때까지 HealthComponent 직접 바인딩만으로 종료하지 않습니다.
+    /// </summary>
+    private bool ShouldRequireNetworkSyncBinding()
+    {
+        if (!_preferNetworkSyncOnClient)
+        {
+            return false;
+        }
+
+        NetworkManager networkManager = NetworkManager.Singleton; // 현재 NGO 세션 역할을 확인하기 위한 NetworkManager 참조입니다.
+        return networkManager != null && networkManager.IsListening && !networkManager.IsServer;
     }
 
     /// <summary>
@@ -409,6 +512,52 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
     }
 
     /// <summary>
+    /// 현재 실행 역할에 맞는 최선의 체력 소스를 선택해 Filled Image를 즉시 갱신합니다.
+    /// </summary>
+    private void ForceRefreshFromBestSource()
+    {
+        if (ShouldUseNetworkSyncForDisplay() && TryRefreshFromNetworkSync())
+        {
+            return;
+        }
+
+        if (TryRefreshFromHealthComponent())
+        {
+            return;
+        }
+
+        if (TryRefreshFromNetworkSync())
+        {
+            return;
+        }
+
+        if (_bossController != null && _bossController.HealthComponent != null)
+        {
+            BindBossHealthInternal(_bossController.HealthComponent);
+            TryRefreshFromHealthComponent();
+        }
+    }
+
+    /// <summary>
+    /// HealthComponent에서 직접 체력 비율을 읽어 UI 갱신을 시도합니다.
+    /// </summary>
+    private bool TryRefreshFromHealthComponent()
+    {
+        if (_bossHealthComponent == null)
+        {
+            TryResolveBossHealthComponent(out _bossHealthComponent);
+        }
+
+        if (_bossHealthComponent == null || !_bossHealthComponent.IsInitialized)
+        {
+            return false;
+        }
+
+        ApplyFillAmount(_bossHealthComponent.GetHealthNormalized());
+        return true;
+    }
+
+    /// <summary>
     /// BossHealthNetworkSync의 서버 확정 스냅샷을 기준으로 Filled Image를 즉시 갱신합니다.
     /// </summary>
     private void ForceRefreshFromNetworkSync()
@@ -419,6 +568,33 @@ public class BossHealthFillImageUiBridge : MonoBehaviour, IHealthListener
         }
 
         ApplyFillAmount(_bossHealthNetworkSync.ReplicatedNormalizedHealth);
+    }
+
+    /// <summary>
+    /// BossHealthNetworkSync의 서버 확정 체력 스냅샷으로 UI 갱신을 시도합니다.
+    /// </summary>
+    private bool TryRefreshFromNetworkSync()
+    {
+        if (_bossHealthNetworkSync == null)
+        {
+            TryResolveBossHealthNetworkSync(out _bossHealthNetworkSync);
+        }
+
+        if (_bossHealthNetworkSync == null || _bossHealthNetworkSync.ReplicatedHealthRevision <= 0)
+        {
+            return false;
+        }
+
+        ApplyFillAmount(_bossHealthNetworkSync.ReplicatedNormalizedHealth);
+        return true;
+    }
+
+    /// <summary>
+    /// 현재 역할에서 UI 표시 기준으로 BossHealthNetworkSync를 우선해야 하는지 판단합니다.
+    /// </summary>
+    private bool ShouldUseNetworkSyncForDisplay()
+    {
+        return ShouldRequireNetworkSyncBinding();
     }
 
     /// <summary>
