@@ -237,8 +237,6 @@ public class ActionAnimationPresenter : MonoBehaviour, IActionListener
         Debug.Log($"[ActionAnimationPresenter] Presentation lock released by {releaseActionType}.");
     }
 
-
-
     /// <summary>
     /// 액션 시작 시 Idle Break 감시를 시작하거나 중지합니다.
     /// </summary>
